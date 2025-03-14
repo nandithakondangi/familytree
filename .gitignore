@@ -11,3 +11,6 @@ bazel-out/
 bazel-testlogs/
 .bazelrc.user
 rules*
+
+
+Recording*
