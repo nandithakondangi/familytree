@@ -1,0 +1,37 @@
+syntax = "proto3";
+package family_tree;
+import "utils.proto";
+
+message FamilyMember {
+  int64 id = 1;
+  string name = 2;
+  repeated string nicknames = 3;
+  utils.EnglishDate date_of_birth = 4;
+  utils.TraditionalDate traditional_date_of_birth = 5;
+  optional bool alive_status = 6;
+  utils.EnglishDate date_of_death = 7;
+  utils.TraditionalDate traditional_date_of_death = 8;
+  string gender = 9;
+  map<string, string> additional_info = 10;
+  optional int64 birth_family_unit_id = 11;
+  optional int64 marriage_family_unit_id = 12;
+}
+
+message Relationships {
+  repeated int64 children_ids = 1;
+  repeated int64 spouse_ids = 2;
+}
+
+message FamilyUnit {
+  int64 id = 1;
+  repeated int64 parent_ids = 2;
+  repeated int64 child_ids = 3;
+  string name = 4;
+  map<string, string> additional_info = 5;
+}
+
+message FamilyTree {
+  map<int64, FamilyMember> members = 1;
+  map<int64, Relationships> relationships = 2;
+  repeated FamilyUnit family_units = 3;
+}

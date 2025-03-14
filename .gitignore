@@ -1,0 +1,13 @@
+# Python virtual environment
+venv/
+.venv/
+*/venv/
+*/.venv/
+
+# Bazel build system
+bazel-*
+bazel-bin/
+bazel-out/
+bazel-testlogs/
+.bazelrc.user
+rules*

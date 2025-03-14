@@ -1,0 +1,89 @@
+syntax = "proto3";
+package utils;
+
+message EnglishDate {
+    int32 year = 1;
+    int32 month = 2;
+    int32 day = 3;
+}
+
+message TraditionalDate {
+    TamilMonth month = 1;
+    TamilStar star = 2;
+    Paksham paksham = 3;
+    Thithi thithi = 4;
+}
+
+enum Paksham { 
+    PAKSHAM_UNDEFINED = 0;
+    KRISHNA = 1;
+    SHUKLA = 2;
+}
+
+enum Thithi {
+    THITHI_UNDEFINED = 0;
+    PRATHAMAI = 1;
+    DWITHIYAI = 2;    
+    THRITHIYAI = 3;
+    CHATHURTHI = 4;
+    PANCHAMI = 5;
+    SASHTI = 6;
+    SAPTAMI = 7;
+    ASHTAMI = 8;
+    NAVAMI = 9;
+    DASAMI = 10;
+    EKADASI = 11;
+    DWADASI = 12;
+    THRAYODASI = 13;
+    CHATHURDASI = 14;
+    AMAVASYA = 15;
+    POURNAMI = 16;
+}
+
+enum TamilMonth {
+    MONTH_UNDEFINED = 0;
+    CHITHIRI = 1;
+    VAIKASI = 2;
+    AANI = 3;
+    AADI = 4;
+    AAVANI = 5;
+    PURATTASI = 6;
+    IYPASI = 7;
+    KARTHIGAI = 8;
+    MARGAZHI = 9;
+    THAI = 10;
+    MAASI = 11;
+    PANGUNI = 12;
+}
+
+enum TamilStar {
+    STAR_UNDEFINED = 0;
+    ASWINI = 1;
+    BARANI = 2;
+    KRITHIGAI = 3;
+    ROHINI = 4;
+    MIRUGASEERISHAM = 5;
+    THIRUVATHIRAI = 6;
+    PUNARPOOSAM = 7;
+    POOSAM = 8;
+    AAYILYAM = 9;
+    MAGAM = 10;
+    POORAM = 11;
+    UTHIRAM = 12;
+    HASTHAM = 13;
+    CHITHIRAI = 14;
+    SWATHI = 15;
+    VISAGAM = 16;
+    ANUSHAM = 17;
+    KETTAI = 18;
+    MOOLAM = 19;
+    POORADAM = 20;
+    UTHIRADAM = 21;
+    THIRUVONAM = 22;
+    AVITTAM = 23;
+    SATHAYAM = 24;
+    POORATTATHI = 25;
+    UTHIRATTATHI = 26;
+    REVATHI = 27;
+}
+
