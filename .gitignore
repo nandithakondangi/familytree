@@ -11,6 +11,9 @@ bazel-out/
 bazel-testlogs/
 .bazelrc.user
 rules*
+MODULE.bazel.lock
 
-
-Recording*
+# Outputs directory
+outputs/
+# Input data
+input_data/
