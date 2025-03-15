@@ -35,7 +35,7 @@ py_binary(
     deps = [
         ":family_tree_py_proto",
         "@local_pypi_for_family_tree//networkx",
-        #"@local_pypi_for_family_tree//matplotlib"
+        "@local_pypi_for_family_tree//pyvis",
         ],
     main = "family_tree.py"
 )
