@@ -8,13 +8,14 @@ message FamilyMember {
   repeated string nicknames = 3;
   utils.EnglishDate date_of_birth = 4;
   utils.TraditionalDate traditional_date_of_birth = 5;
-  optional bool alive_status = 6;
+  optional bool alive = 6;
   utils.EnglishDate date_of_death = 7;
   utils.TraditionalDate traditional_date_of_death = 8;
   string gender = 9;
-  map<string, string> additional_info = 10;
-  optional int64 birth_family_unit_id = 11;
-  optional int64 marriage_family_unit_id = 12;
+  optional int64 birth_family_unit_id = 10;
+  optional int64 marriage_family_unit_id = 11;
+  optional utils.EnglishDate wedding_date = 12;
+  map<string, string> additional_info = 13;
 }
 
 message Relationships {

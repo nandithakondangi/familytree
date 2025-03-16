@@ -4,7 +4,7 @@ package utils;
 message EnglishDate {
     int32 year = 1;
     int32 month = 2;
-    int32 day = 3;
+    int32 date = 3;
 }
 
 message TraditionalDate {
@@ -82,8 +82,8 @@ enum TamilStar {
     THIRUVONAM = 22;
     AVITTAM = 23;
     SATHAYAM = 24;
-    POORATTATHI = 25;
-    UTHIRATTATHI = 26;
+    POORATTADHI = 25;
+    UTHIRATTADHI = 26;
     REVATHI = 27;
 }
 

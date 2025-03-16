@@ -37,5 +37,6 @@ py_binary(
         "@local_pypi_for_family_tree//networkx",
         "@local_pypi_for_family_tree//pyvis",
         ],
+    data = ["input_data/sample_data.txtpb"],
     main = "family_tree.py"
 )
