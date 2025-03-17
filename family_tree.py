@@ -5,6 +5,7 @@ from google.protobuf.json_format import MessageToDict
 from pyvis.network import Network
 import networkx as nx
 
+
 class FamilyTreeHandler:
     def __init__(self):
         self.family_tree = FamilyTree()
@@ -32,19 +33,27 @@ class FamilyTreeHandler:
         for member_id, member in self.family_tree.members.items():
             # Confirm that member_id of the tree is same as the member_id field in the node
             assert member_id == member.id
+
             # Add member to networkx graph
             member_dict = MessageToDict(member)
-            self.nx_graph.add_node(node_for_adding=member_id, label=member.name, title=text_format.MessageToString(member),**member_dict)
+            self.nx_graph.add_node(
+                member_id,
+                label=member.name,
+                title=text_format.MessageToString(member),
+                shape="ellipse",
+                font={"size": 20},
+                **member_dict,
+            )
 
         for member_id, relationships in self.family_tree.relationships.items():
             # Add edges between spouses
             for spouse_id in relationships.spouse_ids:
-                self.nx_graph.add_edge(member_id, spouse_id, color='red')
+                self.nx_graph.add_edge(member_id, spouse_id, color="red")
 
             # Add edges between parents and children
             for child_id in relationships.children_ids:
                 self.nx_graph.add_edge(member_id, child_id)
-        
+
     def display_menu(self):
         while True:
             print("Menu:")
@@ -52,7 +61,9 @@ class FamilyTreeHandler:
                 print(f"{key}: {value}")
             choice = input("Enter your choice: ")
             if choice == "1":
-                self.display_family_tree(f"{os.environ.get('BUILD_WORKING_DIRECTORY')}/outputs/family_tree.html")
+                self.display_family_tree(
+                    f"{os.environ.get('BUILD_WORKING_DIRECTORY')}/outputs/family_tree.html"
+                )
             elif choice == "2":
                 self.find_person()
             elif choice == "3":
@@ -81,10 +92,10 @@ class FamilyTreeHandler:
         member = self.family_tree.members[member_id]
         print(member)
 
+
 if __name__ == "__main__":
     family_tree_handler = FamilyTreeHandler()
     working_directory = os.environ.get("BUILD_WORKING_DIRECTORY")
     input_file = f"{working_directory}/input_data/sample_data.txtpb"
     family_tree_handler.load_from_protobuf(file_path=input_file)
     family_tree_handler.display_menu()
-
