@@ -20,12 +20,14 @@ class FamilyTreeHandler:
         self.output_file = output_file
 
     def load_from_protobuf(self):
-        assert os.path.exists(self.input_file)
         print(f"Loading data from: {self.input_file}")
         try:
             with open(self.input_file, "r") as f:
                 text_format.Merge(f.read(), self.family_tree)
                 print(f"Successfully loaded {self.input_file}")
+        except FileNotFoundError as e:
+            print(f"File not found: {e}")
+            raise
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             raise
@@ -71,6 +73,7 @@ class FamilyTreeHandler:
         for member_id, member in self.family_tree.members.items():
             if member.name.lower() == person_name.lower():
                 person_found = True
+                print(f"Person '{person_name}' found in the family tree.")
                 self.print_member_details(member_id)
         if not person_found:
             print(f"Person '{person_name}' not found in the family tree.")

@@ -3,7 +3,7 @@ package family_tree;
 import "utils.proto";
 
 message FamilyMember {
-  int64 id = 1;
+  string id = 1;
   string name = 2;
   repeated string nicknames = 3;
   utils.EnglishDate date_of_birth = 4;
@@ -19,12 +19,12 @@ message FamilyMember {
 }
 
 message Relationships {
-  repeated int64 children_ids = 1;
-  repeated int64 spouse_ids = 2;
+  repeated string children_ids = 1;
+  repeated string spouse_ids = 2;
 }
 
 message FamilyUnit {
-  int64 id = 1;
+  string id = 1;
   repeated int64 parent_ids = 2;
   repeated int64 child_ids = 3;
   string name = 4;
@@ -32,7 +32,7 @@ message FamilyUnit {
 }
 
 message FamilyTree {
-  map<int64, FamilyMember> members = 1;
-  map<int64, Relationships> relationships = 2;
+  map<string, FamilyMember> members = 1;
+  map<string, Relationships> relationships = 2;
   repeated FamilyUnit family_units = 3;
 }
