@@ -4,6 +4,10 @@ venv/
 */venv/
 */.venv/
 
+#python
+__pycache__/
+*/__pycache__/
+
 # Bazel build system
 bazel-*
 bazel-bin/
@@ -17,3 +21,6 @@ MODULE.bazel.lock
 outputs/
 # Input data
 input_data/
+
+#vscode
+.vscode/
