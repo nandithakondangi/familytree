@@ -16,10 +16,6 @@ def family_tree_handler():
     create_test_data_file(test_data_file)
     handler = FamilyTreeHandler(input_file=test_data_file, output_file=test_output_file)
 
-    # Mock the environment variable for testing
-    env_patcher = patch.dict("os.environ", {"BUILD_WORKING_DIRECTORY": "."})
-    env_patcher.start()
-
     yield handler, test_data_file, test_output_file
 
     # Cleanup
@@ -28,8 +24,6 @@ def family_tree_handler():
 
     if os.path.exists(test_output_file):
         os.remove(test_output_file)
-    # Stop the environment variable patcher
-    env_patcher.stop()
 
 
 # --- Helper Function ---

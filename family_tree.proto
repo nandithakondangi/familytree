@@ -11,7 +11,7 @@ message FamilyMember {
   optional bool alive = 6;
   utils.EnglishDate date_of_death = 7;
   utils.TraditionalDate traditional_date_of_death = 8;
-  string gender = 9;
+  utils.Gender gender = 9;
   optional int64 birth_family_unit_id = 10;
   optional int64 marriage_family_unit_id = 11;
   optional utils.EnglishDate wedding_date = 12;
