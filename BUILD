@@ -31,7 +31,7 @@ py_proto_library(
 )
 
 py_library(
-    name = "family_tree_lib",
+    name = "family_tree_handler_lib",
     srcs = ["src/family_tree_handler.py"],
     imports = ["src"], 
     deps = [
@@ -40,33 +40,38 @@ py_library(
         "@local_pypi_for_family_tree//pyvis",
     ],
 )
+py_library(
+    name = "family_tree_gui_lib",
+    srcs = ["src/family_tree_gui.py"],
+    imports = ["src"], 
+    deps = [
+        ":family_tree_py_proto",
+        ":family_tree_handler_lib",
+        "@local_pypi_for_family_tree//networkx",
+        "@local_pypi_for_family_tree//pyvis",
+        "@local_pypi_for_family_tree//pyside6",
+    ],
+    data = [
+        "@local_pypi_for_family_tree//pyside6",
+    ]
+)
 
 py_binary(
     name = "family_tree_main",
     srcs = ["src/family_tree_app.py"],
+    data = [
+        "@local_pypi_for_family_tree//pyside6"
+    ],
     deps = [
         ":family_tree_py_proto",
-        ":family_tree_lib",
+        ":family_tree_handler_lib",
+        ":family_tree_gui_lib",
         "@local_pypi_for_family_tree//networkx",
         "@local_pypi_for_family_tree//pyvis",
+        "@local_pypi_for_family_tree//pyside6",
         ],
     main = "family_tree_app.py"
 )
-
-"""
-py_test(
-    name = "test_family_tree_handler",
-    srcs = ["tests/test_family_tree_handler.py"],
-    deps = [
-        ":family_tree_lib",
-        ":family_tree_py_proto",
-        "@local_pypi_for_family_tree//pytest",
-        "@local_pypi_for_family_tree//networkx",
-        "@local_pypi_for_family_tree//protobuf",
-    ],
-    args = ["--", "-v","-s"]
-)
-"""
 
 load("@rules_python_pytest//python_pytest:defs.bzl", "py_pytest_test")
 
@@ -74,7 +79,7 @@ py_pytest_test(
     name = "test_family_tree_handler",
     srcs = ["tests/test_family_tree_handler.py"],
     deps = [
-        ":family_tree_lib",
+        ":family_tree_handler_lib",
         ":family_tree_py_proto",
         "@local_pypi_for_family_tree//pytest",
         "@local_pypi_for_family_tree//networkx",
