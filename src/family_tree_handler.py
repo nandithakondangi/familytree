@@ -6,9 +6,9 @@ from pyvis.network import Network
 import networkx as nx
 import shutil
 import pkg_resources
+import bin.family_tree_pb2 as family_tree_pb2
+import bin.utils_pb2 as utils_pb2
 import pathlib
-import family_tree_pb2
-from utils_pb2 import Gender
 import random
 import string
 
@@ -112,7 +112,7 @@ class FamilyTreeHandler:
             "https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-7.png"
         )"
         """
-        images = os.path.abspath(f"{os.path.dirname(__file__)}/../images")
+        images = os.path.abspath(f"{os.path.dirname(__file__)}/../resources")
 
         default_images = {
             "MALE": f"{images}/male.png",
@@ -138,10 +138,37 @@ class FamilyTreeHandler:
         member_id = self.generate_member_id()
         member = family_tree_pb2.FamilyMember()
         member.id = member_id
-        print(member_id)
-        print(input_dict)
         member.name = input_dict.get("name")
-        member.gender = Gender.UNKNOWN
+        member.nicknames.extend(input_dict.get("nicknames"))
+        member.gender = input_dict.get("gender")
+        if "dob_date" in input_dict:
+            member.date_of_birth.date = input_dict.get("dob_date")
+            member.date_of_birth.month = input_dict.get("dob_month")
+            member.date_of_birth.year = input_dict.get("dob_year")
+
+        # Proto expects to store these as integers
+        member.traditional_date_of_birth.month = utils_pb2.TamilMonth.Value(
+            input_dict.get("dob_traditional_month")
+        )
+        member.traditional_date_of_birth.star = utils_pb2.TamilStar.Value(
+            input_dict.get("dob_traditional_star")
+        )
+        member.alive = input_dict.get("IsAlive")
+        if not member.alive:
+            member.date_of_death.date = input_dict.get("dod_date")
+            member.date_of_death.month = input_dict.get("dod_month")
+            member.date_of_death.year = input_dict.get("dod_year")
+            # Proto expects to store these as integers
+            member.traditional_date_of_death.month = utils_pb2.TamilMonth.Value(
+                input_dict.get("dod_traditional_month")
+            )
+            member.traditional_date_of_death.paksham = utils_pb2.Paksham.Value(
+                input_dict.get("dod_traditional_paksham")
+            )
+            member.traditional_date_of_death.thithi = utils_pb2.Thithi.Value(
+                input_dict.get("dod_traditional_thithi")
+            )
+
         self.family_tree.members[member_id].CopyFrom(member)
         self.add_node_from_proto_object(member)
         print(f"Created node with ID: {member_id}, Name: {input_dict.get('name')}")
@@ -153,7 +180,7 @@ class FamilyTreeHandler:
         image_location = additional_info.get("image_location")
         if not image_location:
             # Load the default image based on gender
-            image_location = default_images[Gender.Name(member.gender)]
+            image_location = default_images[utils_pb2.Gender.Name(member.gender)]
         node_options = {
             "label": member.name,
             "title": text_format.MessageToString(member),
@@ -282,10 +309,32 @@ class FamilyTreeHandler:
             f.write(text_format.MessageToString(self.family_tree))
             print(f"Successfully saved {self.output_proto_data_file}")
 
-    def get_fields_from_proto_schema(self):
+    def get_member_fields_from_proto_schema(self):
         # Get the names of FamilyMember from proto schema progrmmatically
         family_member_descriptor = self.family_tree.members.DESCRIPTOR.fields_by_name[
             "value"
         ].message_type
         field_names = [field.name for field in family_member_descriptor.fields]
         return field_names
+
+    def get_enum_values_from_proto_schema(self, enum_name, proto_module=utils_pb2):
+        # Get the valid options for a given enum from utils.proto
+        """
+        Retrieves the valid values for a given enum from the protobuf schema.
+
+        Args:
+            enum_name (str): The name of the enum (e.g., "Gender").
+
+        Returns:
+            list: A list of strings representing the valid enum values, or None if the enum is not found.
+        """
+        try:
+            # Dynamically get the enum from the utils_pb2 module
+            enum_type = getattr(proto_module, enum_name)
+            enum_values = enum_type.DESCRIPTOR.values
+            # Get the enum values
+            valid_values = [value.name for value in enum_values]
+            return valid_values
+        except AttributeError:
+            print(f"Error: Enum '{enum_name}' not found in {proto_module}.")
+            return None

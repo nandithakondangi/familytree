@@ -14,14 +14,15 @@ message TraditionalDate {
     Thithi thithi = 4;
 }
 
+//Enums are scoped for the entire file => They cannot have same "UNKNOWN" values across different enums
 enum Paksham { 
-    PAKSHAM_UNDEFINED = 0;
+    PAKSHAM_UNKNOWN = 0;
     KRISHNA = 1;
     SHUKLA = 2;
 }
 
 enum Thithi {
-    THITHI_UNDEFINED = 0;
+    THITHI_UNKNOWN = 0;
     PRATHAMAI = 1;
     DWITHIYAI = 2;    
     THRITHIYAI = 3;
@@ -41,7 +42,7 @@ enum Thithi {
 }
 
 enum TamilMonth {
-    MONTH_UNDEFINED = 0;
+    TAMIL_MONTH_UNKNOWN = 0;
     CHITHIRI = 1;
     VAIKASI = 2;
     AANI = 3;
@@ -57,7 +58,7 @@ enum TamilMonth {
 }
 
 enum TamilStar {
-    STAR_UNDEFINED = 0;
+    TAMIL_STAR_UNKNOWN = 0;
     ASWINI = 1;
     BARANI = 2;
     KRITHIGAI = 3;
@@ -88,7 +89,7 @@ enum TamilStar {
 }
 
 enum Gender {
-    UNKNOWN = 0;
+    GENDER_UNKNOWN = 0;
     MALE = 1;
     FEMALE = 2;
     OTHER = 3;

@@ -1,19 +1,20 @@
-import os
 import sys
-
-# FIXME: As PySide6 is not getting resolved properly with Bazel
-proto_binary_path = f"{os.path.realpath(os.path.dirname(__file__))}/../bazel-bin"
-sys.path.append(proto_binary_path)
-
+import time
 from family_tree_gui import FamilyTreeGUI
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
 
 if __name__ == "__main__":
+    orig_time = time.time()
     app = QApplication(sys.argv)
+    print(f"QApplication created in {time.time() - orig_time:.4f} seconds")
     font = QFont("DejaVu Sans", 12)
     app.setFont(font)
     app.setStyle("Fusion")
+
+    start_time = time.time()
     gui = FamilyTreeGUI()
+    print(f"FamilyTreeGUI created in {time.time() - start_time:.4f} seconds")
     gui.show()
+    print(f"GUI shown in {time.time() - start_time:.4f} seconds")
     sys.exit(app.exec())

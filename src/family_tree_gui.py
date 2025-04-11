@@ -15,12 +15,13 @@ from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QSpinBox,
-    QDateEdit,
+    QCheckBox,
+    QComboBox,  # Import QComboBox
 )
 from PySide6.QtCore import Qt, QDate
 from family_tree_handler import FamilyTreeHandler
 from family_tree_pb2 import FamilyMember
-from utils_pb2 import Gender
+import utils_pb2  # Import the module directly
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, QUrl
 from family_tree_handler import FamilyTreeHandler
@@ -196,87 +197,326 @@ class AddPersonDialog(QDialog):
         self.family_tree_handler = family_tree_handler
         self.family_tree_gui = family_tree_gui
         self.user_input_values = {}
+        self.user_input_fields = {}
+        # Add widgets for DoD fields to be accessible later
+        self.dod_fields_widget = None
+        self.dod_label = None
+        # Add widget and label for DOB fields
+        self.dob_fields_widget = None
+        self.dob_label = None
         self.setWindowTitle("Enter a new family member")
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        self.user_input_fields = {}
+        form_layout = QFormLayout()  # Use QFormLayout for label-widget pairs
 
-        # Name
-        name_label = QLabel("Name:")
-        self.user_input_fields["name"] = QLineEdit()
-        layout.addWidget(name_label)
-        layout.addWidget(self.user_input_fields["name"])
+        self.display_name_field(form_layout)
+        self.display_nicknames_field(form_layout)
+        self.display_gender_field(form_layout)
+        self.display_dob_field(form_layout)
+        self.display_traditional_date_of_birth_field(form_layout)
+        self.display_is_alive_field(form_layout)
+        self.display_dod_field(form_layout)
 
-        # Date of Birth
-        self.user_input_fields["day"] = QSpinBox()
-        self.user_input_fields["day"].setRange(1, 31)
-        self.user_input_fields["month"] = QSpinBox()
-        self.user_input_fields["month"].setRange(1, 12)
-        self.user_input_fields["year"] = QSpinBox()
-        self.user_input_fields["year"].setRange(1700, QDate.currentDate().year())
-        self.user_input_fields["year"].setValue(QDate.currentDate().year())
-        dob_layout = QHBoxLayout()
-
-        dob_layout.addWidget(QLabel("Day:"))
-        dob_layout.addWidget(self.user_input_fields["day"])
-        dob_layout.addWidget(QLabel("Month:"))
-        dob_layout.addWidget(self.user_input_fields["month"])
-        dob_layout.addWidget(QLabel("Year:"))
-        dob_layout.addWidget(self.user_input_fields["year"])
-        layout.addLayout(dob_layout)
+        # Add the entire form layout to the main vertical layout
+        layout.addLayout(form_layout)
 
         # Save Button
         save_button = QPushButton("Save New Member")
         save_button.clicked.connect(self.save_new_member)
         layout.addWidget(save_button)
 
+        self.toggle_dod_fields()  # Call initially to set correct visibility
+
+    def display_name_field(self, form_layout: QFormLayout):
+        # Name
+        self.user_input_fields["name"] = QLineEdit()
+        form_layout.addRow(QLabel("Name:"), self.user_input_fields["name"])
+
+    def display_nicknames_field(self, form_layout: QFormLayout):
+        # Nicknames
+        self.user_input_fields["nicknames"] = QLineEdit()
+        self.user_input_fields["nicknames"].setPlaceholderText("Comma-separated")
+        form_layout.addRow(QLabel("Nicknames:"), self.user_input_fields["nicknames"])
+
+    def display_gender_field(self, form_layout: QFormLayout):
+        # Gender Dropdown
+        gender_label = QLabel("Gender:")
+        self.user_input_fields["gender"] = QComboBox()
+        valid_genders = self.family_tree_handler.get_enum_values_from_proto_schema(
+            "Gender", proto_module=utils_pb2
+        )  # Pass the module
+        if valid_genders:
+            self.user_input_fields["gender"].addItems(valid_genders)
+        else:
+            # Handle case where genders couldn't be loaded
+            self.user_input_fields["gender"].addItem("Error loading genders")
+            self.user_input_fields["gender"].setEnabled(False)
+        form_layout.addRow(gender_label, self.user_input_fields["gender"])
+
+    def display_traditional_date_of_birth_field(self, form_layout: QFormLayout):
+        valid_traditional_months = (
+            self.family_tree_handler.get_enum_values_from_proto_schema("TamilMonth")
+        )
+        valid_traditional_stars = (
+            self.family_tree_handler.get_enum_values_from_proto_schema("TamilStar")
+        )
+        # --- Start: Added Tamil Month and Star Dropdowns ---
+        # Create a horizontal layout for Tamil Month and Star
+        traditional_info_widget = QWidget()  # Use a widget to hold the QHBoxLayout
+        traditional_info_layout = QHBoxLayout(traditional_info_widget)
+        # Remove margins for tighter packing
+        traditional_info_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Tamil Month Dropdown
+        self.user_input_fields["dob_traditional_month"] = QComboBox()
+        self.user_input_fields["dob_traditional_month"].addItems(
+            valid_traditional_months
+        )
+
+        # Tamil Star Dropdown
+        self.user_input_fields["dob_traditional_star"] = QComboBox()
+        self.user_input_fields["dob_traditional_star"].addItems(valid_traditional_stars)
+
+        # Add labels and dropdowns to the horizontal layout
+        traditional_info_layout.addWidget(QLabel("DOB - Tamil Month:"))
+        traditional_info_layout.addWidget(
+            self.user_input_fields["dob_traditional_month"]
+        )
+        traditional_info_layout.addSpacing(10)  # Add some space between the two
+        traditional_info_layout.addWidget(QLabel("DOB - Tamil Star:"))
+        traditional_info_layout.addWidget(
+            self.user_input_fields["dob_traditional_star"]
+        )
+
+        # --- End: Added Tamil Month and Star Dropdowns ---
+        # Add the horizontal layout widget as a single row in the form layout
+        # Use an empty label for the first column if you want it aligned like other rows
+        form_layout.addRow(traditional_info_widget)
+        # OR, if you want a label spanning the first column:
+        # form_layout.addRow(QLabel("Traditional DOB:"), traditional_info_widget)
+
+    def display_dob_field(self, form_layout: QFormLayout):
+        # Date of Birth Checkbox
+        self.dob_checkbox = QCheckBox("Date of Birth is not known")
+        self.dob_checkbox.setChecked(False)  # Initially unchecked
+        self.dob_checkbox.stateChanged.connect(self.toggle_dob_fields)
+        # Add checkbox spanning both columns or with an empty label
+        form_layout.addRow(self.dob_checkbox)
+
+        # Date of Birth Fields (initially hidden)
+        self.dob_fields_widget = QWidget()  # Create a widget to hold DOB fields
+        self.dob_fields_layout = QHBoxLayout(self.dob_fields_widget)
+        self.dob_fields_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        self.user_input_fields["date"] = QSpinBox()
+        self.user_input_fields["date"].setRange(1, 31)
+        self.user_input_fields["month"] = QSpinBox()
+        self.user_input_fields["month"].setRange(1, 12)
+        self.user_input_fields["year"] = QSpinBox()
+        self.user_input_fields["year"].setRange(1700, QDate.currentDate().year())
+        self.user_input_fields["year"].setValue(QDate.currentDate().year())
+
+        self.dob_fields_layout.addWidget(QLabel("Date:"))
+        self.dob_fields_layout.addWidget(self.user_input_fields["date"])
+        self.dob_fields_layout.addWidget(QLabel("Month:"))
+        self.dob_fields_layout.addWidget(self.user_input_fields["month"])
+        self.dob_fields_layout.addWidget(QLabel("Year:"))
+        self.dob_fields_layout.addWidget(self.user_input_fields["year"])
+
+        # Create and store the DOB label
+        self.dob_label = QLabel("DOB (D/M/Y):")
+        # Add the stored label and the DOB fields widget as a row
+        form_layout.addRow(self.dob_label, self.dob_fields_widget)
+
+        # Initially hide the DOB fields widget
+        self.toggle_dob_fields()
+
+    def display_is_alive_field(self, form_layout: QFormLayout):
+        self.user_input_fields["IsAlive"] = QCheckBox("Is the person alive?")
+        form_layout.addRow(self.user_input_fields["IsAlive"])
+        self.user_input_fields["IsAlive"].setChecked(True)  # Default to alive
+        self.user_input_fields["IsAlive"].stateChanged.connect(self.toggle_dod_fields)
+
+    def display_dod_field(self, form_layout: QFormLayout):
+        """Adds the Date of Death fields (Gregorian and Traditional, initially hidden) to the form."""
+        # Create a main widget to hold ALL DoD fields (Gregorian + Traditional)
+        self.dod_fields_widget = QWidget()
+        # Use a QVBoxLayout to stack Gregorian and Traditional horizontally
+        main_dod_layout = QVBoxLayout(self.dod_fields_widget)
+        main_dod_layout.setContentsMargins(0, 0, 0, 0)  # Remove outer margins
+
+        # --- Gregorian DoD Fields ---
+        gregorian_dod_widget = QWidget()  # Widget for horizontal layout
+        gregorian_dod_layout = QHBoxLayout(gregorian_dod_widget)
+        gregorian_dod_layout.setContentsMargins(0, 0, 0, 0)  # Remove inner margins
+
+        # Create SpinBoxes for Gregorian DoD
+        self.user_input_fields["dod_date"] = QSpinBox()
+        self.user_input_fields["dod_date"].setRange(1, 31)
+        self.user_input_fields["dod_month"] = QSpinBox()
+        self.user_input_fields["dod_month"].setRange(1, 12)
+        self.user_input_fields["dod_year"] = QSpinBox()
+        self.user_input_fields["dod_year"].setRange(1700, QDate.currentDate().year())
+        self.user_input_fields["dod_year"].setValue(QDate.currentDate().year())
+
+        # Add labels and SpinBoxes to the horizontal layout
+        gregorian_dod_layout.addWidget(QLabel("Date:"))
+        gregorian_dod_layout.addWidget(self.user_input_fields["dod_date"])
+        gregorian_dod_layout.addWidget(QLabel("Month:"))
+        gregorian_dod_layout.addWidget(self.user_input_fields["dod_month"])
+        gregorian_dod_layout.addWidget(QLabel("Year:"))
+        gregorian_dod_layout.addWidget(self.user_input_fields["dod_year"])
+
+        # Add the Gregorian DoD widget to the main vertical layout
+        main_dod_layout.addWidget(gregorian_dod_widget)
+        # --- End Gregorian DoD Fields ---
+
+        # --- Traditional DoD Fields ---
+        traditional_dod_widget = QWidget()  # Widget for horizontal layout
+        traditional_dod_layout = QHBoxLayout(traditional_dod_widget)
+        traditional_dod_layout.setContentsMargins(0, 0, 0, 0)  # Remove inner margins
+
+        # Get enum values
+        valid_traditional_months = (
+            self.family_tree_handler.get_enum_values_from_proto_schema(
+                "TamilMonth", proto_module=utils_pb2
+            )
+        )
+        valid_traditional_paksham = (
+            self.family_tree_handler.get_enum_values_from_proto_schema(
+                "Paksham", proto_module=utils_pb2
+            )
+        )
+        valid_traditional_thithi = (
+            self.family_tree_handler.get_enum_values_from_proto_schema(
+                "Thithi", proto_module=utils_pb2
+            )
+        )
+
+        # Create ComboBoxes for Traditional DoD
+        self.user_input_fields["dod_traditional_month"] = QComboBox()
+        self.user_input_fields["dod_traditional_month"].addItems(
+            valid_traditional_months
+        )
+
+        self.user_input_fields["dod_traditional_paksham"] = QComboBox()
+        self.user_input_fields["dod_traditional_paksham"].addItems(
+            valid_traditional_paksham
+        )
+
+        self.user_input_fields["dod_traditional_thithi"] = QComboBox()
+        self.user_input_fields["dod_traditional_thithi"].addItems(
+            valid_traditional_thithi
+        )
+        # Add labels and ComboBoxes to the horizontal layout
+        traditional_dod_layout.addWidget(QLabel("Month:"))
+        traditional_dod_layout.addWidget(
+            self.user_input_fields["dod_traditional_month"]
+        )
+        traditional_dod_layout.addSpacing(10)
+        traditional_dod_layout.addWidget(QLabel("Paksham:"))
+        traditional_dod_layout.addWidget(
+            self.user_input_fields["dod_traditional_paksham"]
+        )
+        traditional_dod_layout.addSpacing(10)
+        traditional_dod_layout.addWidget(QLabel("Thithi:"))
+        traditional_dod_layout.addWidget(
+            self.user_input_fields["dod_traditional_thithi"]
+        )
+
+        # Add the Traditional DoD widget to the main vertical layout
+        main_dod_layout.addWidget(traditional_dod_widget)
+        # --- End Traditional DoD Fields ---
+
+        # Create and store the label
+        self.dod_label = QLabel("Date of Death:")  # <-- Store the label
+
+        # Add the stored label and the main DoD fields widget as a single row in the form layout
+        form_layout.addRow(self.dod_label, self.dod_fields_widget)
+
+        # Initial visibility is handled by toggle_dod_fields called in init_ui
+
+    def toggle_dod_fields(self):
+        """Shows or hides the Date of Death fields based on the 'Is Alive' checkbox."""
+        # Ensure both the label and the widget exist before toggling
+        if self.dod_label and self.dod_fields_widget:
+            is_alive_checked = self.user_input_fields["IsAlive"].isChecked()
+            # Calculate desired visibility (False if alive, True if not)
+            visible = not is_alive_checked
+            # Toggle visibility for BOTH the label and the widget
+            self.dod_label.setVisible(visible)
+            self.dod_fields_widget.setVisible(visible)
+
+    def toggle_dob_fields(self):
+        """Shows or hides the Date of Birth label and fields based on the checkbox state."""
+        # Ensure both the label and the widget exist before toggling
+        if self.dob_label and self.dob_fields_widget:
+            is_checked = self.dob_checkbox.isChecked()
+            # Calculate desired visibility (True if NOT checked, False if checked)
+            visible = not is_checked
+            # Toggle visibility for BOTH the label and the widget
+            self.dob_label.setVisible(visible)  # <-- Toggle label visibility
+            self.dob_fields_widget.setVisible(visible)  # <-- Toggle widget visibility
+
     def save_new_member(self):
         self.user_input_values.clear()
         self.user_input_values["name"] = self.user_input_fields["name"].text()
-        self.user_input_values["dob_day"] = self.user_input_fields["day"].value()
-        self.user_input_values["dob_month"] = self.user_input_fields["month"].value()
-        self.user_input_values["dob_year"] = self.user_input_fields["year"].value()
         if not self.user_input_values["name"]:
             QMessageBox.warning(self, "Warning", "Name cannot be empty.")
             return
+        self.user_input_values["nicknames"] = self.user_input_fields["name"].text()
+        self.user_input_values["gender"] = self.user_input_fields[
+            "gender"
+        ].currentText()
+
+        # Get DOB only if checkbox is unchecked
+        if not self.dob_checkbox.isChecked():
+            self.user_input_values["dob_date"] = self.user_input_fields["date"].value()
+            self.user_input_values["dob_month"] = self.user_input_fields[
+                "month"
+            ].value()
+            self.user_input_values["dob_year"] = self.user_input_fields["year"].value()
+
+        self.user_input_values["dob_traditional_month"] = self.user_input_fields[
+            "dob_traditional_month"
+        ].currentText()
+        self.user_input_values["dob_traditional_star"] = self.user_input_fields[
+            "dob_traditional_star"
+        ].currentText()
+
+        # --- Get IsAlive status ---
+        is_alive = self.user_input_fields["IsAlive"].isChecked()
+        self.user_input_values["IsAlive"] = is_alive
+        # --- End Get IsAlive status ---
+        # --- Get DoD only if 'Is Alive' is unchecked ---
+        if not is_alive:
+            # Gregorian DoD
+            self.user_input_values["dod_date"] = self.user_input_fields[
+                "dod_date"
+            ].value()
+            self.user_input_values["dod_month"] = self.user_input_fields[
+                "dod_month"
+            ].value()
+            self.user_input_values["dod_year"] = self.user_input_fields[
+                "dod_year"
+            ].value()
+            # Traditional DoD
+            self.user_input_values["dod_traditional_month"] = self.user_input_fields[
+                "dod_traditional_month"
+            ].currentText()
+            self.user_input_values["dod_traditional_paksham"] = self.user_input_fields[
+                "dod_traditional_paksham"
+            ].currentText()
+            self.user_input_values["dod_traditional_thithi"] = self.user_input_fields[
+                "dod_traditional_thithi"
+            ].currentText()
+        # --- End Get DoD ---
 
         self.family_tree_handler.create_node(self.user_input_values)
         self.family_tree_gui.re_render_tree()
         QMessageBox.information(self, "Success", "New member added!")
         self.accept()
-
-
-class AddPersonForm(QWidget):
-    def __init__(self, family_tree_handler):
-        super().__init__()
-        self.family_tree_handler = family_tree_handler
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QFormLayout(self)
-        pass
-        self.name_input = QLineEdit()
-        self.birth_year_input = QLineEdit()
-        self.parents_input = QLineEdit()
-        self.spouse_input = QLineEdit()
-        self.children_input = QLineEdit()
-
-        layout.addRow(QLabel("Name:"), self.name_input)
-        layout.addRow(QLabel("Birth Year:"), self.birth_year_input)
-        layout.addRow(QLabel("Parents (IDs, comma-separated):"), self.parents_input)
-        layout.addRow(QLabel("Spouse (ID):"), self.spouse_input)
-        layout.addRow(QLabel("Children (IDs, comma-separated):"), self.children_input)
-
-        save_button = QPushButton("Save New Member")
-        save_button.clicked.connect(self.save_new_member)
-        layout.addRow(save_button)
-
-    def save_new_member(self):
-        # Implement logic to add a new member to the family tree
-        # using self.family_tree_handler
-        QMessageBox.information(self, "Success", "New member added!")
 
 
 class EditDetailsForm(QWidget):

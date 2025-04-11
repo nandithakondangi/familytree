@@ -8,15 +8,6 @@ venv/
 __pycache__/
 */__pycache__/
 
-# Bazel build system
-bazel-*
-bazel-bin/
-bazel-out/
-bazel-testlogs/
-.bazelrc.user
-rules*
-MODULE.bazel.lock
-
 # Outputs directory
 outputs/
 # Input data
