@@ -6,8 +6,8 @@ from pyvis.network import Network
 import networkx as nx
 import shutil
 import pkg_resources
-import bin.family_tree_pb2 as family_tree_pb2
-import bin.utils_pb2 as utils_pb2
+import proto.family_tree_pb2 as family_tree_pb2
+import proto.utils_pb2 as utils_pb2
 import pathlib
 import random
 import string
@@ -106,7 +106,7 @@ class FamilyTreeHandler:
             "MALE": "https://www.freeiconspng.com/uploads/male-icon-19.png",
             "FEMALE": "https://www.freeiconspng.com/uploads/businesswoman-female-icon-19.png",
             "OTHER": "https://www.freeiconspng.com/uploads/person-head-icon-7.jpg",
-            "UNKNOWN": "https://www.freeiconspng.com/uploads/person-head-icon-7.jpg",
+            "GENDER_UNKNOWN": "https://www.freeiconspng.com/uploads/person-head-icon-7.jpg",
         }
         brokenImage = (
             "https://www.freeiconspng.com/thumbs/no-image-icon/no-image-icon-7.png"
@@ -139,7 +139,9 @@ class FamilyTreeHandler:
         member = family_tree_pb2.FamilyMember()
         member.id = member_id
         member.name = input_dict.get("name")
-        member.nicknames.extend(input_dict.get("nicknames"))
+        member.nicknames.extend(
+            list(map(str.strip, input_dict.get("nicknames").split(",")))
+        )
         member.gender = input_dict.get("gender")
         if "dob_date" in input_dict:
             member.date_of_birth.date = input_dict.get("dob_date")

@@ -20,13 +20,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QDate
 from family_tree_handler import FamilyTreeHandler
-from family_tree_pb2 import FamilyMember
-import utils_pb2  # Import the module directly
+import proto.utils_pb2 as utils_pb2
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, QUrl
 from family_tree_handler import FamilyTreeHandler
-
-from PySide6.QtWebEngineCore import QWebEngineSettings
 import markdown
 
 
@@ -465,7 +462,7 @@ class AddPersonDialog(QDialog):
         if not self.user_input_values["name"]:
             QMessageBox.warning(self, "Warning", "Name cannot be empty.")
             return
-        self.user_input_values["nicknames"] = self.user_input_fields["name"].text()
+        self.user_input_values["nicknames"] = self.user_input_fields["nicknames"].text()
         self.user_input_values["gender"] = self.user_input_fields[
             "gender"
         ].currentText()
