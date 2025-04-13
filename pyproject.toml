@@ -11,4 +11,5 @@ dependencies = [
     "pyside6>=6.9.0",
     "pytest>=8.3.5",
     "pyvis>=0.3.2",
+    "setuptools>=78.1.0",
 ]
