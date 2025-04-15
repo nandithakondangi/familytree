@@ -1,15 +1,20 @@
-import os
 import json
-import google.protobuf.text_format as text_format
-from google.protobuf.json_format import MessageToDict
-from pyvis.network import Network
-import networkx as nx
-import proto.family_tree_pb2 as family_tree_pb2
-import proto.utils_pb2 as utils_pb2
+import logging  # Added
+import os
 import pathlib
 import random
 import string
 
+import google.protobuf.text_format as text_format
+import networkx as nx
+from google.protobuf.json_format import MessageToDict
+from pyvis.network import Network
+
+import proto.family_tree_pb2 as family_tree_pb2
+import proto.utils_pb2 as utils_pb2
+
+# Get a logger instance for this module
+logger = logging.getLogger(__name__)  # Added
 
 COLOR_PALETTLE = {
     "cream": "#ffeabb",
@@ -21,41 +26,6 @@ COLOR_PALETTLE = {
     "red": "#ff0000",
     "pink": "#f57db3",
 }
-
-
-# --- Remove or comment out this entire function ---
-# def get_vis_js_resource(file_path):
-#     # Copy vis.js to the output directory
-#     vis_js_resource = "vis-network.min.js"
-#
-#     parent_dir = os.path.dirname(file_path)
-#     vis_js_destination = os.path.join(parent_dir, vis_js_resource)
-#     os.makedirs(parent_dir, exist_ok=True)
-#
-#     if vis_js_resource in os.listdir(parent_dir):
-#         return
-#
-#     try:
-#         # Use pkg_resources to find the vis-network.min.js file
-#         pyvis_path = pkg_resources.resource_filename("pyvis", "")
-#         # As this need not be present in the package directory itself
-#         resource_files_generator = pathlib.Path(pyvis_path).rglob(vis_js_resource)
-#         resource_files_list = [str(file) for file in resource_files_generator]
-#         # Pick the last file
-#         vis_js_source = resource_files_list[-1]
-#     except ImportError:
-#         print(f"Error: Could not find {vis_js_resource} in pyvis package.")
-#         return
-#     except Exception as e: # Catch potential pkg_resources errors more broadly
-#         print(f"Error finding {vis_js_resource} via pkg_resources: {e}")
-#         return
-#
-#     try:
-#         shutil.copy2(vis_js_source, vis_js_destination)
-#         print(f"Copied vis.js to the {parent_dir} directory.")
-#     except Exception as e:
-#         print(f"Error copying {vis_js_resource}: {e}")
-# --- End of function removal ---
 
 
 class FamilyTreeHandler:
@@ -83,15 +53,18 @@ class FamilyTreeHandler:
         else:
             self.output_proto_data_file = output_data_file
 
-        self.used_member_ids = set()
-        # FIXME: Re-think if we need used_member_ids, or if we can simply rely on self.family_tree.members.keys
-        # The second option is hashable. But it doesn't easily account for the case where there is a mismatch between
-        # tree's key as an ID and member.id.
+    def update_data_source(self, input_file):
+        self.input_file = input_file
 
-    # ... (other methods like update_data_source, etc.) ...
+    def update_output_html_file(self, output_file):
+        self.output_file = output_file
+
+    def update_output_data_file(self, output_data_file):
+        self.output_proto_data_file = output_data_file
 
     def load_from_protobuf(self):
-        print(f"Loading data from: {self.input_file}")
+        # logger is now defined at module level
+        logger.info(f"Loading data from: {self.input_file}")
         try:
             # Ensure file exists before opening
             if not self.input_file or not os.path.exists(self.input_file):
@@ -101,23 +74,22 @@ class FamilyTreeHandler:
 
             with open(self.input_file, "r", encoding="utf-8") as f:  # Specify encoding
                 text_format.Merge(f.read(), self.family_tree)
-                print(f"Successfully loaded {self.input_file}")
+                logger.info(
+                    f"Successfully loaded {self.input_file}"
+                )  # Kept as logger.info
         except FileNotFoundError as e:
-            print(f"File not found: {e}")
+            logger.error(f"File not found: {e}")
             raise  # Re-raise for GUI to handle
         except text_format.ParseError as e:
-            print(f"Error parsing protobuf text file {self.input_file}: {e}")
+            logger.error(f"Error parsing protobuf text file {self.input_file}: {e}")
             raise  # Re-raise for GUI
         except Exception as e:
-            print(f"An unexpected error occurred during loading: {e}")
+            logger.exception(f"An unexpected error occurred during loading: {e}")
             raise  # Re-raise for GUI
 
         # Populate nodes and edges
         self.populate_nodes_and_edges()
-        # Update the set of used member IDs after loading
-        self.update_used_member_ids()
 
-    # --- Modify get_default_images ---
     def get_default_images(self):
         """Gets paths for default local images."""
         default_images = {}
@@ -131,33 +103,31 @@ class FamilyTreeHandler:
             default_image_files = {
                 "MALE": "male.png",
                 "FEMALE": "female.png",
-                "OTHER": "person.jpg",  # Make sure this file exists
-                "GENDER_UNKNOWN": "person.jpg",  # Make sure this file exists
+                "OTHER": "person.jpg",
+                "GENDER_UNKNOWN": "person.jpg",
             }
-            broken_image_file = "broken.gif"  # Make sure this file exists
+            broken_image_file = "broken.gif"
 
             for key, filename in default_image_files.items():
                 path = images_dir / filename
                 if path.is_file():
                     default_images[key] = str(path)  # Store as string path
                 else:
-                    print(f"Warning: Default image not found for {key} at {path}")
+                    logger.warning(f"Default image not found for {key} at {path}")
 
             broken_path = images_dir / broken_image_file
             if broken_path.is_file():
                 brokenImage = str(broken_path)
             else:
-                print(f"Warning: Broken image not found at {broken_path}")
+                logger.warning(f"Broken image not found at {broken_path}")
 
         except Exception as e:
-            print(f"Error determining default image paths: {e}")
+            logger.error(f"Error determining default image paths: {e}")
             # Return empty dicts/strings on error
             default_images = {}
             brokenImage = ""
 
         return default_images, brokenImage
-
-    # --- End modification ---
 
     def generate_member_id(self):
         """Generates a unique random 4-character alphanumeric member ID."""
@@ -167,8 +137,6 @@ class FamilyTreeHandler:
             member_id = "".join(random.choices(chars, k=4))
             # Check against actual keys in the protobuf map for ground truth
             if member_id not in self.family_tree.members:
-                # No need to maintain self.used_member_ids separately if we always check self.family_tree.members
-                # self.used_member_ids.add(member_id) # Can be removed
                 return member_id
 
     def create_node(self, input_dict):
@@ -179,7 +147,7 @@ class FamilyTreeHandler:
         member.name = input_dict.get("name", "").strip()  # Ensure name is stripped
         if not member.name:
             # This should ideally be caught by GUI validation, but double-check here
-            print("Error: Cannot create node with empty name.")
+            logger.error("Cannot create node with empty name.")
             return  # Or raise an error
 
         nicknames_str = input_dict.get("nicknames", "")
@@ -193,12 +161,11 @@ class FamilyTreeHandler:
                 input_dict.get("gender", "GENDER_UNKNOWN")
             )
         except ValueError:
-            print(
-                f"Warning: Invalid gender value '{input_dict.get('gender')}' for {member.name}. Setting to UNKNOWN."
+            logger.warning(
+                f"Invalid gender value '{input_dict.get('gender')}' for {member.name}. Setting to UNKNOWN."
             )
             member.gender = utils_pb2.GENDER_UNKNOWN  # Use the enum value directly
 
-        # --- Simplified Date Handling ---
         def set_date_field(date_proto, input_data, prefix):
             try:
                 day = int(input_data.get(f"{prefix}_date", 0))
@@ -210,15 +177,15 @@ class FamilyTreeHandler:
                     date_proto.month = month
                     date_proto.year = year
                 elif day or month or year:  # If any part was provided but invalid
-                    print(
-                        f"Warning: Invalid {prefix.upper()} date provided for {member.name}. Clearing field."
+                    logger.warning(
+                        f"Invalid {prefix.upper()} date provided for {member.name}. Clearing field."
                     )
                     member.ClearField(
                         f"date_of_{prefix}"
                     )  # Clear the specific date field
             except (ValueError, TypeError):
-                print(
-                    f"Warning: Non-integer {prefix.upper()} date value for {member.name}. Clearing field."
+                logger.warning(
+                    f"Non-integer {prefix.upper()} date value for {member.name}. Clearing field."
                 )
                 member.ClearField(f"date_of_{prefix}")
 
@@ -250,12 +217,10 @@ class FamilyTreeHandler:
                         trad_date_proto.thithi = thithi_enum.Value(thithi_str)
 
             except ValueError:
-                print(
-                    f"Warning: Invalid traditional {prefix.upper()} enum value for {member.name}. Skipping."
+                logger.warning(
+                    f"Invalid traditional {prefix.upper()} enum value for {member.name}. Skipping."
                 )
                 member.ClearField(f"traditional_date_of_{prefix}")
-
-        # --- End Simplified Date Handling ---
 
         # Handle DOB (only if known via checkbox in GUI)
         if "dob_date" in input_dict:
@@ -291,7 +256,7 @@ class FamilyTreeHandler:
         self.family_tree.members[member_id].CopyFrom(member)
         # Add to the networkx graph
         self.add_node_from_proto_object(member)
-        print(f"Created node with ID: {member_id}, Name: {member.name}")
+        logger.info(f"Created node with ID: {member_id}, Name: {member.name}")
         # Consider returning the member_id or member object if needed by caller
 
     def generate_node_title(self, member: family_tree_pb2.FamilyMember):
@@ -318,7 +283,7 @@ class FamilyTreeHandler:
             if not title_str:
                 raise ValueError("Formatted title is empty")
         except Exception as e:
-            print(f"Warning: Could not format member {member.id} for tooltip: {e}")
+            logger.warning(f"Could not format member {member.id} for tooltip: {e}")
             # Fallback to simple text format
             try:
                 title_str = text_format.MessageToString(member, as_utf8=True)
@@ -329,8 +294,8 @@ class FamilyTreeHandler:
     def add_node_from_proto_object(self, member: family_tree_pb2.FamilyMember):
         member_id = member.id
         if not member_id:
-            print(
-                f"Warning: Skipping node creation for member without ID: {member.name}"
+            logger.warning(
+                f"Skipping node creation for member without ID: {member.name}"
             )
             return
 
@@ -346,8 +311,8 @@ class FamilyTreeHandler:
             if os.path.exists(image_location):
                 final_image_path = image_location
             else:
-                print(
-                    f"Warning: Provided image_location does not exist: {image_location}"
+                logger.warning(
+                    f"Provided image_location does not exist: {image_location}"
                 )
 
         if not final_image_path and default_images:
@@ -373,20 +338,13 @@ class FamilyTreeHandler:
             "color": COLOR_PALETTLE.get("light cream", "#E9EBDD"),
         }
 
-        # --- Remove the call to get_vis_js_resource ---
-        # if final_image_path and os.path.exists(final_image_path):
-        #     if not final_image_path.startswith(('http://', 'https://')):
-        #         # get_vis_js_resource(final_image_path) # REMOVE THIS LINE
-        #         pass # No action needed here for local images
-        # --- End removal ---
-
         # Add or update the node in the networkx graph
         if member_id not in self.nx_graph:
             self.nx_graph.add_node(member_id, **node_options)
         else:
             # Update existing node data
             self.nx_graph.nodes[member_id].update(node_options)
-            print(f"Updated node data for existing node: {member_id}")
+            logger.info(f"Updated node data for existing node: {member_id}")
 
     def add_spouse_edges(self, member_id, spouse_id):
         self.nx_graph.add_edge(
@@ -402,8 +360,9 @@ class FamilyTreeHandler:
 
     def populate_nodes_and_edges(self):
         # Clear existing graph before populating
+        # FIXME: check if we need this. what if a user adds a node and then loads a txtpb file?
         self.nx_graph.clear()
-        print("Populating graph nodes...")
+        logger.info("Populating graph nodes...")
         # Use list comprehension for potentially slightly better performance if tree is large
         members_to_process = list(self.family_tree.members.items())
 
@@ -411,13 +370,13 @@ class FamilyTreeHandler:
             # Ensure consistency between map key and member.id
             actual_member_id = member.id
             if not actual_member_id:
-                print(
-                    f"Warning: Skipping member with key '{member_id_in_tree}' due to missing member.id."
+                logger.warning(
+                    f"Skipping member with key '{member_id_in_tree}' due to missing member.id."
                 )
                 continue
             if member_id_in_tree != actual_member_id:
-                print(
-                    f"Warning: Mismatch between map key '{member_id_in_tree}' and member.id '{actual_member_id}'. Using member.id."
+                logger.warning(
+                    f"Mismatch between map key '{member_id_in_tree}' and member.id '{actual_member_id}'. Using member.id."
                 )
                 # Consider if the key in the map should be corrected if possible, or just log
 
@@ -426,19 +385,19 @@ class FamilyTreeHandler:
                 self.add_node_from_proto_object(member)
             else:
                 # This might indicate an issue during protobuf parsing or creation
-                print(
-                    f"Warning: Skipping uninitialized member with ID {actual_member_id}."
+                logger.warning(
+                    f"Skipping uninitialized member with ID {actual_member_id}."
                 )
 
-        print("Populating graph edges...")
+        logger.info("Populating graph edges...")
         # Use list comprehension for potentially slightly better performance
         relationships_to_process = list(self.family_tree.relationships.items())
 
         for member_id, relationships in relationships_to_process:
             # Ensure the member_id for relationships exists as a node
             if member_id not in self.nx_graph:
-                print(
-                    f"Warning: Skipping relationships for non-existent member ID: {member_id}"
+                logger.warning(
+                    f"Skipping relationships for non-existent member ID: {member_id}"
                 )
                 continue
 
@@ -451,8 +410,8 @@ class FamilyTreeHandler:
                     if not self.nx_graph.has_edge(spouse_id, member_id):
                         self.add_spouse_edges(member_id, spouse_id)
                 else:
-                    print(
-                        f"Warning: Spouse ID {spouse_id} not found for member {member_id}. Skipping edge."
+                    logger.warning(
+                        f"Spouse ID {spouse_id} not found for member {member_id}. Skipping edge."
                     )
 
             # Add edges between parents and children
@@ -462,23 +421,15 @@ class FamilyTreeHandler:
                 if child_id in self.nx_graph:
                     self.add_child_edges(member_id, child_id)
                 else:
-                    print(
-                        f"Warning: Child ID {child_id} not found for parent {member_id}. Skipping edge."
+                    logger.warning(
+                        f"Child ID {child_id} not found for parent {member_id}. Skipping edge."
                     )
-
-    def update_used_member_ids(self):
-        """Updates the set of used member IDs from the loaded protobuf data."""
-        # Rely solely on the keys from the members map as the source of truth for existing IDs
-        self.used_member_ids = set(self.family_tree.members.keys())
-        print(
-            f"Refreshed used member IDs from protobuf. Count: {len(self.used_member_ids)}"
-        )
 
     def merge_another_tree(
         self, new_tree: family_tree_pb2.FamilyTree, connecting_member_id=None
     ):
         # TODO: Implement merging logic
-        print("Warning: merge_another_tree is not yet implemented.")
+        logger.warning("merge_another_tree is not yet implemented.")
         pass
 
     # --- Modify display_family_tree ---
@@ -487,20 +438,18 @@ class FamilyTreeHandler:
         output_dir = os.path.dirname(self.output_file)
         try:
             os.makedirs(output_dir, exist_ok=True)
-            # print(f"Ensured output directory exists: {output_dir}") # Less verbose
         except OSError as e:
-            print(f"Error creating output directory {output_dir}: {e}")
+            logger.error(f"Error creating output directory {output_dir}: {e}")
             # Handle error appropriately, maybe raise to GUI
             raise IOError(f"Cannot create output directory: {e}") from e
 
         # Check if graph has nodes before trying to render
         if not self.nx_graph:
-            print("NetworkX graph is empty. Cannot generate Pyvis graph.")
-            # Optionally, create an empty HTML file or handle in GUI
-            # For now, just return to prevent Pyvis errors
-            # You might want to write a placeholder HTML:
-            # with open(self.output_file, "w", encoding='utf-8') as f:
-            #     f.write("<html><body style='background-color: #222; color: #fff;'><p>No family tree data loaded.</p></body></html>")
+            logger.info("NetworkX graph is empty. Cannot generate Pyvis graph.")
+            with open(self.output_file, "w", encoding="utf-8") as f:
+                f.write(
+                    "<html><body style='background-color: #222; color: #fff;'><p>No family tree data loaded.</p></body></html>"
+                )
             return
 
         pyvis_network_graph = Network(
@@ -556,29 +505,24 @@ class FamilyTreeHandler:
             options_json = json.dumps(options)
             pyvis_network_graph.set_options(options_json)
         except TypeError as e:
-            print(f"Error serializing pyvis options to JSON: {e}")
+            logger.error(f"Error serializing pyvis options to JSON: {e}")
             # Continue without options? Or raise?
-
-        # --- Remove call to get_vis_js_resource ---
-        # get_vis_js_resource(self.output_file) # REMOVE THIS LINE
-        # --- End removal ---
 
         # Generate the HTML file
         try:
-            print(f"Saving family tree HTML to: {self.output_file}")
+            logger.info(f"Saving family tree HTML to: {self.output_file}")
             # Ensure the file is written with UTF-8 encoding, Pyvis should handle this
-            pyvis_network_graph.show(self.output_file, notebook=False)
-            print(f"Successfully generated {self.output_file}")
+            # pyvis_network_graph.show(self.output_file, notebook=False)
+            pyvis_network_graph.write_html(self.output_file, notebook=False)
+            logger.info(f"Successfully generated {self.output_file}")
         except Exception as e:
-            print(f"Error generating pyvis HTML file: {e}")
+            logger.exception(f"Error generating pyvis HTML file: {e}")
             # Re-raise the exception so the GUI knows rendering failed
             raise IOError(f"Failed to write Pyvis HTML: {e}") from e
 
-    # --- End modification ---
-
     def print_member_details(self, member_id):
         member = self.family_tree.members[member_id]
-        print(member)
+        logger.info(f"Member Details ({member_id}):\n{member}")
 
     def save_to_protobuf(self):
         # Ensure the output directory exists
@@ -586,7 +530,7 @@ class FamilyTreeHandler:
         try:
             os.makedirs(output_dir, exist_ok=True)
         except OSError as e:
-            print(f"Error creating output directory {output_dir}: {e}")
+            logger.error(f"Error creating output directory {output_dir}: {e}")
             raise IOError(f"Cannot create output directory for saving: {e}") from e
 
         try:
@@ -595,14 +539,14 @@ class FamilyTreeHandler:
             )
             with open(self.output_proto_data_file, "w", encoding="utf-8") as f:
                 f.write(protobuf_string)
-                print(f"Successfully saved data to {self.output_proto_data_file}")
+                logger.info(f"Successfully saved data to {self.output_proto_data_file}")
         except IOError as e:
-            print(
+            logger.error(
                 f"Error writing protobuf data to file {self.output_proto_data_file}: {e}"
             )
             raise  # Re-raise for GUI
         except Exception as e:
-            print(f"An unexpected error occurred during saving: {e}")
+            logger.exception(f"An unexpected error occurred during saving: {e}")
             raise  # Re-raise for GUI
 
     def get_member_fields_from_proto_schema(self):
@@ -612,7 +556,7 @@ class FamilyTreeHandler:
             field_names = [field.name for field in family_member_descriptor.fields]
             return field_names
         except Exception as e:
-            print(f"Error getting member fields from schema: {e}")
+            logger.error(f"Error getting member fields from schema: {e}")
             return []
 
     def get_enum_values_from_proto_schema(self, enum_name, proto_module=utils_pb2):
@@ -623,15 +567,15 @@ class FamilyTreeHandler:
                 # Return names, including the default/unknown (usually index 0)
                 return [value.name for value in enum_descriptor.values]
             else:
-                print(
-                    f"Error: Enum '{enum_name}' not found in {proto_module.__name__}."
+                logger.error(
+                    f"Enum '{enum_name}' not found in {proto_module.__name__}."
                 )
                 return []
         except AttributeError as e:
-            print(f"Error accessing descriptor for enum '{enum_name}': {e}")
+            logger.error(f"Error accessing descriptor for enum '{enum_name}': {e}")
             return []
         except Exception as e:
-            print(
+            logger.exception(
                 f"An unexpected error occurred getting enum values for '{enum_name}': {e}"
             )
             return []

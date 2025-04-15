@@ -1,31 +1,30 @@
 import os
-from PySide6.QtWidgets import (
-    QMainWindow,
-    QTabWidget,
-    QSplitter,
-    QWidget,
-    QFormLayout,
-    QLineEdit,
-    QPushButton,
-    QVBoxLayout,
-    QLabel,
-    QFileDialog,
-    QMessageBox,
-    QSizePolicy,
-    QDialog,
-    QHBoxLayout,
-    QSpinBox,
-    QCheckBox,
-    QComboBox,
-    QTextEdit,
-)
-from PySide6.QtCore import Qt, QDate, QUrl
-from PySide6.QtWebEngineWidgets import QWebEngineView
-
 
 from family_tree_handler import FamilyTreeHandler
+from PySide6.QtCore import QDate, Qt, QUrl
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSpinBox,
+    QSplitter,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 import proto.utils_pb2 as utils_pb2
-import markdown  # Keep if using markdown for About tab
 
 
 class FamilyTreeGUI(QMainWindow):
@@ -160,9 +159,7 @@ class FamilyTreeGUI(QMainWindow):
         </ul>
         <hr>
         <p>Temporary files are stored in: <code>{temp_dir}</code></p>
-        """.format(
-            temp_dir=self.temp_dir_path
-        )  # Show the temp dir path
+        """.format(temp_dir=self.temp_dir_path)  # Show the temp dir path
 
         # Use setHtml for rich text
         about_text_edit.setHtml(content)
@@ -231,8 +228,6 @@ class FamilyTreeGUI(QMainWindow):
                 self.clear_pyvis_view()
         else:
             print(f"Output file not found: {output_html_file}")
-            # QMessageBox.warning(self, "File Not Found", f"Output file not found:\n{output_html_file}")
-            # Clear the view or show a message if the file doesn't exist
             self.clear_pyvis_view()
             self.pyvis_view.setHtml(
                 "<p style='color: white; text-align: center; margin-top: 50px;'>HTML file not generated yet.</p>"
@@ -249,11 +244,6 @@ class FamilyTreeGUI(QMainWindow):
             # Clear existing graph data in handler before loading new file
             self.family_tree_handler.family_tree.Clear()
             self.family_tree_handler.nx_graph.clear()
-            self.family_tree_handler.used_member_ids.clear()
-            print(
-                f"Cleared existing data. Loading from: {self.family_tree_handler.input_file}"
-            )
-
             self.family_tree_handler.load_from_protobuf()
             # Re-render the tree after successful load
             self.re_render_tree()
@@ -271,7 +261,7 @@ class FamilyTreeGUI(QMainWindow):
             self.clear_pyvis_view()  # Clear view on error
 
 
-# --- AddPersonDialog ---
+# --- AddDetailsForm ---
 class AddPersonDialog(QDialog):
     def __init__(self, family_tree_handler, family_tree_gui):
         super().__init__()

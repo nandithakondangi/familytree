@@ -1,13 +1,13 @@
-import sys
-import time
-import tempfile
 import atexit
-import shutil
 import os
+import shutil
+import sys
+import tempfile
+import time
 
 from family_tree_gui import FamilyTreeGUI
-from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QApplication
 
 # Global variable to hold the temporary directory path
 TEMP_DIR_PATH = None

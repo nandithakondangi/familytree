@@ -13,3 +13,10 @@ dependencies = [
     "pyvis>=0.3.2",
     "setuptools>=78.1.0",
 ]
+
+[tool.pytest.ini_options]
+# Add the project root directory (.) to Python's sys.path
+pythonpath = [".", "./familytree"]
+
+# Specify where pytest should look for tests (improves discovery speed)
+testpaths = ["tests"]

@@ -1,20 +1,20 @@
 syntax = "proto3";
 package family_tree;
-import "utils.proto";
+import "proto/utils.proto";
 
 message FamilyMember {
   string id = 1;
   string name = 2;
   repeated string nicknames = 3;
-  utils.EnglishDate date_of_birth = 4;
+  utils.GregorianDate date_of_birth = 4;
   utils.TraditionalDate traditional_date_of_birth = 5;
   optional bool alive = 6;
-  utils.EnglishDate date_of_death = 7;
+  utils.GregorianDate date_of_death = 7;
   utils.TraditionalDate traditional_date_of_death = 8;
   utils.Gender gender = 9;
   optional int64 birth_family_unit_id = 10;
   optional int64 marriage_family_unit_id = 11;
-  optional utils.EnglishDate wedding_date = 12;
+  optional utils.GregorianDate wedding_date = 12;
   map<string, string> additional_info = 13;
 }
 

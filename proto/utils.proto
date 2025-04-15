@@ -1,7 +1,7 @@
 syntax = "proto3";
 package utils;
 
-message EnglishDate {
+message GregorianDate {
     int32 year = 1;
     int32 month = 2;
     int32 date = 3;
@@ -43,7 +43,7 @@ enum Thithi {
 
 enum TamilMonth {
     TAMIL_MONTH_UNKNOWN = 0;
-    CHITHIRI = 1;
+    CHITHIRAI = 1;
     VAIKASI = 2;
     AANI = 3;
     AADI = 4;
@@ -59,7 +59,7 @@ enum TamilMonth {
 
 enum TamilStar {
     TAMIL_STAR_UNKNOWN = 0;
-    ASWINI = 1;
+    ASHWINI = 1;
     BARANI = 2;
     KRITHIGAI = 3;
     ROHINI = 4;
@@ -72,7 +72,8 @@ enum TamilStar {
     POORAM = 11;
     UTHIRAM = 12;
     HASTHAM = 13;
-    CHITHIRAI = 14;
+    // Changing the spelling to avoid enum conflicts with month from a single file scope
+    CHITTHIRAI = 14;
     SWATHI = 15;
     VISAGAM = 16;
     ANUSHAM = 17;
