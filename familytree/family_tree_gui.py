@@ -272,9 +272,9 @@ class AddPersonDialog(QDialog):
         # Widgets that need state toggling
         self.dod_fields_widget = None
         self.dod_label = None
-        self.dob_fields_widget = None
-        self.dob_label = None
-        self.dob_checkbox = None  # Keep reference to checkbox
+        self.dob_details_widget = None
+        self.dob_details_label = None
+        self.dob_known_checkbox = None
 
         self.setWindowTitle("➕ Add New Family Member")
         self.setMinimumWidth(500)  # Set a minimum width
@@ -291,8 +291,7 @@ class AddPersonDialog(QDialog):
         self.display_name_field(form_layout)
         self.display_nicknames_field(form_layout)
         self.display_gender_field(form_layout)
-        self.display_dob_field(form_layout)  # Includes checkbox and fields
-        self.display_traditional_date_of_birth_field(form_layout)
+        self.display_dob_section(form_layout)
         self.display_is_alive_field(form_layout)
         self.display_dod_field(form_layout)  # Includes Gregorian and Traditional
 
@@ -314,7 +313,7 @@ class AddPersonDialog(QDialog):
         main_layout.addLayout(button_layout)
 
         # --- Initial State ---
-        self.toggle_dob_fields()  # Set initial visibility based on checkbox
+        self.toggle_dob_details()  # Set initial visibility based on checkbox
         self.toggle_dod_fields()  # Set initial visibility based on 'IsAlive'
 
     # --- Field Creation Methods (Helper functions for init_ui) ---
@@ -353,17 +352,11 @@ class AddPersonDialog(QDialog):
             self.user_input_fields["gender"].setEnabled(False)
         form_layout.addRow(gender_label, self.user_input_fields["gender"])
 
-    def display_dob_field(self, form_layout: QFormLayout):
-        # Checkbox first
-        self.dob_checkbox = QCheckBox("Date of Birth is not known")
-        self.dob_checkbox.setChecked(False)
-        self.dob_checkbox.stateChanged.connect(self.toggle_dob_fields)
-        form_layout.addRow(self.dob_checkbox)  # Add checkbox spanning row
-
-        # Container for DOB fields
-        self.dob_fields_widget = QWidget()
-        dob_fields_layout = QHBoxLayout(self.dob_fields_widget)
-        dob_fields_layout.setContentsMargins(0, 0, 0, 0)
+    # Helper to create Gregorian DOB widget
+    def _create_gregorian_dob_widget(self) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         self.user_input_fields["dob_date"] = QSpinBox()
         self.user_input_fields["dob_date"].setRange(1, 31)
@@ -376,19 +369,21 @@ class AddPersonDialog(QDialog):
             current_year - 30
         )  # Default to reasonable year
 
-        dob_fields_layout.addWidget(QLabel("Date:"))
-        dob_fields_layout.addWidget(self.user_input_fields["dob_date"])
-        dob_fields_layout.addWidget(QLabel("Month:"))
-        dob_fields_layout.addWidget(self.user_input_fields["dob_month"])
-        dob_fields_layout.addWidget(QLabel("Year:"))
-        dob_fields_layout.addWidget(self.user_input_fields["dob_year"])
-        dob_fields_layout.addStretch()  # Push fields together
+        layout.addWidget(QLabel("Date:"))
+        layout.addWidget(self.user_input_fields["dob_date"])
+        layout.addWidget(QLabel("Month:"))
+        layout.addWidget(self.user_input_fields["dob_month"])
+        layout.addWidget(QLabel("Year:"))
+        layout.addWidget(self.user_input_fields["dob_year"])
+        layout.addStretch()
+        return widget
 
-        self.dob_label = QLabel("DOB (D/M/Y):")
-        form_layout.addRow(self.dob_label, self.dob_fields_widget)
+    # Helper to create Traditional DOB widget
+    def _create_traditional_dob_widget(self) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-    def display_traditional_date_of_birth_field(self, form_layout: QFormLayout):
-        # Fetch enum values
         valid_months = self.family_tree_handler.get_enum_values_from_proto_schema(
             "TamilMonth"
         )
@@ -396,12 +391,6 @@ class AddPersonDialog(QDialog):
             "TamilStar"
         )
 
-        # Container widget
-        traditional_info_widget = QWidget()
-        traditional_info_layout = QHBoxLayout(traditional_info_widget)
-        traditional_info_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Month Dropdown
         self.user_input_fields["dob_traditional_month"] = QComboBox()
         if valid_months:
             self.user_input_fields["dob_traditional_month"].addItems(valid_months)
@@ -409,7 +398,6 @@ class AddPersonDialog(QDialog):
             self.user_input_fields["dob_traditional_month"].addItem("Error")
             self.user_input_fields["dob_traditional_month"].setEnabled(False)
 
-        # Star Dropdown
         self.user_input_fields["dob_traditional_star"] = QComboBox()
         if valid_stars:
             self.user_input_fields["dob_traditional_star"].addItems(valid_stars)
@@ -417,19 +405,44 @@ class AddPersonDialog(QDialog):
             self.user_input_fields["dob_traditional_star"].addItem("Error")
             self.user_input_fields["dob_traditional_star"].setEnabled(False)
 
-        traditional_info_layout.addWidget(QLabel("Tamil Month:"))
-        traditional_info_layout.addWidget(
-            self.user_input_fields["dob_traditional_month"]
-        )
-        traditional_info_layout.addSpacing(15)
-        traditional_info_layout.addWidget(QLabel("Tamil Star:"))
-        traditional_info_layout.addWidget(
-            self.user_input_fields["dob_traditional_star"]
-        )
-        traditional_info_layout.addStretch()
+        layout.addWidget(QLabel("Tamil Month:"))
+        layout.addWidget(self.user_input_fields["dob_traditional_month"])
+        layout.addSpacing(15)
+        layout.addWidget(QLabel("Tamil Star:"))
+        layout.addWidget(self.user_input_fields["dob_traditional_star"])
+        layout.addStretch()
+        return widget
 
-        # Add the container widget to the form
-        form_layout.addRow(QLabel("Traditional DOB:"), traditional_info_widget)
+    def display_dob_section(self, form_layout: QFormLayout):
+        # Checkbox first
+        self.dob_known_checkbox = QCheckBox("Is Date of Birth Known?")
+        self.dob_known_checkbox.setChecked(False)  # Default to unknown/hidden
+        # --- MODIFIED: Connect to the renamed toggle method ---
+        self.dob_known_checkbox.stateChanged.connect(self.toggle_dob_details)
+        form_layout.addRow(self.dob_known_checkbox)  # Add checkbox spanning row
+
+        # Main container for all DOB fields
+        self.dob_details_widget = QWidget()
+        main_dob_layout = QVBoxLayout(self.dob_details_widget)
+        main_dob_layout.setContentsMargins(0, 0, 0, 0)
+
+        # --- Gregorian DOB ---
+        gregorian_dob_widget = self._create_gregorian_dob_widget()
+        main_dob_layout.addWidget(QLabel("Gregorian DOB:"))  # Add sub-label
+        main_dob_layout.addWidget(gregorian_dob_widget)
+        # --- End Gregorian DOB ---
+
+        main_dob_layout.addSpacing(10)  # Space between Gregorian and Traditional
+
+        # --- Traditional DOB ---
+        traditional_dob_widget = self._create_traditional_dob_widget()
+        main_dob_layout.addWidget(QLabel("Traditional DOB:"))  # Add sub-label
+        main_dob_layout.addWidget(traditional_dob_widget)
+        # --- End Traditional DOB ---
+
+        # Main label for the section
+        self.dob_details_label = QLabel("<b>Date of Birth Details:</b>")
+        form_layout.addRow(self.dob_details_label, self.dob_details_widget)
 
     def display_is_alive_field(self, form_layout: QFormLayout):
         self.user_input_fields["IsAlive"] = QCheckBox("This person is alive")
@@ -537,91 +550,61 @@ class AddPersonDialog(QDialog):
             self.dod_label.setVisible(visible)
             self.dod_fields_widget.setVisible(visible)
 
-    def toggle_dob_fields(self):
+    def toggle_dob_details(self):
         """Shows/hides DOB fields based on 'DOB not known' checkbox."""
-        if self.dob_label and self.dob_fields_widget and self.dob_checkbox:
-            is_unknown = self.dob_checkbox.isChecked()
-            visible = not is_unknown  # Show if NOT unknown
-            self.dob_label.setVisible(visible)
-            self.dob_fields_widget.setVisible(visible)
+        if (
+            self.dob_details_label
+            and self.dob_details_widget
+            and self.dob_known_checkbox
+        ):
+            is_known = self.dob_known_checkbox.isChecked()
+            self.dob_details_label.setVisible(is_known)
+            self.dob_details_widget.setVisible(is_known)
 
     # --- Save Action ---
-
     def save_new_member(self):
-        """Gathers data from fields, validates, calls handler, and closes."""
+        """Gathers data from fields, calls handler to validate and create, handles result."""
         user_input_values = {}
 
-        # --- Gather Data ---
+        # --- Gather Data (Raw values) ---
         user_input_values["name"] = self.user_input_fields["name"].text().strip()
+        # Basic check for name remains here as it's UI-specific feedback
         if not user_input_values["name"]:
             QMessageBox.warning(
                 self, "Input Required", "The 'Name' field cannot be empty."
             )
-            self.user_input_fields["name"].setFocus()  # Focus the field
-            return  # Stop processing
+            self.user_input_fields["name"].setFocus()
+            return
 
         user_input_values["nicknames"] = (
             self.user_input_fields["nicknames"].text().strip()
         )
         user_input_values["gender"] = self.user_input_fields["gender"].currentText()
 
-        # DOB (only if known)
-        if not self.dob_checkbox.isChecked():
+        # --- MODIFIED: DOB gathering based on new checkbox ---
+        if self.dob_known_checkbox.isChecked():
+            # Gregorian DOB
             user_input_values["dob_date"] = self.user_input_fields["dob_date"].value()
             user_input_values["dob_month"] = self.user_input_fields["dob_month"].value()
             user_input_values["dob_year"] = self.user_input_fields["dob_year"].value()
-            # Basic validation (e.g., prevent future dates?) - More complex validation possible
-            dob = QDate(
-                user_input_values["dob_year"],
-                user_input_values["dob_month"],
-                user_input_values["dob_date"],
-            )
-            if not dob.isValid() or dob > QDate.currentDate():
-                QMessageBox.warning(
-                    self,
-                    "Invalid Date",
-                    "Please enter a valid Date of Birth that is not in the future.",
-                )
-                return
 
-        # Traditional DOB
-        user_input_values["dob_traditional_month"] = self.user_input_fields[
-            "dob_traditional_month"
-        ].currentText()
-        user_input_values["dob_traditional_star"] = self.user_input_fields[
-            "dob_traditional_star"
-        ].currentText()
+            # Traditional DOB
+            user_input_values["dob_traditional_month"] = self.user_input_fields[
+                "dob_traditional_month"
+            ].currentText()
+            user_input_values["dob_traditional_star"] = self.user_input_fields[
+                "dob_traditional_star"
+            ].currentText()
 
         # IsAlive status
         is_alive = self.user_input_fields["IsAlive"].isChecked()
         user_input_values["IsAlive"] = is_alive
 
-        # DoD (only if not alive)
+        # DoD (only if not alive) - Pass raw values
         if not is_alive:
             user_input_values["dod_date"] = self.user_input_fields["dod_date"].value()
             user_input_values["dod_month"] = self.user_input_fields["dod_month"].value()
             user_input_values["dod_year"] = self.user_input_fields["dod_year"].value()
-            # Basic validation
-            dod = QDate(
-                user_input_values["dod_year"],
-                user_input_values["dod_month"],
-                user_input_values["dod_date"],
-            )
-            if not dod.isValid() or dod > QDate.currentDate():
-                QMessageBox.warning(
-                    self,
-                    "Invalid Date",
-                    "Please enter a valid Date of Death that is not in the future.",
-                )
-                return
-            # Check if DoD is after DOB if both are provided
-            if "dob" in locals() and dod < dob:
-                QMessageBox.warning(
-                    self,
-                    "Invalid Date",
-                    "Date of Death cannot be before Date of Birth.",
-                )
-                return
 
             user_input_values["dod_traditional_month"] = self.user_input_fields[
                 "dod_traditional_month"
@@ -633,24 +616,40 @@ class AddPersonDialog(QDialog):
                 "dod_traditional_thithi"
             ].currentText()
 
-        # --- Call Handler ---
+        # --- Call Handler to Create and Validate ---
         try:
-            print("Saving new member with data:", user_input_values)
-            self.family_tree_handler.create_node(user_input_values)
-            # Trigger re-render in the main GUI
-            self.family_tree_gui.re_render_tree()
-            QMessageBox.information(
-                self,
-                "Success",
-                f"Member '{user_input_values['name']}' added successfully!",
+            print("Attempting to save new member with data:", user_input_values)
+            member_id, error_message = self.family_tree_handler.create_node(
+                user_input_values
             )
-            self.accept()  # Close the dialog successfully
+
+            if error_message:
+                # Validation or creation failed, show the error from the handler
+                QMessageBox.warning(self, "Validation Error", error_message)
+                # Keep the dialog open for correction
+            else:
+                # Success!
+                print(
+                    f"Member '{user_input_values['name']}' created with ID: {member_id}"
+                )
+                # Trigger re-render in the main GUI
+                self.family_tree_gui.re_render_tree()
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"Member '{user_input_values['name']}' added successfully!",
+                )
+                self.accept()  # Close the dialog successfully
+
         except Exception as e:
-            print(f"Error creating node: {e}")
+            # Catch unexpected errors during the handler call itself
+            print(f"Unexpected error during create_node call: {e}")
+            # Ensure logger is available or handle logging appropriately
+            # logger.exception("Unexpected error in save_new_member calling create_node")
             QMessageBox.critical(
-                self, "Save Error", f"Failed to save the new member:\n{e}"
+                self, "Save Error", f"An unexpected error occurred:\n{e}"
             )
-            # Don't close the dialog on error
+            # Don't close the dialog on unexpected error
 
 
 # --- EditDetailsForm (Placeholder) ---

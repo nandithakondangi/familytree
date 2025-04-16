@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging  # Added
 import os
@@ -30,15 +31,17 @@ COLOR_PALETTLE = {
 
 class DateUtility:
     """
-    Utility class for handling date parsing and population for FamilyMember protobufs.
-    Methods return True if processing was successful (or no relevant data was found),
-    and False if invalid data was encountered that prevented setting the field.
+    Utility class for handling date parsing, validation, and population
+    for FamilyMember protobufs.
+    Methods return a tuple: (success: bool, error_message: str | None).
     """
 
     @staticmethod
-    def populate_gregorian_date(date_proto, input_data, prefix) -> bool:
+    def populate_gregorian_date(
+        date_proto, input_data, prefix
+    ) -> tuple[bool, str | None]:
         """
-        Populates a GregorianDate protobuf message from input data.
+        Populates and validates a GregorianDate protobuf message from input data.
 
         Args:
             date_proto: The GregorianDate message to populate (e.g., member.date_of_birth).
@@ -46,44 +49,90 @@ class DateUtility:
             prefix: The prefix for the keys in input_data (e.g., "dob", "dod").
 
         Returns:
-            True if the date was successfully populated or no relevant input was found.
-            False if invalid data (e.g., non-integer, out of range) was provided.
+            tuple[bool, str | None]: (True, None) if the date was successfully populated
+                                     or no relevant input was found.
+                                     (False, error_message) if invalid data was provided.
         """
+        day_str = input_data.get(f"{prefix}_date")
+        month_str = input_data.get(f"{prefix}_month")
+        year_str = input_data.get(f"{prefix}_year")
+
+        # Check if any date part was actually provided (treat empty strings as not provided)
+        if not (day_str or month_str or year_str):
+            return True, None  # No data provided, nothing to validate or set, success.
+
         try:
-            # Get values, defaulting to 0 if not present or not convertible
-            day = int(input_data.get(f"{prefix}_date", 0) or 0)
-            month = int(input_data.get(f"{prefix}_month", 0) or 0)
-            year = int(input_data.get(f"{prefix}_year", 0) or 0)
+            # Attempt conversion, default to 0 if empty string or None
+            day = int(day_str or 0)
+            month = int(month_str or 0)
+            year = int(year_str or 0)
 
-            # Check if any date part was actually provided
-            if not day and not month and not year:
-                return True  # No data provided, nothing to validate or set, success.
-
-            # Basic validation
-            # TODO: Add more robust date validation (e.g., check days in month) if needed
-            if year > 1000 and 1 <= month <= 12 and 1 <= day <= 31:
-                date_proto.date = day
-                date_proto.month = month
-                date_proto.year = year
-                return True  # Successfully populated
-            else:
-                logger.warning(
-                    f"Invalid Gregorian date parts provided for prefix '{prefix}': "
-                    f"Day={day}, Month={month}, Year={year}. Field will be cleared."
+            # Ensure all parts were provided if at least one was
+            if not (day and month and year):
+                return (
+                    False,
+                    f"Incomplete Gregorian date provided for '{prefix}'. Please provide day, month, and year.",
                 )
-                return False  # Invalid data provided
 
-        except (ValueError, TypeError) as e:
-            logger.warning(
-                f"Non-integer or invalid value encountered for '{prefix}' date parts: {e}. "
-                f"Field will be cleared."
+            # --- Comprehensive Validation ---
+            # 1. Use datetime for calendar validity (handles leap years, days in month)
+            try:
+                parsed_date = datetime.date(year, month, day)
+            except ValueError as e:
+                # More specific error based on common ValueError messages
+                if "month must be in 1..12" in str(e):
+                    return (
+                        False,
+                        f"Invalid month ({month}) for '{prefix}'. Month must be between 1 and 12.",
+                    )
+                elif "day is out of range for month" in str(e):
+                    return (
+                        False,
+                        f"Invalid day ({day}) for '{prefix}' month {month} and year {year}.",
+                    )
+                elif "year" in str(e):  # Catch other year-related errors if any
+                    return False, f"Invalid year ({year}) provided for '{prefix}'. {e}"
+                else:  # Generic fallback
+                    return (
+                        False,
+                        f"Invalid Gregorian date for '{prefix}': Day={day}, Month={month}, Year={year}. Reason: {e}",
+                    )
+
+            # 2. Check if the date is in the future
+            if parsed_date > datetime.date.today():
+                return (
+                    False,
+                    f"Gregorian date for '{prefix}' ({parsed_date.strftime('%Y-%m-%d')}) cannot be in the future.",
+                )
+
+            # 3. Check for reasonably sensible year (optional, adjust as needed)
+            if year < 1000:  # Or some other sensible minimum year
+                return (
+                    False,
+                    f"Year ({year}) for '{prefix}' seems too far in the past. Please check.",
+                )
+            # --- End Validation ---
+
+            # If all checks pass, populate the proto
+            date_proto.date = day
+            date_proto.month = month
+            date_proto.year = year
+            return True, None  # Successfully populated
+
+        except (ValueError, TypeError):
+            # Catches errors during int() conversion if non-numeric provided
+            return (
+                False,
+                f"Non-numeric value encountered for '{prefix}' date parts (Day='{day_str}', Month='{month_str}', Year='{year_str}'). Please enter numbers.",
             )
-            return False  # Type error during conversion
         except Exception as e:
             logger.exception(
-                f"Unexpected error populating Gregorian date for prefix '{prefix}': {e}"
+                f"Unexpected error validating/populating Gregorian date for prefix '{prefix}': {e}"
             )
-            return False  # Unexpected error
+            return (
+                False,
+                f"An unexpected error occurred processing the Gregorian date for '{prefix}'.",
+            )  # Generic message for unexpected
 
     @staticmethod
     def populate_traditional_date(
@@ -94,9 +143,9 @@ class DateUtility:
         star_enum=None,
         paksham_enum=None,
         thithi_enum=None,
-    ) -> bool:
+    ) -> tuple[bool, str | None]:
         """
-        Populates a TraditionalDate protobuf message from input data using enums.
+        Populates and validates a TraditionalDate protobuf message from input data using enums.
 
         Args:
             trad_date_proto: The TraditionalDate message to populate.
@@ -108,14 +157,14 @@ class DateUtility:
             thithi_enum: Optional protobuf enum type for Thithi.
 
         Returns:
-            True if the date was successfully populated or no relevant input was found.
-            False if an invalid enum value string was provided.
+            tuple[bool, str | None]: (True, None) if the date was successfully populated
+                                     or no relevant input was found.
+                                     (False, error_message) if an invalid enum value string was provided.
         """
         try:
-            # Assume success unless an invalid enum value is found
-            success = True
             field_updated = False  # Track if we actually set any field
 
+            # --- Month ---
             month_str = input_data.get(f"{prefix}_traditional_month")
             if month_str and month_str != month_enum.Name(
                 0
@@ -124,61 +173,61 @@ class DateUtility:
                     trad_date_proto.month = month_enum.Value(month_str)
                     field_updated = True
                 except ValueError:
-                    logger.warning(
-                        f"Invalid traditional month value '{month_str}' for prefix '{prefix}'. "
-                        f"Traditional date field will be cleared."
+                    return (
+                        False,
+                        f"Invalid traditional month value '{month_str}' for prefix '{prefix}'.",
                     )
-                    success = False
 
-            if star_enum and success:  # Only proceed if previous steps were okay
+            # --- Star (if applicable) ---
+            if star_enum:
                 star_str = input_data.get(f"{prefix}_traditional_star")
                 if star_str and star_str != star_enum.Name(0):
                     try:
                         trad_date_proto.star = star_enum.Value(star_str)
                         field_updated = True
                     except ValueError:
-                        logger.warning(
-                            f"Invalid traditional star value '{star_str}' for prefix '{prefix}'. "
-                            f"Traditional date field will be cleared."
+                        return (
+                            False,
+                            f"Invalid traditional star value '{star_str}' for prefix '{prefix}'.",
                         )
-                        success = False
 
-            if paksham_enum and success:
+            # --- Paksham (if applicable) ---
+            if paksham_enum:
                 paksham_str = input_data.get(f"{prefix}_traditional_paksham")
                 if paksham_str and paksham_str != paksham_enum.Name(0):
                     try:
                         trad_date_proto.paksham = paksham_enum.Value(paksham_str)
                         field_updated = True
                     except ValueError:
-                        logger.warning(
-                            f"Invalid traditional paksham value '{paksham_str}' for prefix '{prefix}'. "
-                            f"Traditional date field will be cleared."
+                        return (
+                            False,
+                            f"Invalid traditional paksham value '{paksham_str}' for prefix '{prefix}'.",
                         )
-                        success = False
 
-            if thithi_enum and success:
+            # --- Thithi (if applicable) ---
+            if thithi_enum:
                 thithi_str = input_data.get(f"{prefix}_traditional_thithi")
                 if thithi_str and thithi_str != thithi_enum.Name(0):
                     try:
                         trad_date_proto.thithi = thithi_enum.Value(thithi_str)
                         field_updated = True
                     except ValueError:
-                        logger.warning(
-                            f"Invalid traditional thithi value '{thithi_str}' for prefix '{prefix}'. "
-                            f"Traditional date field will be cleared."
+                        return (
+                            False,
+                            f"Invalid traditional thithi value '{thithi_str}' for prefix '{prefix}'.",
                         )
-                        success = False
 
-            # If no fields were updated and success is still true, it means no data was provided.
-            # If fields were updated and success is true, it means valid data was provided.
-            # If success is false, it means invalid data was provided.
-            return success
+            # If we reached here without returning False, validation passed for provided fields
+            return True, None
 
         except Exception as e:
             logger.exception(
-                f"Unexpected error populating traditional date for prefix '{prefix}': {e}"
+                f"Unexpected error validating/populating traditional date for prefix '{prefix}': {e}"
             )
-            return False  # Unexpected error
+            return (
+                False,
+                f"An unexpected error occurred processing the traditional date for '{prefix}'.",
+            )
 
 
 class FamilyTreeHandler:
@@ -292,16 +341,24 @@ class FamilyTreeHandler:
             if member_id not in self.family_tree.members:
                 return member_id
 
-    def create_node(self, input_dict):
-        """Creates a new FamilyMember node and adds it to the family tree."""
+    def create_node(self, input_dict) -> tuple[str | None, str | None]:
+        """
+        Creates a new FamilyMember node, validates input, adds it to the tree.
+
+        Args:
+            input_dict: Dictionary containing the raw input data for the new member.
+
+        Returns:
+            tuple[str | None, str | None]: (member_id, None) on successful creation.
+                                           (None, error_message) if validation or creation fails.
+        """
         member_id = self.generate_member_id()
         member = family_tree_pb2.FamilyMember()
         member.id = member_id
         member.name = input_dict.get("name", "").strip()
         if not member.name:
-            logger.error("Cannot create node with empty name.")
-            # Consider raising ValueError("Cannot create node with empty name.")
-            return None  # Return None or raise error
+            # No need to log here, return the error message
+            return None, "Cannot create node: Name cannot be empty."
 
         nicknames_str = input_dict.get("nicknames", "")
         if nicknames_str:
@@ -314,75 +371,64 @@ class FamilyTreeHandler:
                 input_dict.get("gender", "GENDER_UNKNOWN")
             )
         except ValueError:
+            # Log warning but also return user-friendly error
             logger.warning(
                 f"Invalid gender value '{input_dict.get('gender')}' for {member.name}. Setting to UNKNOWN."
             )
-            member.gender = utils_pb2.GENDER_UNKNOWN
+            # Decide if this is a fatal error or if defaulting is acceptable.
+            # Let's allow defaulting for now, but you could return an error:
+            # return None, f"Invalid gender value: '{input_dict.get('gender')}'"
+            member.gender = utils_pb2.GENDER_UNKNOWN  # Defaulting
 
-        # --- Use DateUtility for DOB ---
-        # Check if DOB data was intended (e.g., not explicitly marked as unknown in GUI)
-        # The GUI logic prevents sending dob_date etc. if the "unknown" checkbox is checked.
-        # So, if the keys exist, we attempt to populate.
-        if (
-            "dob_date" in input_dict
-            or "dob_month" in input_dict
-            or "dob_year" in input_dict
-        ):
-            dob_success = DateUtility.populate_gregorian_date(
+        # --- DOB Population and Validation ---
+        dob_provided = any(
+            k in input_dict for k in ["dob_date", "dob_month", "dob_year"]
+        )
+        if dob_provided:
+            is_valid, error_msg = DateUtility.populate_gregorian_date(
                 member.date_of_birth, input_dict, "dob"
             )
-            if not dob_success:
-                # Clear the field if population failed due to invalid data
-                member.ClearField("date_of_birth")
-                logger.info(
-                    f"Cleared date_of_birth for {member.name} due to invalid input."
-                )
+            if not is_valid:
+                return None, f"Date of Birth Error: {error_msg}"
 
-        # Check if traditional DOB data was provided
-        if (
-            "dob_traditional_month" in input_dict
-            or "dob_traditional_star" in input_dict
-        ):
-            trad_dob_success = DateUtility.populate_traditional_date(
+        trad_dob_provided = any(
+            k in input_dict for k in ["dob_traditional_month", "dob_traditional_star"]
+        )
+        if trad_dob_provided:
+            is_valid, error_msg = DateUtility.populate_traditional_date(
                 member.traditional_date_of_birth,
                 input_dict,
                 "dob",
                 utils_pb2.TamilMonth,
                 star_enum=utils_pb2.TamilStar,
             )
-            if not trad_dob_success:
-                # Clear the field if population failed due to invalid enum value
-                member.ClearField("traditional_date_of_birth")
-                logger.info(
-                    f"Cleared traditional_date_of_birth for {member.name} due to invalid input."
-                )
+            if not is_valid:
+                return None, f"Traditional Date of Birth Error: {error_msg}"
 
         member.alive = input_dict.get("IsAlive", True)
 
+        # --- DOD Population and Validation ---
         if not member.alive:
-            # --- Use DateUtility for DOD ---
-            # Check if DOD data was intended
-            if (
-                "dod_date" in input_dict
-                or "dod_month" in input_dict
-                or "dod_year" in input_dict
-            ):
-                dod_success = DateUtility.populate_gregorian_date(
+            dod_provided = any(
+                k in input_dict for k in ["dod_date", "dod_month", "dod_year"]
+            )
+            if dod_provided:
+                is_valid, error_msg = DateUtility.populate_gregorian_date(
                     member.date_of_death, input_dict, "dod"
                 )
-                if not dod_success:
-                    member.ClearField("date_of_death")
-                    logger.info(
-                        f"Cleared date_of_death for {member.name} due to invalid input."
-                    )
+                if not is_valid:
+                    return None, f"Date of Death Error: {error_msg}"
 
-            # Check if traditional DOD data was provided
-            if (
-                "dod_traditional_month" in input_dict
-                or "dod_traditional_paksham" in input_dict
-                or "dod_traditional_thithi" in input_dict
-            ):
-                trad_dod_success = DateUtility.populate_traditional_date(
+            trad_dod_provided = any(
+                k in input_dict
+                for k in [
+                    "dod_traditional_month",
+                    "dod_traditional_paksham",
+                    "dod_traditional_thithi",
+                ]
+            )
+            if trad_dod_provided:
+                is_valid, error_msg = DateUtility.populate_traditional_date(
                     member.traditional_date_of_death,
                     input_dict,
                     "dod",
@@ -390,18 +436,56 @@ class FamilyTreeHandler:
                     paksham_enum=utils_pb2.Paksham,
                     thithi_enum=utils_pb2.Thithi,
                 )
-                if not trad_dod_success:
-                    member.ClearField("traditional_date_of_death")
-                    logger.info(
-                        f"Cleared traditional_date_of_death for {member.name} due to invalid input."
-                    )
+                if not is_valid:
+                    return None, f"Traditional Date of Death Error: {error_msg}"
 
-        # Add to the protobuf structure
-        self.family_tree.members[member_id].CopyFrom(member)
-        # Add to the networkx graph
-        self.add_node_from_proto_object(member)
-        logger.info(f"Created node with ID: {member_id}, Name: {member.name}")
-        return member_id  # Return the ID of the created member
+            # --- DOD vs DOB Check (after both are potentially populated) ---
+            # Check only if both Gregorian dates were successfully populated
+            # Check if year was set to something other than the default (0)
+            dob_populated = member.date_of_birth.year != 0
+            dod_populated = member.date_of_death.year != 0
+
+            if dob_populated and dod_populated:
+                try:
+                    dob = datetime.date(
+                        member.date_of_birth.year,
+                        member.date_of_birth.month,
+                        member.date_of_birth.date,
+                    )
+                    dod = datetime.date(
+                        member.date_of_death.year,
+                        member.date_of_death.month,
+                        member.date_of_death.date,
+                    )
+                    if dod < dob:
+                        return (
+                            None,
+                            "Validation Error: Date of Death cannot be before Date of Birth.",
+                        )
+                except ValueError:
+                    # This shouldn't happen if individual validation passed, but as a safeguard:
+                    logger.error(
+                        "Inconsistency: Could not create date objects for comparison after individual validation passed."
+                    )
+                    # Return a generic error or proceed cautiously
+                    return None, "Internal Error: Could not compare DOB and DOD."
+
+        # --- Add to Tree and Graph ---
+        try:
+            self.family_tree.members[member_id].CopyFrom(member)
+            self.add_node_from_proto_object(member)  # Add to nx graph
+            logger.info(f"Created node with ID: {member_id}, Name: {member.name}")
+            return member_id, None  # Success
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error adding member {member_id} to tree/graph: {e}"
+            )
+            # Attempt to roll back if needed (e.g., remove from members map if added)
+            if member_id in self.family_tree.members:
+                del self.family_tree.members[member_id]
+            if member_id in self.nx_graph:
+                self.nx_graph.remove_node(member_id)
+            return None, f"Internal error occurred while saving member: {e}"
 
     def generate_node_title(self, member: family_tree_pb2.FamilyMember):
         """Generates a formatted string for the node tooltip."""

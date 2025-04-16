@@ -370,7 +370,6 @@ def test_create_node_basic(tmp_path, caplog):
     caplog.set_level(logging.INFO)
     input_data = {"name": "Sirius Black", "gender": "MALE", "IsAlive": False}
     handler.create_node(input_data)
-
     assert len(handler.family_tree.members) == 1
     member_id = list(handler.family_tree.members.keys())[0]  # Get the generated ID
     assert len(member_id) == 4
@@ -434,12 +433,16 @@ def test_create_node_invalid_input(tmp_path, caplog):
     handler = FamilyTreeHandler(temp_dir_path=str(tmp_path))
 
     # Empty name
-    handler.create_node({"name": "  ", "gender": "MALE"})
+    member_id, message = handler.create_node({"name": "  ", "gender": "MALE"})
+    # print(f"Member_id: {member_id}, Message: {message}")
     assert len(handler.family_tree.members) == 0  # Should not create
-    assert "Cannot create node with empty name" in caplog.text
+    assert "Cannot create node: Name cannot be empty." in message
 
     # Invalid gender
-    handler.create_node({"name": "Nymphadora Tonks", "gender": "METAMORPHMAGUS"})
+    member_id, message = handler.create_node(
+        {"name": "Nymphadora Tonks", "gender": "METAMORPHMAGUS"}
+    )
+    # print(f"Member_id: {member_id}, Message: {message}")
     assert len(handler.family_tree.members) == 1
     member_id = list(handler.family_tree.members.keys())[0]
     tonks = handler.family_tree.members[member_id]
@@ -447,12 +450,14 @@ def test_create_node_invalid_input(tmp_path, caplog):
     assert "Invalid gender value 'METAMORPHMAGUS'" in caplog.text
 
     # Invalid date parts
-    handler.create_node({"name": "Albus Dumbledore", "gender": "MALE", "dob_date": 40})
-    assert len(handler.family_tree.members) == 2  # Dumbledore created
-    member_id_albus = list(handler.family_tree.members.keys())[1]
-    albus = handler.family_tree.members[member_id_albus]
-    assert albus.date_of_birth.year == 0  # Date should be cleared
-    assert "Invalid Gregorian date parts provided" in caplog.text
+    member_id, message = handler.create_node(
+        {"name": "Albus Dumbledore", "gender": "MALE", "dob_date": 40}
+    )
+    # print(f"Member_id: {member_id}, Message: {message}")
+    assert (
+        len(handler.family_tree.members) == 1
+    )  # As date validation should have failed
+    assert "Incomplete Gregorian date provided" in message
 
 
 def test_generate_node_title(tmp_path):
