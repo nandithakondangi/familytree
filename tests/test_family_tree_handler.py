@@ -272,58 +272,84 @@ def test_populate_nodes_and_edges(weasley_handler):
     assert "CHITHIRAI" in ginny_node["title"]  # Check traditional date in tooltip
 
 
-@patch("family_tree_handler.FamilyTreeHandler.get_default_images")
-def test_add_node_from_proto_object_image_logic(mock_get_images, tmp_path):
+def test_add_node_from_proto_object_image_logic(tmp_path):
     """Test node shape and image based on image availability."""
-    # FIXME: Think about how to test this
-    pass
     handler = FamilyTreeHandler(temp_dir_path=str(tmp_path))
     # Mock default images
-    mock_get_images.return_value = (
+    mock_return_value = (
         {"MALE": "/path/to/male.png", "FEMALE": "/path/to/female.png"},
         "/path/to/broken.gif",
     )
 
-    # Case 1: No image_location provided, use default
-    harry = family_tree_pb2.FamilyMember(
-        id="HARRP", name="Harry Potter", gender=utils_pb2.MALE
-    )
-    handler.add_node_from_proto_object(harry)
-    assert handler.nx_graph.nodes["HARRP"]["shape"] == "circularImage"
-    assert handler.nx_graph.nodes["HARRP"]["image"] == "/path/to/male.png"
-    assert handler.nx_graph.nodes["HARRP"]["brokenImage"] == "/path/to/broken.gif"
+    # Use patch.object as a context manager
+    # Patch the 'get_default_images' method directly on the FamilyTreeHandler class
+    with patch.object(
+        FamilyTreeHandler, "get_default_images", return_value=mock_return_value
+    ) as mock_method:
+        # --- Test Cases within the 'with' block ---
 
-    # Case 2: image_location provided and exists (mock os.path.exists)
-    hermione = family_tree_pb2.FamilyMember(
-        id="HERMG", name="Hermione Granger", gender=utils_pb2.FEMALE
-    )
-    hermione.additional_info["image_location"] = "/valid/path/hermione.jpg"
-    with patch("os.path.exists", return_value=True) as mock_exists:
-        handler.add_node_from_proto_object(hermione)
-        mock_exists.assert_called_with("/valid/path/hermione.jpg")
-    assert handler.nx_graph.nodes["HERMG"]["shape"] == "circularImage"
-    assert handler.nx_graph.nodes["HERMG"]["image"] == "/valid/path/hermione.jpg"
+        # Case 1: No image_location provided, use default
+        harry = family_tree_pb2.FamilyMember(
+            id="HARRP", name="Harry Potter", gender=utils_pb2.MALE
+        )
+        handler.add_node_from_proto_object(harry)  # Call happens while patch is active
+        assert handler.nx_graph.nodes["HARRP"]["shape"] == "circularImage"
+        # This assertion should now pass because the mock is guaranteed to be called
+        assert handler.nx_graph.nodes["HARRP"]["image"] == "/path/to/male.png"
+        assert handler.nx_graph.nodes["HARRP"]["brokenImage"] == "/path/to/broken.gif"
+        # You can optionally assert the mock was called if needed
+        mock_method.assert_called_once()
+        mock_method.reset_mock()  # Reset call count for the next case
 
-    # Case 3: image_location provided but doesn't exist (mock os.path.exists)
-    luna = family_tree_pb2.FamilyMember(
-        id="LUNAL", name="Luna Lovegood", gender=utils_pb2.FEMALE
-    )
-    luna.additional_info["image_location"] = "/invalid/path/luna.png"
-    with patch("os.path.exists", return_value=False) as mock_exists:
-        handler.add_node_from_proto_object(luna)
-        mock_exists.assert_called_with("/invalid/path/luna.png")
-    # Should fall back to default female image
-    assert handler.nx_graph.nodes["LUNAL"]["shape"] == "circularImage"
-    assert handler.nx_graph.nodes["LUNAL"]["image"] == "/path/to/female.png"
+        # Case 2: image_location provided and exists (mock os.path.exists)
+        hermione = family_tree_pb2.FamilyMember(
+            id="HERMG", name="Hermione Granger", gender=utils_pb2.FEMALE
+        )
+        hermione.additional_info["image_location"] = "/valid/path/hermione.jpg"
+        # Patch os.path.exists specifically for this case
+        with patch("os.path.exists", return_value=True) as mock_exists:
+            handler.add_node_from_proto_object(hermione)
+            mock_exists.assert_called_with("/valid/path/hermione.jpg")
+        assert handler.nx_graph.nodes["HERMG"]["shape"] == "circularImage"
+        assert handler.nx_graph.nodes["HERMG"]["image"] == "/valid/path/hermione.jpg"
+        # Assert get_default_images was still called (even if its result wasn't used for the final path)
+        mock_method.assert_called_once()
+        mock_method.reset_mock()
 
-    # Case 4: No image_location, no default image found
-    mock_get_images.return_value = ({}, "/path/to/broken.gif")  # No defaults
-    dobby = family_tree_pb2.FamilyMember(
-        id="DOBBY", name="Dobby", gender=utils_pb2.OTHER
-    )
-    handler.add_node_from_proto_object(dobby)
-    assert handler.nx_graph.nodes["DOBBY"]["shape"] == "dot"  # Fallback shape
-    assert handler.nx_graph.nodes["DOBBY"]["image"] is None
+        # Case 3: image_location provided but doesn't exist (mock os.path.exists)
+        luna = family_tree_pb2.FamilyMember(
+            id="LUNAL", name="Luna Lovegood", gender=utils_pb2.FEMALE
+        )
+        luna.additional_info["image_location"] = "/invalid/path/luna.png"
+        with patch("os.path.exists", return_value=False) as mock_exists:
+            handler.add_node_from_proto_object(luna)
+            mock_exists.assert_called_with("/invalid/path/luna.png")
+        # Should fall back to default female image from the mock
+        assert handler.nx_graph.nodes["LUNAL"]["shape"] == "circularImage"
+        assert (
+            handler.nx_graph.nodes["LUNAL"]["image"] == "/path/to/female.png"
+        )  # Uses mock return value
+        mock_method.assert_called_once()
+        mock_method.reset_mock()
+
+    # --- Test Case 4 needs a different mock return value ---
+    # Create a new handler instance or re-patch with different value outside the first 'with' block
+    handler_no_defaults = FamilyTreeHandler(temp_dir_path=str(tmp_path))
+    mock_return_no_defaults = ({}, "/path/to/broken.gif")  # No defaults
+
+    with patch.object(
+        FamilyTreeHandler, "get_default_images", return_value=mock_return_no_defaults
+    ) as mock_method_no_defaults:
+        # Case 4: No image_location, no default image found
+        dobby = family_tree_pb2.FamilyMember(
+            id="DOBBY", name="Dobby", gender=utils_pb2.OTHER
+        )
+        handler_no_defaults.add_node_from_proto_object(dobby)
+        assert (
+            handler_no_defaults.nx_graph.nodes["DOBBY"]["shape"] == "dot"
+        )  # Fallback shape
+        assert handler_no_defaults.nx_graph.nodes["DOBBY"]["image"] is None
+        mock_method_no_defaults.assert_called_once()
 
 
 def test_generate_member_id(tmp_path):
@@ -443,13 +469,11 @@ def test_generate_node_title(tmp_path):
     member.nicknames.append("Half-Blood Prince")
 
     title = handler.generate_node_title(member)
-    print(f"Title: {title}")
     assert "Id: SEVS" in title
     assert "Name: Severus Snape" in title
     assert "Nicknames: ['Half-Blood Prince']" in title  # Check list format
     assert "Gender: MALE" in title
-    # FIXME: Check if we need Alive status in node title
-    # assert "Alive: False" in title
+    assert "Alive: False" in title
     assert (
         "Date Of Birth: {'year': 1960, 'month': 1, 'date': 9}" in title
     )  # Check dict format
@@ -631,14 +655,8 @@ def test_print_member_details(weasley_handler, capsys):
     handler, _, _, _ = weasley_handler
     handler.load_from_protobuf()
     handler.print_member_details("MOLLW")
-    # FIXME: If using print, use capsys.readouterr()
     captured = capsys.readouterr()
     captured_text = captured.out
-    # Explicitly set the capture level for this test
-    # caplog.set_level(logging.INFO)
-    # captured_text = caplog.text
-
-    print(f"Captured: {captured_text}")
     assert 'id: "MOLLW"' in captured_text
     assert 'name: "Molly Weasley"' in captured_text
     assert 'nicknames: "Mollywobbles"' in captured_text

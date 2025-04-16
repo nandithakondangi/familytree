@@ -415,8 +415,8 @@ class FamilyTreeHandler:
             # Basic formatting - could be enhanced (e.g., remove empty fields)
             title_parts = []
             for key, value in member_dict.items():
-                # FIXME: This implies that bool fields of false (Eg: alive) are also missed out
-                if value:  # Only show non-empty fields
+                # Only show non-empty fields and boolean fields
+                if value or isinstance(value, bool):
                     # Simple formatting for common types
                     if isinstance(value, dict) and all(v == 0 for v in value.values()):
                         continue  # Skip empty date objects etc.
