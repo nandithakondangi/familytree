@@ -38,6 +38,9 @@ class FamilyTreeGUI(QMainWindow):
         # Pass the temp_dir_path to the handler
         self.family_tree_handler = FamilyTreeHandler(temp_dir_path=self.temp_dir_path)
 
+        # --- Culture Setting ---
+        self.is_indian_culture = True  # Default to Indian culture enabled
+
         self.init_ui()
         # Load initial empty state or default file if desired
         # self.load_pyvis_html() # Load initial view (might be empty)
@@ -79,6 +82,16 @@ class FamilyTreeGUI(QMainWindow):
             Qt.AlignmentFlag.AlignTop
         )  # Align widgets to top
 
+        # --- Culture Checkbox ---
+        self.culture_checkbox = QCheckBox("Culture: Indian")
+        self.culture_checkbox.setChecked(self.is_indian_culture)
+        self.culture_checkbox.setToolTip(
+            "Enable to show fields for traditional Indian dates (Tamil Month/Star/Paksham/Thithi)."
+        )
+        self.culture_checkbox.stateChanged.connect(self.update_culture_setting)
+        manage_tree_layout.addWidget(self.culture_checkbox)
+        # --- End Culture Checkbox ---
+
         # Import from file Form
         self.import_from_file_form = ImportFromFileForm(self.family_tree_handler, self)
         manage_tree_layout.addWidget(self.import_from_file_form)
@@ -116,9 +129,15 @@ class FamilyTreeGUI(QMainWindow):
         sidebar_layout.addWidget(sidebar)
         return sidebar_wrapper
 
+    def update_culture_setting(self, state):
+        """Updates the culture flag based on the checkbox state."""
+        self.is_indian_culture = state == Qt.CheckState.Checked.value
+        print(f"Indian culture setting updated: {self.is_indian_culture}")
+        # Future: Could potentially trigger updates elsewhere if needed
+
     def open_add_person_dialog(self):
-        # Pass the handler and self (GUI) to the dialog
-        dialog = AddPersonDialog(self.family_tree_handler, self)
+        # Pass the handler, self (GUI), and the current culture setting to the dialog
+        dialog = AddPersonDialog(self.family_tree_handler, self, self.is_indian_culture)
         # exec() is blocking, use open() for non-blocking if needed later
         result = dialog.exec()
         if result == QDialog.DialogCode.Accepted:
@@ -144,7 +163,7 @@ class FamilyTreeGUI(QMainWindow):
         <ul>
             <li>Load family tree data from <code>.txtpb</code> files.</li>
             <li>Visualize the tree interactively.</li>
-            <li>Add new family members.</li>
+            <li>Add new family members (with optional traditional Indian dates).</li>
             <li>Export the data back to <code>.txtpb</code>.</li>
             <li>Export the interactive graph as an HTML file.</li>
         </ul>
@@ -156,6 +175,7 @@ class FamilyTreeGUI(QMainWindow):
             <li>Chatbot integration for queries.</li>
             <li>More robust error handling and user feedback.</li>
             <li>Support for different data formats.</li>
+            <li>More culture-specific settings.</li>
         </ul>
         <hr>
         <p>Temporary files are stored in: <code>{temp_dir}</code></p>
@@ -263,10 +283,12 @@ class FamilyTreeGUI(QMainWindow):
 
 # --- AddDetailsForm ---
 class AddPersonDialog(QDialog):
-    def __init__(self, family_tree_handler, family_tree_gui):
+    # Modified constructor to accept culture setting
+    def __init__(self, family_tree_handler, family_tree_gui, is_indian_culture):
         super().__init__()
         self.family_tree_handler = family_tree_handler
         self.family_tree_gui = family_tree_gui  # Keep reference to main GUI
+        self.show_traditional_dates = is_indian_culture  # Store culture flag
         self.user_input_fields = {}  # Store input widgets
 
         # Widgets that need state toggling
@@ -275,6 +297,12 @@ class AddPersonDialog(QDialog):
         self.dob_details_widget = None
         self.dob_details_label = None
         self.dob_known_checkbox = None
+
+        # Widgets for traditional dates (to toggle visibility)
+        self.traditional_dob_widget = None
+        self.traditional_dob_label = None
+        self.traditional_dod_widget = None
+        self.traditional_dod_label = None
 
         self.setWindowTitle("➕ Add New Family Member")
         self.setMinimumWidth(500)  # Set a minimum width
@@ -315,6 +343,9 @@ class AddPersonDialog(QDialog):
         # --- Initial State ---
         self.toggle_dob_details()  # Set initial visibility based on checkbox
         self.toggle_dod_fields()  # Set initial visibility based on 'IsAlive'
+        # Set initial visibility for traditional fields based on culture flag
+        self.toggle_traditional_dob_visibility()
+        self.toggle_traditional_dod_visibility()
 
     # --- Field Creation Methods (Helper functions for init_ui) ---
 
@@ -380,8 +411,9 @@ class AddPersonDialog(QDialog):
 
     # Helper to create Traditional DOB widget
     def _create_traditional_dob_widget(self) -> QWidget:
-        widget = QWidget()
-        layout = QHBoxLayout(widget)
+        # Store the widget reference
+        self.traditional_dob_widget = QWidget()
+        layout = QHBoxLayout(self.traditional_dob_widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
         valid_months = self.family_tree_handler.get_enum_values_from_proto_schema(
@@ -411,13 +443,12 @@ class AddPersonDialog(QDialog):
         layout.addWidget(QLabel("Tamil Star:"))
         layout.addWidget(self.user_input_fields["dob_traditional_star"])
         layout.addStretch()
-        return widget
+        return self.traditional_dob_widget  # Return the stored widget
 
     def display_dob_section(self, form_layout: QFormLayout):
         # Checkbox first
         self.dob_known_checkbox = QCheckBox("Is Date of Birth Known?")
         self.dob_known_checkbox.setChecked(False)  # Default to unknown/hidden
-        # --- MODIFIED: Connect to the renamed toggle method ---
         self.dob_known_checkbox.stateChanged.connect(self.toggle_dob_details)
         form_layout.addRow(self.dob_known_checkbox)  # Add checkbox spanning row
 
@@ -435,8 +466,12 @@ class AddPersonDialog(QDialog):
         main_dob_layout.addSpacing(10)  # Space between Gregorian and Traditional
 
         # --- Traditional DOB ---
-        traditional_dob_widget = self._create_traditional_dob_widget()
-        main_dob_layout.addWidget(QLabel("Traditional DOB:"))  # Add sub-label
+        # Store the label reference
+        self.traditional_dob_label = QLabel("Traditional DOB:")
+        traditional_dob_widget = (
+            self._create_traditional_dob_widget()
+        )  # Creates and stores self.traditional_dob_widget
+        main_dob_layout.addWidget(self.traditional_dob_label)  # Add sub-label
         main_dob_layout.addWidget(traditional_dob_widget)
         # --- End Traditional DOB ---
 
@@ -484,8 +519,9 @@ class AddPersonDialog(QDialog):
         main_dod_layout.addSpacing(10)  # Space between Gregorian and Traditional
 
         # --- Traditional DoD ---
-        traditional_dod_widget = QWidget()
-        traditional_dod_layout = QHBoxLayout(traditional_dod_widget)
+        # Store the widget reference
+        self.traditional_dod_widget = QWidget()
+        traditional_dod_layout = QHBoxLayout(self.traditional_dod_widget)
         traditional_dod_layout.setContentsMargins(0, 0, 0, 0)
 
         valid_months = self.family_tree_handler.get_enum_values_from_proto_schema(
@@ -531,8 +567,10 @@ class AddPersonDialog(QDialog):
             self.user_input_fields["dod_traditional_thithi"]
         )
         traditional_dod_layout.addStretch()
-        main_dod_layout.addWidget(QLabel("Traditional DoD:"))  # Add sub-label
-        main_dod_layout.addWidget(traditional_dod_widget)
+        # Store the label reference
+        self.traditional_dod_label = QLabel("Traditional DoD:")
+        main_dod_layout.addWidget(self.traditional_dod_label)  # Add sub-label
+        main_dod_layout.addWidget(self.traditional_dod_widget)  # Add the widget itself
         # --- End Traditional DoD ---
 
         self.dod_label = QLabel(
@@ -543,15 +581,18 @@ class AddPersonDialog(QDialog):
     # --- Toggle Visibility Methods ---
 
     def toggle_dod_fields(self):
-        """Shows/hides DoD fields based on 'Is Alive' checkbox."""
+        """Shows/hides the entire DoD section based on 'Is Alive' checkbox."""
         if self.dod_label and self.dod_fields_widget:
             is_alive = self.user_input_fields["IsAlive"].isChecked()
             visible = not is_alive  # Show if NOT alive
             self.dod_label.setVisible(visible)
             self.dod_fields_widget.setVisible(visible)
+            # Note: Traditional DOD fields are *inside* dod_fields_widget,
+            # so they are hidden/shown along with it. Their specific visibility
+            # based on culture is set initially and doesn't need to change here.
 
     def toggle_dob_details(self):
-        """Shows/hides DOB fields based on 'DOB not known' checkbox."""
+        """Shows/hides DOB fields based on 'DOB known' checkbox."""
         if (
             self.dob_details_label
             and self.dob_details_widget
@@ -560,6 +601,19 @@ class AddPersonDialog(QDialog):
             is_known = self.dob_known_checkbox.isChecked()
             self.dob_details_label.setVisible(is_known)
             self.dob_details_widget.setVisible(is_known)
+
+    def toggle_traditional_dob_visibility(self):
+        """Shows/hides traditional DOB fields based *only* on culture setting."""
+        if self.traditional_dob_label and self.traditional_dob_widget:
+            self.traditional_dob_label.setVisible(self.show_traditional_dates)
+            self.traditional_dob_widget.setVisible(self.show_traditional_dates)
+
+    def toggle_traditional_dod_visibility(self):
+        """Shows/hides traditional DOD fields based *only* on culture setting."""
+        # Visibility of the parent DOD section is handled by toggle_dod_fields.
+        if self.traditional_dod_label and self.traditional_dod_widget:
+            self.traditional_dod_label.setVisible(self.show_traditional_dates)
+            self.traditional_dod_widget.setVisible(self.show_traditional_dates)
 
     # --- Save Action ---
     def save_new_member(self):
@@ -581,20 +635,21 @@ class AddPersonDialog(QDialog):
         )
         user_input_values["gender"] = self.user_input_fields["gender"].currentText()
 
-        # --- MODIFIED: DOB gathering based on new checkbox ---
+        # DOB gathering based on 'known' checkbox
         if self.dob_known_checkbox.isChecked():
             # Gregorian DOB
             user_input_values["dob_date"] = self.user_input_fields["dob_date"].value()
             user_input_values["dob_month"] = self.user_input_fields["dob_month"].value()
             user_input_values["dob_year"] = self.user_input_fields["dob_year"].value()
 
-            # Traditional DOB
-            user_input_values["dob_traditional_month"] = self.user_input_fields[
-                "dob_traditional_month"
-            ].currentText()
-            user_input_values["dob_traditional_star"] = self.user_input_fields[
-                "dob_traditional_star"
-            ].currentText()
+            # Traditional DOB (only if culture enabled and fields were visible)
+            if self.show_traditional_dates:
+                user_input_values["dob_traditional_month"] = self.user_input_fields[
+                    "dob_traditional_month"
+                ].currentText()
+                user_input_values["dob_traditional_star"] = self.user_input_fields[
+                    "dob_traditional_star"
+                ].currentText()
 
         # IsAlive status
         is_alive = self.user_input_fields["IsAlive"].isChecked()
@@ -606,15 +661,17 @@ class AddPersonDialog(QDialog):
             user_input_values["dod_month"] = self.user_input_fields["dod_month"].value()
             user_input_values["dod_year"] = self.user_input_fields["dod_year"].value()
 
-            user_input_values["dod_traditional_month"] = self.user_input_fields[
-                "dod_traditional_month"
-            ].currentText()
-            user_input_values["dod_traditional_paksham"] = self.user_input_fields[
-                "dod_traditional_paksham"
-            ].currentText()
-            user_input_values["dod_traditional_thithi"] = self.user_input_fields[
-                "dod_traditional_thithi"
-            ].currentText()
+            # Traditional DoD (only if culture enabled and fields were visible)
+            if self.show_traditional_dates:
+                user_input_values["dod_traditional_month"] = self.user_input_fields[
+                    "dod_traditional_month"
+                ].currentText()
+                user_input_values["dod_traditional_paksham"] = self.user_input_fields[
+                    "dod_traditional_paksham"
+                ].currentText()
+                user_input_values["dod_traditional_thithi"] = self.user_input_fields[
+                    "dod_traditional_thithi"
+                ].currentText()
 
         # --- Call Handler to Create and Validate ---
         try:
