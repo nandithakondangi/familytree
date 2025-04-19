@@ -1,7 +1,8 @@
 import os
 
 from family_tree_handler import FamilyTreeHandler
-from PySide6.QtCore import QDate, Qt, QUrl
+from PySide6.QtCore import QDate, QObject, Qt, QUrl, Signal, Slot
+from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -27,6 +28,24 @@ from PySide6.QtWidgets import (
 import proto.utils_pb2 as utils_pb2
 
 
+# --- Add JavaScript Interface Class ---
+class JavaScriptInterface(QObject):
+    """Object exposed to JavaScript for communication."""
+
+    # Signal to request editing a node, carrying the node ID (member_id)
+    edit_node_requested = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    @Slot(str)  # Decorator exposes this method to JavaScript via QWebChannel
+    def handleNodeDoubleClick(self, node_id):
+        """Receives the node ID from JavaScript when a node is double-clicked."""
+        print(f"Received nodeDoubleClick signal from JS for node: {node_id}")
+        if node_id:
+            self.edit_node_requested.emit(node_id)  # Emit signal for GUI to handle
+
+
 class FamilyTreeGUI(QMainWindow):
     # Accept temp_dir_path in constructor
     def __init__(self, temp_dir_path):
@@ -40,6 +59,15 @@ class FamilyTreeGUI(QMainWindow):
 
         # --- Culture Setting ---
         self.is_indian_culture = True  # Default to Indian culture enabled
+
+        # --- WebChannel Setup ---
+        self.js_interface = JavaScriptInterface(self)  # Create the interface object
+        self.channel = QWebChannel(self)  # Create the channel
+        # Register the Python object with the name expected by JavaScript ("pythonInterface")
+        self.channel.registerObject("pythonInterface", self.js_interface)
+        # Connect the signal from the interface to the GUI's handler method
+        self.js_interface.edit_node_requested.connect(self.open_edit_person_dialog)
+        # --- End WebChannel Setup ---
 
         self.init_ui()
         # Load initial empty state or default file if desired
@@ -56,7 +84,7 @@ class FamilyTreeGUI(QMainWindow):
         main_splitter.addWidget(sidebar)
 
         # Main Content Area (Right)
-        content_area = self.create_content_area()
+        content_area = self.create_content_area()  # This now sets up the web channel
         main_splitter.addWidget(content_area)
 
         # Set initial splitter sizes (adjust as needed)
@@ -101,12 +129,19 @@ class FamilyTreeGUI(QMainWindow):
         self.add_person_button.clicked.connect(self.open_add_person_dialog)
         manage_tree_layout.addWidget(self.add_person_button)
 
-        # Edit Details Form (Placeholder)
-        # self.edit_details_form = EditDetailsForm(self.family_tree_handler)
-        # manage_tree_layout.addWidget(self.edit_details_form)
-        edit_placeholder = QLabel("<i>Edit functionality coming soon...</i>")
-        edit_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        manage_tree_layout.addWidget(edit_placeholder)
+        # Add instructions on how to edit:
+        edit_instructions_label = QLabel(
+            "✏️ <b>Edit Person:</b>\nDouble-click a node\nin the graph."
+        )
+        edit_instructions_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft
+        )  # Or AlignCenter
+        edit_instructions_label.setWordWrap(True)  # Ensure text wraps if needed
+        # Optional styling to make it look less prominent than buttons
+        edit_instructions_label.setStyleSheet(
+            "color: #ccc; margin-top: 10px; margin-bottom: 5px;"
+        )
+        manage_tree_layout.addWidget(edit_instructions_label)
 
         # Export Widget
         self.export_widget = ExportWidget(self.family_tree_handler, self)
@@ -136,15 +171,49 @@ class FamilyTreeGUI(QMainWindow):
         # Future: Could potentially trigger updates elsewhere if needed
 
     def open_add_person_dialog(self):
-        # Pass the handler, self (GUI), and the current culture setting to the dialog
+        # Pass the handler, self (GUI), and the current culture setting to the dialog, and indicate it's for ADDING (member_id=None)
         dialog = AddPersonDialog(self.family_tree_handler, self, self.is_indian_culture)
+        dialog = AddPersonDialog(
+            family_tree_handler=self.family_tree_handler,
+            family_tree_gui=self,
+            is_indian_culture=self.is_indian_culture,
+            member_id_to_edit=None,  # Explicitly None for adding
+        )
         # exec() is blocking, use open() for non-blocking if needed later
         result = dialog.exec()
+
         if result == QDialog.DialogCode.Accepted:
-            print("Add Person dialog accepted.")
-            # Re-rendering is handled within the dialog's save method now
+            print("Add/Edit Person dialog accepted.")
+            # Re-rendering is handled within the dialog's save method
         else:
-            print("Add Person dialog cancelled.")
+            print("Add/Edit Person dialog cancelled.")
+
+    # --- Add method to handle edit request ---
+    def open_edit_person_dialog(self, member_id):
+        """Opens the dialog in edit mode for the given member ID."""
+        print(f"Opening edit dialog for member ID: {member_id}")
+        # Check if member actually exists before opening dialog
+        if member_id not in self.family_tree_handler.family_tree.members:
+            QMessageBox.warning(
+                self, "Edit Error", f"Member with ID '{member_id}' not found."
+            )
+            return
+
+        # Pass handler, self, culture setting, and the member_id to edit
+        dialog = AddPersonDialog(
+            family_tree_handler=self.family_tree_handler,
+            family_tree_gui=self,
+            is_indian_culture=self.is_indian_culture,
+            member_id_to_edit=member_id,  # Pass the ID for editing
+        )
+        result = dialog.exec()
+        if result == QDialog.DialogCode.Accepted:
+            print(f"Edit Person dialog accepted for {member_id}.")
+            # Re-rendering is handled within the dialog's save method
+        else:
+            print(f"Edit Person dialog cancelled for {member_id}.")
+
+    # --- End edit request handler ---
 
     def publish_content_to_about_tab(self, about_tab):
         about_layout = QVBoxLayout(about_tab)
@@ -191,6 +260,8 @@ class FamilyTreeGUI(QMainWindow):
 
         # Pyvis Output (Top)
         self.pyvis_view = QWebEngineView()
+        # --- Set the WebChannel on the page ---
+        self.pyvis_view.page().setWebChannel(self.channel)
         # Optional: Configure settings if needed (e.g., for local file access, JS)
         # settings = self.pyvis_view.settings()
         # settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
@@ -284,11 +355,20 @@ class FamilyTreeGUI(QMainWindow):
 # --- AddDetailsForm ---
 class AddPersonDialog(QDialog):
     # Modified constructor to accept culture setting
-    def __init__(self, family_tree_handler, family_tree_gui, is_indian_culture):
+    def __init__(
+        self,
+        family_tree_handler,
+        family_tree_gui,
+        is_indian_culture,
+        member_id_to_edit=None,
+    ):
         super().__init__()
         self.family_tree_handler = family_tree_handler
         self.family_tree_gui = family_tree_gui  # Keep reference to main GUI
         self.show_traditional_dates = is_indian_culture  # Store culture flag
+
+        self.member_id_to_edit = member_id_to_edit  # Store the ID if editing
+        self.is_edit_mode = member_id_to_edit is not None
         self.user_input_fields = {}  # Store input widgets
 
         # Widgets that need state toggling
@@ -304,9 +384,20 @@ class AddPersonDialog(QDialog):
         self.traditional_dod_widget = None
         self.traditional_dod_label = None
 
-        self.setWindowTitle("➕ Add New Family Member")
+        self.save_button = None  # Reference to save button for text change
+
+        # Set title based on mode
+        if self.is_edit_mode:
+            self.setWindowTitle(f"✏️ Edit Family Member (ID: {self.member_id_to_edit})")
+        else:
+            self.setWindowTitle("➕ Add New Family Member")
+
         self.setMinimumWidth(500)  # Set a minimum width
         self.init_ui()
+
+        # If in edit mode, populate fields *after* UI is created
+        if self.is_edit_mode:
+            self.populate_fields_for_edit()
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -317,6 +408,10 @@ class AddPersonDialog(QDialog):
 
         # --- Create Fields ---
         self.display_name_field(form_layout)
+        # Optionally disable name editing if ID is based on it or for other reasons
+        # if self.is_edit_mode:
+        #     self.user_input_fields["name"].setReadOnly(True)
+        #     self.user_input_fields["name"].setToolTip("Name cannot be changed after creation.")
         self.display_nicknames_field(form_layout)
         self.display_gender_field(form_layout)
         self.display_dob_section(form_layout)
@@ -329,21 +424,27 @@ class AddPersonDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()  # Push buttons to the right
 
-        save_button = QPushButton("💾 Save Member")
-        save_button.clicked.connect(self.save_new_member)
-        save_button.setDefault(True)  # Allow Enter key to trigger save
+        # Set text based on mode
+        # Create and store reference to save button
+        self.save_button = QPushButton()
+        self.save_button.setText(
+            "💾 Update Member" if self.is_edit_mode else "💾 Save Member"
+        )
+        self.save_button.clicked.connect(self.save_member_data)
+        self.save_button.setDefault(True)  # Allow Enter key to trigger save
 
         cancel_button = QPushButton("❌ Cancel")
         cancel_button.clicked.connect(self.reject)  # Close dialog without saving
 
-        button_layout.addWidget(save_button)
+        button_layout.addWidget(self.save_button)
         button_layout.addWidget(cancel_button)
         main_layout.addLayout(button_layout)
 
         # --- Initial State ---
-        self.toggle_dob_details()  # Set initial visibility based on checkbox
-        self.toggle_dod_fields()  # Set initial visibility based on 'IsAlive'
-        # Set initial visibility for traditional fields based on culture flag
+        # These toggles need to run AFTER potential population in edit mode
+        # We call them here and again after populating if editing
+        self.toggle_dob_details()
+        self.toggle_dod_fields()
         self.toggle_traditional_dob_visibility()
         self.toggle_traditional_dod_visibility()
 
@@ -578,6 +679,131 @@ class AddPersonDialog(QDialog):
         )  # Main label for the section
         form_layout.addRow(self.dod_label, self.dod_fields_widget)
 
+    # --- Add method to populate fields when editing ---
+    def populate_fields_for_edit(self):
+        """Populates the form fields with data from the member being edited."""
+        if not self.is_edit_mode or not self.member_id_to_edit:
+            return  # Should not happen if called correctly
+
+        try:
+            member = self.family_tree_handler.family_tree.members[
+                self.member_id_to_edit
+            ]
+        except KeyError:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Could not find member with ID {self.member_id_to_edit} to edit.",
+            )
+            self.reject()  # Close the dialog if member not found
+            return
+
+        # --- Populate Basic Fields ---
+        self.user_input_fields["name"].setText(member.name)
+        self.user_input_fields["nicknames"].setText(", ".join(member.nicknames))
+
+        # Gender: Find the index corresponding to the enum name
+        gender_name = utils_pb2.Gender.Name(member.gender)
+        gender_index = self.user_input_fields["gender"].findText(gender_name)
+        if gender_index != -1:
+            self.user_input_fields["gender"].setCurrentIndex(gender_index)
+        else:
+            # Fallback if enum name not found (e.g., GENDER_UNKNOWN)
+            unknown_index = self.user_input_fields["gender"].findText("GENDER_UNKNOWN")
+            if unknown_index != -1:
+                self.user_input_fields["gender"].setCurrentIndex(unknown_index)
+
+        # --- Populate DOB ---
+        # Check if Gregorian DOB exists
+        if member.HasField("date_of_birth") and member.date_of_birth.year > 0:
+            self.dob_known_checkbox.setChecked(True)
+            self.user_input_fields["dob_date"].setValue(member.date_of_birth.date)
+            self.user_input_fields["dob_month"].setValue(member.date_of_birth.month)
+            self.user_input_fields["dob_year"].setValue(member.date_of_birth.year)
+        else:
+            self.dob_known_checkbox.setChecked(
+                False
+            )  # Ensure fields are hidden if no DOB
+
+        # Check if Traditional DOB exists (only if culture is enabled)
+        if self.show_traditional_dates and member.HasField("traditional_date_of_birth"):
+            # Month
+            month_name = utils_pb2.TamilMonth.Name(
+                member.traditional_date_of_birth.month
+            )
+            month_index = self.user_input_fields["dob_traditional_month"].findText(
+                month_name
+            )
+            if month_index != -1:
+                self.user_input_fields["dob_traditional_month"].setCurrentIndex(
+                    month_index
+                )
+            # Star
+            star_name = utils_pb2.TamilStar.Name(member.traditional_date_of_birth.star)
+            star_index = self.user_input_fields["dob_traditional_star"].findText(
+                star_name
+            )
+            if star_index != -1:
+                self.user_input_fields["dob_traditional_star"].setCurrentIndex(
+                    star_index
+                )
+
+        # --- Populate IsAlive and DOD ---
+        self.user_input_fields["IsAlive"].setChecked(member.alive)
+        # IMPORTANT: Trigger toggle_dod_fields *after* setting IsAlive state
+        self.toggle_dod_fields()
+
+        if not member.alive:
+            # Check if Gregorian DOD exists
+            if member.HasField("date_of_death") and member.date_of_death.year > 0:
+                self.user_input_fields["dod_date"].setValue(member.date_of_death.date)
+                self.user_input_fields["dod_month"].setValue(member.date_of_death.month)
+                self.user_input_fields["dod_year"].setValue(member.date_of_death.year)
+
+            # Check if Traditional DOD exists (only if culture is enabled)
+            if self.show_traditional_dates and member.HasField(
+                "traditional_date_of_death"
+            ):
+                # Month
+                month_name = utils_pb2.TamilMonth.Name(
+                    member.traditional_date_of_death.month
+                )
+                month_index = self.user_input_fields["dod_traditional_month"].findText(
+                    month_name
+                )
+                if month_index != -1:
+                    self.user_input_fields["dod_traditional_month"].setCurrentIndex(
+                        month_index
+                    )
+                # Paksham
+                paksham_name = utils_pb2.Paksham.Name(
+                    member.traditional_date_of_death.paksham
+                )
+                paksham_index = self.user_input_fields[
+                    "dod_traditional_paksham"
+                ].findText(paksham_name)
+                if paksham_index != -1:
+                    self.user_input_fields["dod_traditional_paksham"].setCurrentIndex(
+                        paksham_index
+                    )
+                # Thithi
+                thithi_name = utils_pb2.Thithi.Name(
+                    member.traditional_date_of_death.thithi
+                )
+                thithi_index = self.user_input_fields[
+                    "dod_traditional_thithi"
+                ].findText(thithi_name)
+                if thithi_index != -1:
+                    self.user_input_fields["dod_traditional_thithi"].setCurrentIndex(
+                        thithi_index
+                    )
+
+        # Ensure visibility toggles are correct after population
+        self.toggle_dob_details()
+        # toggle_dod_fields was called after setting IsAlive
+        self.toggle_traditional_dob_visibility()
+        self.toggle_traditional_dod_visibility()
+
     # --- Toggle Visibility Methods ---
 
     def toggle_dod_fields(self):
@@ -616,13 +842,12 @@ class AddPersonDialog(QDialog):
             self.traditional_dod_widget.setVisible(self.show_traditional_dates)
 
     # --- Save Action ---
-    def save_new_member(self):
-        """Gathers data from fields, calls handler to validate and create, handles result."""
+    def save_member_data(self):
+        """Gathers data, calls handler to validate and create OR update, handles result."""
         user_input_values = {}
 
-        # --- Gather Data (Raw values) ---
+        # --- Gather Data (Raw values - same logic as before) ---
         user_input_values["name"] = self.user_input_fields["name"].text().strip()
-        # Basic check for name remains here as it's UI-specific feedback
         if not user_input_values["name"]:
             QMessageBox.warning(
                 self, "Input Required", "The 'Name' field cannot be empty."
@@ -635,14 +860,11 @@ class AddPersonDialog(QDialog):
         )
         user_input_values["gender"] = self.user_input_fields["gender"].currentText()
 
-        # DOB gathering based on 'known' checkbox
+        # DOB gathering
         if self.dob_known_checkbox.isChecked():
-            # Gregorian DOB
             user_input_values["dob_date"] = self.user_input_fields["dob_date"].value()
             user_input_values["dob_month"] = self.user_input_fields["dob_month"].value()
             user_input_values["dob_year"] = self.user_input_fields["dob_year"].value()
-
-            # Traditional DOB (only if culture enabled and fields were visible)
             if self.show_traditional_dates:
                 user_input_values["dob_traditional_month"] = self.user_input_fields[
                     "dob_traditional_month"
@@ -655,13 +877,11 @@ class AddPersonDialog(QDialog):
         is_alive = self.user_input_fields["IsAlive"].isChecked()
         user_input_values["IsAlive"] = is_alive
 
-        # DoD (only if not alive) - Pass raw values
+        # DoD gathering
         if not is_alive:
             user_input_values["dod_date"] = self.user_input_fields["dod_date"].value()
             user_input_values["dod_month"] = self.user_input_fields["dod_month"].value()
             user_input_values["dod_year"] = self.user_input_fields["dod_year"].value()
-
-            # Traditional DoD (only if culture enabled and fields were visible)
             if self.show_traditional_dates:
                 user_input_values["dod_traditional_month"] = self.user_input_fields[
                     "dod_traditional_month"
@@ -673,55 +893,62 @@ class AddPersonDialog(QDialog):
                     "dod_traditional_thithi"
                 ].currentText()
 
-        # --- Call Handler to Create and Validate ---
+        # --- Call Handler to Create or Update ---
         try:
-            print("Attempting to save new member with data:", user_input_values)
-            member_id, error_message = self.family_tree_handler.create_node(
-                user_input_values
-            )
+            if self.is_edit_mode:
+                # --- UPDATE ---
+                print(
+                    f"Attempting to update member {self.member_id_to_edit} with data:",
+                    user_input_values,
+                )
+                success, error_message = self.family_tree_handler.update_node(
+                    self.member_id_to_edit, user_input_values
+                )
+                action_verb = "updated"
+                member_name_or_id = (
+                    f"'{user_input_values['name']}' (ID: {self.member_id_to_edit})"
+                )
 
-            if error_message:
-                # Validation or creation failed, show the error from the handler
+            else:
+                # --- CREATE ---
+                print("Attempting to save new member with data:", user_input_values)
+                member_id, error_message = self.family_tree_handler.create_node(
+                    user_input_values
+                )
+                success = member_id is not None
+                action_verb = "added"
+                member_name_or_id = (
+                    f"'{user_input_values['name']}'"  # ID not known until success
+                )
+
+            # --- Handle Result ---
+            if (
+                not success
+            ):  # Check if success is False (update) or member_id is None (create)
                 QMessageBox.warning(self, "Validation Error", error_message)
                 # Keep the dialog open for correction
             else:
                 # Success!
-                print(
-                    f"Member '{user_input_values['name']}' created with ID: {member_id}"
-                )
+                print(f"Member {member_name_or_id} {action_verb} successfully.")
                 # Trigger re-render in the main GUI
                 self.family_tree_gui.re_render_tree()
                 QMessageBox.information(
                     self,
                     "Success",
-                    f"Member '{user_input_values['name']}' added successfully!",
+                    f"Member {member_name_or_id} {action_verb} successfully!",
                 )
                 self.accept()  # Close the dialog successfully
 
         except Exception as e:
-            # Catch unexpected errors during the handler call itself
-            print(f"Unexpected error during create_node call: {e}")
-            # Ensure logger is available or handle logging appropriately
-            # logger.exception("Unexpected error in save_new_member calling create_node")
+            action = "updating" if self.is_edit_mode else "saving"
+            print(f"Unexpected error during {action} member: {e}")
+            # logger.exception(f"Unexpected error in save_member_data") # If logger is configured
             QMessageBox.critical(
-                self, "Save Error", f"An unexpected error occurred:\n{e}"
+                self,
+                f"{action.capitalize()} Error",
+                f"An unexpected error occurred:\n{e}",
             )
             # Don't close the dialog on unexpected error
-
-
-# --- EditDetailsForm (Placeholder) ---
-class EditDetailsForm(QWidget):
-    def __init__(self, family_tree_handler):
-        super().__init__()
-        self.family_tree_handler = family_tree_handler
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout(self)
-        label = QLabel("<i>Edit Details Form (Placeholder)</i>")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
-        # TODO: Implement member selection (e.g., dropdown, list) and form population
 
 
 # --- ExportWidget ---

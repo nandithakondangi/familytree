@@ -1,6 +1,6 @@
 import datetime
 import json
-import logging  # Added
+import logging
 import os
 import pathlib
 import random
@@ -9,6 +9,9 @@ import string
 import google.protobuf.text_format as text_format
 import networkx as nx
 from google.protobuf.json_format import MessageToDict
+
+# Import Jinja2
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pyvis.network import Network
 
 import proto.family_tree_pb2 as family_tree_pb2
@@ -341,25 +344,35 @@ class FamilyTreeHandler:
             if member_id not in self.family_tree.members:
                 return member_id
 
-    def create_node(self, input_dict) -> tuple[str | None, str | None]:
+    def _prepare_member_data(
+        self, input_dict, existing_member: family_tree_pb2.FamilyMember | None = None
+    ) -> tuple[family_tree_pb2.FamilyMember | None, str | None]:
         """
-        Creates a new FamilyMember node, validates input, adds it to the tree.
+        Validates input data and populates a FamilyMember protobuf object.
+        Does NOT modify self.family_tree or self.nx_graph.
 
         Args:
-            input_dict: Dictionary containing the raw input data for the new member.
+            input_dict: Dictionary containing the raw input data.
+            existing_member: If provided, updates this existing member object.
+                             If None, creates and returns a new member object.
 
         Returns:
-            tuple[str | None, str | None]: (member_id, None) on successful creation.
-                                           (None, error_message) if validation or creation fails.
+            tuple[FamilyMember | None, str | None]:
+                (populated_member_proto, None) on successful validation and population.
+                (None, error_message) if validation fails.
         """
-        member_id = self.generate_member_id()
-        member = family_tree_pb2.FamilyMember()
-        member.id = member_id
+        if existing_member:
+            member = existing_member  # Work on the existing object
+        else:
+            member = family_tree_pb2.FamilyMember()  # Create a new object
+
+        # --- Basic Info ---
         member.name = input_dict.get("name", "").strip()
         if not member.name:
-            # No need to log here, return the error message
-            return None, "Cannot create node: Name cannot be empty."
+            return None, "Validation Error: Name cannot be empty."
 
+        # Clear existing nicknames before adding new ones (important for updates)
+        member.ClearField("nicknames")
         nicknames_str = input_dict.get("nicknames", "")
         if nicknames_str:
             member.nicknames.extend(
@@ -371,16 +384,16 @@ class FamilyTreeHandler:
                 input_dict.get("gender", "GENDER_UNKNOWN")
             )
         except ValueError:
-            # Log warning but also return user-friendly error
             logger.warning(
                 f"Invalid gender value '{input_dict.get('gender')}' for {member.name}. Setting to UNKNOWN."
             )
-            # Decide if this is a fatal error or if defaulting is acceptable.
-            # Let's allow defaulting for now, but you could return an error:
-            # return None, f"Invalid gender value: '{input_dict.get('gender')}'"
-            member.gender = utils_pb2.GENDER_UNKNOWN  # Defaulting
+            member.gender = utils_pb2.GENDER_UNKNOWN
 
         # --- DOB Population and Validation ---
+        # Clear existing date fields before potentially repopulating (important for updates)
+        member.ClearField("date_of_birth")
+        member.ClearField("traditional_date_of_birth")
+
         dob_provided = any(
             k in input_dict for k in ["dob_date", "dob_month", "dob_year"]
         )
@@ -408,6 +421,10 @@ class FamilyTreeHandler:
         member.alive = input_dict.get("IsAlive", True)
 
         # --- DOD Population and Validation ---
+        # Clear existing DoD fields before potentially repopulating (important for updates)
+        member.ClearField("date_of_death")
+        member.ClearField("traditional_date_of_death")
+
         if not member.alive:
             dod_provided = any(
                 k in input_dict for k in ["dod_date", "dod_month", "dod_year"]
@@ -440,8 +457,6 @@ class FamilyTreeHandler:
                     return None, f"Traditional Date of Death Error: {error_msg}"
 
             # --- DOD vs DOB Check (after both are potentially populated) ---
-            # Check only if both Gregorian dates were successfully populated
-            # Check if year was set to something other than the default (0)
             dob_populated = member.date_of_birth.year != 0
             dod_populated = member.date_of_death.year != 0
 
@@ -463,29 +478,135 @@ class FamilyTreeHandler:
                             "Validation Error: Date of Death cannot be before Date of Birth.",
                         )
                 except ValueError:
-                    # This shouldn't happen if individual validation passed, but as a safeguard:
                     logger.error(
                         "Inconsistency: Could not create date objects for comparison after individual validation passed."
                     )
-                    # Return a generic error or proceed cautiously
                     return None, "Internal Error: Could not compare DOB and DOD."
 
-        # --- Add to Tree and Graph ---
+        # If all validations passed
+        return member, None
+
+    def _add_member_to_tree_and_graph(
+        self, member_proto: family_tree_pb2.FamilyMember
+    ) -> tuple[bool, str | None]:
+        """
+        Adds or updates a validated member proto into the main family tree
+        and the NetworkX graph.
+
+        Args:
+            member_proto: The validated FamilyMember object.
+
+        Returns:
+            tuple[bool, str | None]: (True, None) on success.
+                                     (False, error_message) on failure.
+        """
+        member_id = member_proto.id
+        if not member_id:
+            return False, "Internal Error: Member proto has no ID."
+
         try:
-            self.family_tree.members[member_id].CopyFrom(member)
-            self.add_node_from_proto_object(member)  # Add to nx graph
-            logger.info(f"Created node with ID: {member_id}, Name: {member.name}")
-            return member_id, None  # Success
+            # Add/Update in the main protobuf structure
+            # Use CopyFrom to ensure the map entry is correctly updated/created
+            self.family_tree.members[member_id].CopyFrom(member_proto)
+
+            # Add/Update in the NetworkX graph
+            self.add_or_update_node_from_proto_object(
+                member_proto
+            )  # This function already handles add/update
+
+            logger.info(
+                f"Successfully added/updated member {member_id} ('{member_proto.name}') in tree and graph."
+            )
+            return True, None
         except Exception as e:
             logger.exception(
-                f"Unexpected error adding member {member_id} to tree/graph: {e}"
+                f"Unexpected error adding/updating member {member_id} to tree/graph: {e}"
             )
-            # Attempt to roll back if needed (e.g., remove from members map if added)
-            if member_id in self.family_tree.members:
-                del self.family_tree.members[member_id]
-            if member_id in self.nx_graph:
-                self.nx_graph.remove_node(member_id)
-            return None, f"Internal error occurred while saving member: {e}"
+            # Attempt to roll back if needed (complex, might leave inconsistent state)
+            # For simplicity, we just report the error.
+            return (
+                False,
+                f"Internal error occurred while saving/updating member state: {e}",
+            )
+
+    def create_node(self, input_dict) -> tuple[str | None, str | None]:
+        """
+        Creates a new FamilyMember node by preparing data, validating,
+        and then adding it to the tree and graph.
+
+        Args:
+            input_dict: Dictionary containing the raw input data for the new member.
+
+        Returns:
+            tuple[str | None, str | None]: (member_id, None) on successful creation.
+                                           (None, error_message) if validation or saving fails.
+        """
+        # 1. Prepare and validate data (without modifying state yet)
+        member_proto, error_message = self._prepare_member_data(
+            input_dict, existing_member=None
+        )
+
+        if error_message:
+            return None, error_message  # Validation failed
+
+        # 2. Generate ID and add to tree/graph (modify state)
+        member_id = self.generate_member_id()
+        member_proto.id = member_id  # Assign the generated ID to the prepared proto
+
+        success, save_error_message = self._add_member_to_tree_and_graph(member_proto)
+
+        if not success:
+            # Attempt to clean up the generated ID if it was somehow added partially? Unlikely here.
+            return None, save_error_message  # Saving/Graphing failed
+        else:
+            return member_id, None  # Success
+
+    def update_node(self, member_id, input_dict) -> tuple[bool, str | None]:
+        """
+        Updates an existing FamilyMember node by preparing data, validating,
+        and then updating it in the tree and graph.
+
+        Args:
+            member_id: The ID of the member to update.
+            input_dict: Dictionary containing the raw input data for the update.
+
+        Returns:
+            tuple[bool, str | None]: (True, None) on successful update.
+                                     (False, error_message) if validation or update fails.
+        """
+        # 1. Check if member exists and get the existing proto
+        if member_id not in self.family_tree.members:
+            return False, f"Cannot update: Member with ID '{member_id}' not found."
+        existing_member = self.family_tree.members[member_id]
+
+        # 2. Prepare and validate data (modifying the existing_member object)
+        # Note: _prepare_member_data modifies the 'existing_member' object directly
+        updated_member_proto, error_message = self._prepare_member_data(
+            input_dict, existing_member=existing_member
+        )
+
+        if error_message:
+            # The existing_member object might be partially modified here if validation failed midway.
+            # However, since we don't proceed to save, this partial state isn't committed.
+            return False, error_message  # Validation failed
+
+        # The 'updated_member_proto' is the same object as 'existing_member' here.
+        # Ensure the ID hasn't been accidentally cleared (it shouldn't be by _prepare_member_data)
+        if not updated_member_proto.id:
+            updated_member_proto.id = member_id  # Restore ID just in case
+            logger.warning(
+                f"Member ID for {member_id} was cleared during preparation, restored."
+            )
+
+        # 3. Update tree/graph (modify state)
+        success, save_error_message = self._add_member_to_tree_and_graph(
+            updated_member_proto
+        )
+
+        if not success:
+            return False, save_error_message  # Saving/Graphing failed
+        else:
+            return True, None  # Success
 
     def generate_node_title(self, member: family_tree_pb2.FamilyMember):
         """Generates a formatted string for the node tooltip."""
@@ -520,7 +641,9 @@ class FamilyTreeHandler:
                 title_str = f"Error generating title for {member.id}"  # Final fallback
         return title_str
 
-    def add_node_from_proto_object(self, member: family_tree_pb2.FamilyMember):
+    def add_or_update_node_from_proto_object(
+        self, member: family_tree_pb2.FamilyMember
+    ):
         member_id = member.id
         if not member_id:
             logger.warning(
@@ -611,7 +734,7 @@ class FamilyTreeHandler:
 
             # Check if member object itself is valid before adding node
             if member.IsInitialized():
-                self.add_node_from_proto_object(member)
+                self.add_or_update_node_from_proto_object(member)
             else:
                 # This might indicate an issue during protobuf parsing or creation
                 logger.warning(
@@ -691,7 +814,106 @@ class FamilyTreeHandler:
             width="100%",
         )
         pyvis_network_graph.from_nx(self.nx_graph)
+        options = self._get_pyvis_graph_options()
 
+        try:
+            options_json = json.dumps(options)
+            pyvis_network_graph.set_options(options_json)
+        except TypeError as e:
+            logger.error(f"Error serializing pyvis options to JSON: {e}")
+            # Continue without options? Or raise?
+
+        # --- JavaScript Injection for Double Click ---
+        js_injection_code = ""  # Initialize to empty string
+        try:
+            # Find the path to qwebchannel.js (adjust if necessary)
+            script_dir = pathlib.Path(__file__).parent.resolve()
+            base_dir = script_dir.parent
+            resources_dir = os.path.join(base_dir, "resources")
+            qwebchannel_js_path = str(os.path.join(resources_dir, "qwebchannel.js"))
+            # FIXME: If getting it as an online resource:
+            #    <script src="https://cdn.jsdelivr.net/npm/qwebchannel/qwebchannel.js"></script>
+
+            if not os.path.exists(qwebchannel_js_path):
+                logger.error(
+                    f"qwebchannel.js not found at expected location: {qwebchannel_js_path}"
+                )
+                # Handle error: maybe raise, or proceed without edit functionality
+                # For now, log error and proceed, edit won't work.
+                js_injection_code = """
+                <script type="text/javascript">
+                    console.error("qwebchannel.js not found. Double-click editing disabled.");
+                </script>
+                """
+            else:
+                # Use file URI for local access
+                qwebchannel_js_uri = (
+                    pathlib.Path(qwebchannel_js_path).resolve().as_uri()
+                )
+                logger.info(f"Using qwebchannel.js from: {qwebchannel_js_uri}")
+                # --- Jinja Setup ---
+                # Set up the environment to load templates from the 'resources/' directory
+                template_loader = FileSystemLoader(searchpath=str(resources_dir))
+                jinja_env = Environment(
+                    loader=template_loader,
+                    autoescape=select_autoescape(
+                        ["html", "xml", "js"]
+                    ),  # Enable autoescaping for safety
+                )
+
+                # Load the template file
+                template_name = "pyvis_interaction.js.template"
+                template = jinja_env.get_template(template_name)
+
+                # Render the template with the dynamic URI
+                rendered_js = template.render(qwebchannel_js_uri=qwebchannel_js_uri)
+
+                # Wrap the rendered JS in <script> tags
+                js_injection_code = f"""
+                <script type="text/javascript">
+                {rendered_js}
+                </script>
+                """
+                # --- End Jinja Setup ---
+        except Exception as e:
+            logger.exception(f"Error preparing JS injection code: {e}")
+            js_injection_code = (
+                "<script>console.error('Error setting up JS injection.');</script>"
+            )
+
+        # --- Generate HTML and Inject JS ---
+        try:
+            logger.info("Generating family tree HTML content...")
+            # 1. Get the HTML content from pyvis first
+            # Use generate_html() which returns the string
+            html_content = pyvis_network_graph.generate_html(notebook=False)
+            logger.info("HTML content generated.")
+
+            # 2. Inject the JavaScript code before the closing </body> tag
+            # A simple string replacement is usually sufficient
+            if "</body>" in html_content:
+                html_content = html_content.replace(
+                    "</body>", js_injection_code + "\n</body>", 1
+                )
+                logger.info("JavaScript injection code inserted before </body>.")
+            else:
+                # Fallback if </body> tag isn't found (less likely for full HTML)
+                html_content += js_injection_code
+                logger.warning(
+                    "</body> tag not found in generated HTML. Appending JS code."
+                )
+
+            # 3. Write the modified HTML content to the file
+            logger.info(f"Saving modified family tree HTML to: {self.output_file}")
+            with open(self.output_file, "w", encoding="utf-8") as f:
+                f.write(html_content)
+
+            logger.info(f"Successfully generated and saved {self.output_file}")
+        except Exception as e:
+            logger.exception(f"Error generating or saving pyvis HTML file: {e}")
+            raise IOError(f"Failed to write Pyvis HTML: {e}") from e
+
+    def _get_pyvis_graph_options(self):
         # Define options (keep as is, seems reasonable)
         options = {
             "physics": {
@@ -715,7 +937,7 @@ class FamilyTreeHandler:
             },
             "nodes": {
                 "font": {
-                    "size": 14,  # Already set in add_node_from_proto_object, maybe remove redundancy?
+                    "size": 14,  # Already set in add_or_update_node_from_proto_object, maybe remove redundancy?
                     "color": COLOR_PALETTLE.get("white", "#FFFFFF"),
                 }
             },
@@ -729,25 +951,7 @@ class FamilyTreeHandler:
                 },
             },
         }
-
-        try:
-            options_json = json.dumps(options)
-            pyvis_network_graph.set_options(options_json)
-        except TypeError as e:
-            logger.error(f"Error serializing pyvis options to JSON: {e}")
-            # Continue without options? Or raise?
-
-        # Generate the HTML file
-        try:
-            logger.info(f"Saving family tree HTML to: {self.output_file}")
-            # Ensure the file is written with UTF-8 encoding, Pyvis should handle this
-            # pyvis_network_graph.show(self.output_file, notebook=False)
-            pyvis_network_graph.write_html(self.output_file, notebook=False)
-            logger.info(f"Successfully generated {self.output_file}")
-        except Exception as e:
-            logger.exception(f"Error generating pyvis HTML file: {e}")
-            # Re-raise the exception so the GUI knows rendering failed
-            raise IOError(f"Failed to write Pyvis HTML: {e}") from e
+        return options
 
     def print_member_details(self, member_id):
         member = self.family_tree.members[member_id]

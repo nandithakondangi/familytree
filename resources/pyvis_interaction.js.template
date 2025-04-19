@@ -1,0 +1,77 @@
+// /mnt/c/Users/aadit/My Documents/Nanditha/FamilyTree/resources/js/pyvis_interaction.js.template
+
+// Load the QWebChannel library dynamically using the path provided by Python
+var script = document.createElement('script');
+script.type = 'text/javascript';
+script.src = '{{ qwebchannel_js_uri }}'; // Jinja variable placeholder
+script.onload = function () {
+    console.log("qwebchannel.js loaded successfully.");
+    // Attempt initialization only after qwebchannel.js is loaded
+    initializeWebChannel();
+};
+script.onerror = function () {
+    console.error("Failed to load qwebchannel.js from: {{ qwebchannel_js_uri }}");
+};
+document.head.appendChild(script);
+
+
+var pythonInterface = null; // Will be set by QWebChannel
+
+function initializeWebChannel() {
+    // Check if QWebChannel is now defined
+    if (typeof QWebChannel === 'undefined') {
+        console.error('QWebChannel is not defined even after script load attempt.');
+        return;
+    }
+    // Check if qt.webChannelTransport exists before creating QWebChannel
+    if (typeof qt === 'undefined' || typeof qt.webChannelTransport === 'undefined') {
+        console.error('qt.webChannelTransport is not defined. Cannot initialize QWebChannel.');
+        // Optionally retry or inform the user
+        // setTimeout(initializeWebChannel, 1000); // Example retry
+        return;
+    }
+    new QWebChannel(qt.webChannelTransport, function (channel) {
+        pythonInterface = channel.objects.pythonInterface;
+        if (pythonInterface) {
+            console.log("WebChannel connected, pythonInterface obtained.");
+            // Now that the interface is ready, attach the event listener
+            attachVisNetworkListener();
+        } else {
+            console.error("Failed to obtain pythonInterface object from WebChannel.");
+        }
+    });
+}
+
+function attachVisNetworkListener() {
+    // Wait for the network object to be potentially available
+    setTimeout(() => {
+        if (typeof network !== 'undefined' && network) {
+            console.log("Attaching doubleClick listener to vis.js network.");
+            network.on("doubleClick", function (params) {
+                console.log("DoubleClick event received:", params); // Log reception
+                if (params.nodes && params.nodes.length > 0) {
+                    var nodeId = params.nodes[0];
+                    console.log("Node double-clicked:", nodeId);
+                    if (pythonInterface) {
+                        console.log("Sending nodeId to Python via handleNodeDoubleClick...");
+                        pythonInterface.handleNodeDoubleClick(nodeId);
+                    } else {
+                        console.error("pythonInterface not available to send nodeId.");
+                    }
+                } else {
+                    console.log("DoubleClick detected, but not on a node.");
+                }
+            });
+            console.log("doubleClick listener attached.");
+        } else {
+            console.warn("vis.js network object not found yet, retrying listener attachment...");
+            // Retry attachment after a longer delay if needed
+            setTimeout(attachVisNetworkListener, 1000); // Retry after 1 second
+        }
+    }, 500); // Initial delay of 500ms, adjust if needed
+}
+
+// Don't call initializeWebChannel directly here anymore,
+// it's called via the script.onload callback.
+console.log("pyvis_interaction.js template loaded, waiting for qwebchannel.js...");
+
