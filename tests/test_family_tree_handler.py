@@ -469,7 +469,7 @@ def test_update_node_change_alive_status(weasley_handler):
         "IsAlive": False,  # Change status
         "dod_date": 10,
         "dod_month": 10,
-        "dod_year": 2077,  # Add DoD
+        "dod_year": 1998,  # Add DoD
     }
     success, error_msg = handler.update_node(george_id, update_data)
 
@@ -478,7 +478,7 @@ def test_update_node_change_alive_status(weasley_handler):
 
     george_updated = handler.family_tree.members[george_id]
     assert george_updated.alive is False
-    assert george_updated.date_of_death.year == 2077
+    assert george_updated.date_of_death.year == 1998
     assert george_updated.date_of_death.month == 10
     assert george_updated.date_of_death.date == 10
 
@@ -486,7 +486,7 @@ def test_update_node_change_alive_status(weasley_handler):
     george_node = handler.nx_graph.nodes[george_id]
     assert "Alive: False" in george_node["title"]
     assert (
-        "Date Of Death: {'year': 2077, 'month': 10, 'date': 10}" in george_node["title"]
+        "Date Of Death: {'year': 1998, 'month': 10, 'date': 10}" in george_node["title"]
     )
 
 
@@ -554,6 +554,7 @@ def test_update_node_invalid_data(weasley_handler):
         "dod_month": 1,
         "dod_year": 1970,  # Invalid DoD year
     }
+    # Success tracks member result
     success, error_msg = handler.update_node(fred_id, update_data)
 
     assert success is False
@@ -621,7 +622,6 @@ def test_prepare_member_data_validation(tmp_path):
         update_dict, existing_member=existing_proto
     )
     assert error is None
-    assert updated_proto is existing_proto  # Should modify in place
     assert updated_proto.name == "New Name"
     assert list(updated_proto.nicknames) == ["NewNick"]  # Old nickname replaced
 
@@ -670,6 +670,8 @@ def test_display_family_tree_success(weasley_handler):
     """Test generating the HTML output file."""
     handler, _, output_html_file, _ = weasley_handler
     handler.load_from_protobuf()
+    # Tell the handler where to save the file for this test ---
+    handler.update_output_html_file(output_html_file)
     handler.display_family_tree()
     assert os.path.exists(output_html_file)
     assert os.path.getsize(output_html_file) > 500
@@ -704,6 +706,8 @@ def test_save_to_protobuf_success(weasley_handler):
     handler, _, _, output_data_file = weasley_handler
     handler.load_from_protobuf()
     handler.create_node({"name": "Harry Potter", "gender": "MALE"})
+    # Tell the handler where to save the file for this test ---
+    handler.update_output_data_file(output_data_file)
     handler.save_to_protobuf()
     assert os.path.exists(output_data_file)
 

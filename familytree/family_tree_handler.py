@@ -350,6 +350,8 @@ class FamilyTreeHandler:
         """
         Validates input data and populates a FamilyMember protobuf object.
         Does NOT modify self.family_tree or self.nx_graph.
+        If existing_member is provided, it works on a COPY and returns the
+        validated copy on success.
 
         Args:
             input_dict: Dictionary containing the raw input data.
@@ -362,9 +364,13 @@ class FamilyTreeHandler:
                 (None, error_message) if validation fails.
         """
         if existing_member:
-            member = existing_member  # Work on the existing object
+            # Create a copy to modify, leave the original untouched until validation passes
+            member = family_tree_pb2.FamilyMember()
+            member.CopyFrom(existing_member)
+            # Ensure the ID is preserved in the copy if we are updating
+            member.id = existing_member.id
         else:
-            member = family_tree_pb2.FamilyMember()  # Create a new object
+            member = family_tree_pb2.FamilyMember()  # Create a new object for creation
 
         # --- Basic Info ---
         member.name = input_dict.get("name", "").strip()
@@ -419,12 +425,10 @@ class FamilyTreeHandler:
                 return None, f"Traditional Date of Birth Error: {error_msg}"
 
         member.alive = input_dict.get("IsAlive", True)
-
         # --- DOD Population and Validation ---
         # Clear existing DoD fields before potentially repopulating (important for updates)
         member.ClearField("date_of_death")
         member.ClearField("traditional_date_of_death")
-
         if not member.alive:
             dod_provided = any(
                 k in input_dict for k in ["dod_date", "dod_month", "dod_year"]
@@ -482,7 +486,6 @@ class FamilyTreeHandler:
                         "Inconsistency: Could not create date objects for comparison after individual validation passed."
                     )
                     return None, "Internal Error: Could not compare DOB and DOD."
-
         # If all validations passed
         return member, None
 
@@ -579,28 +582,23 @@ class FamilyTreeHandler:
             return False, f"Cannot update: Member with ID '{member_id}' not found."
         existing_member = self.family_tree.members[member_id]
 
-        # 2. Prepare and validate data (modifying the existing_member object)
-        # Note: _prepare_member_data modifies the 'existing_member' object directly
-        updated_member_proto, error_message = self._prepare_member_data(
+        # 2. Prepare and validate data (getting a *copy* or None from _prepare_member_data)
+        validated_member_copy, error_message = self._prepare_member_data(
             input_dict, existing_member=existing_member
         )
 
         if error_message:
-            # The existing_member object might be partially modified here if validation failed midway.
-            # However, since we don't proceed to save, this partial state isn't committed.
-            return False, error_message  # Validation failed
+            # Validation failed, the original existing_member was NOT modified
+            return False, error_message
 
-        # The 'updated_member_proto' is the same object as 'existing_member' here.
-        # Ensure the ID hasn't been accidentally cleared (it shouldn't be by _prepare_member_data)
-        if not updated_member_proto.id:
-            updated_member_proto.id = member_id  # Restore ID just in case
-            logger.warning(
-                f"Member ID for {member_id} was cleared during preparation, restored."
-            )
+        # 3. Validation passed, now update the actual member in the tree using the validated copy
+        # Use CopyFrom to apply the changes from the validated copy to the original member
+        self.family_tree.members[member_id].CopyFrom(validated_member_copy)
 
-        # 3. Update tree/graph (modify state)
+        # 4. Update the graph using the now-updated member from the tree
+        # Pass the actual object from the tree to ensure consistency
         success, save_error_message = self._add_member_to_tree_and_graph(
-            updated_member_proto
+            self.family_tree.members[member_id]  # Pass the updated original
         )
 
         if not success:
@@ -965,13 +963,13 @@ class FamilyTreeHandler:
         except OSError as e:
             logger.error(f"Error creating output directory {output_dir}: {e}")
             raise IOError(f"Cannot create output directory for saving: {e}") from e
-
         try:
             protobuf_string = text_format.MessageToString(
                 self.family_tree, as_utf8=True
             )
             with open(self.output_proto_data_file, "w", encoding="utf-8") as f:
                 f.write(protobuf_string)
+                print(self.output_proto_data_file)
                 logger.info(f"Successfully saved data to {self.output_proto_data_file}")
         except IOError as e:
             logger.error(
