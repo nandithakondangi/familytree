@@ -704,9 +704,18 @@ class FamilyTreeHandler:
             spouse_id, member_id, color=COLOR_PALETTLE["pink"], weight=0
         )
 
-    def add_child_edges(self, member_id, child_id):
-        self.nx_graph.add_edge(member_id, child_id, weight=1)
-        # FIXME: Add future functionality to track parent with weight=-1 and filter that during pyvis rendering
+    def add_child_edges(self, parent_id, child_id):
+        """Adds edges representing parent-child relationship."""
+        # Add the visible parent -> child edge (e.g., weight=1 or default)
+        # Using weight=1 to distinguish from spouse edges (weight=0)
+        self.nx_graph.add_edge(parent_id, child_id, weight=1)
+
+        # Add the hidden child -> parent edge (weight=-1) for relationship tracing
+        hidden_edge_weight = -1
+        self.nx_graph.add_edge(child_id, parent_id, weight=hidden_edge_weight)
+        logger.debug(
+            f"Added hidden edge {child_id}->{parent_id} with weight {hidden_edge_weight}"
+        )
 
     def populate_nodes_and_edges(self):
         # Clear existing graph before populating
@@ -759,6 +768,8 @@ class FamilyTreeHandler:
                     # Add edge only if the reverse doesn't exist to represent undirected marriage link
                     if not self.nx_graph.has_edge(spouse_id, member_id):
                         self.add_spouse_edges(member_id, spouse_id)
+                    # Always call add_spouse_edges if spouse exists
+                    # self.add_spouse_edges(member_id, spouse_id)
                 else:
                     logger.warning(
                         f"Spouse ID {spouse_id} not found for member {member_id}. Skipping edge."
@@ -769,7 +780,23 @@ class FamilyTreeHandler:
                 if member_id == child_id:
                     continue  # Skip self-loops
                 if child_id in self.nx_graph:
-                    self.add_child_edges(member_id, child_id)
+                    # Only add if the parent->child edge doesn't already exist
+                    # FIXME: We are not checking for child->parent edges though. Think about this.
+                    parent_to_child_edge_exists = self.nx_graph.has_edge(
+                        member_id, child_id
+                    )
+                    child_to_parent_edge_exists = self.nx_graph.has_edge(
+                        child_id, member_id
+                    )
+                    if (
+                        not parent_to_child_edge_exists
+                        and not child_to_parent_edge_exists
+                    ):
+                        self.add_child_edges(parent_id=member_id, child_id=child_id)
+                    elif parent_to_child_edge_exists ^ child_to_parent_edge_exists:
+                        logger.error(
+                            "There was already a unidirectional edge. This should not happen."
+                        )
                 else:
                     logger.warning(
                         f"Child ID {child_id} not found for parent {member_id}. Skipping edge."
@@ -811,7 +838,27 @@ class FamilyTreeHandler:
             height="1000px",  # Consider making height/width dynamic or configurable
             width="100%",
         )
-        pyvis_network_graph.from_nx(self.nx_graph)
+
+        # --- Filter the graph before passing to pyvis ---
+        # Define the weight used for hidden parent edges
+        hidden_edge_weight = -1
+        logger.info(
+            f"Filtering out edges with weight {hidden_edge_weight} for display."
+        )
+        # Get the filtered graph (which is a new nx.Graph instance)
+        graph_for_pyvis = self._filter_graph_by_weight(hidden_edge_weight)
+        # --- End filtering ---
+        # Check if the filtered graph is empty (might happen if only hidden edges existed)
+        if not graph_for_pyvis:
+            logger.warning("Filtered graph is empty. Displaying empty visualization.")
+            with open(self.output_file, "w", encoding="utf-8") as f:
+                f.write(
+                    "<html><body style='background-color: #222; color: #fff;'><p>Graph contains only hidden edges or filtering failed.</p></body></html>"
+                )
+            return
+
+        # Pass the filtered graph to pyvis
+        pyvis_network_graph.from_nx(graph_for_pyvis)
         options = self._get_pyvis_graph_options()
 
         try:
@@ -910,6 +957,62 @@ class FamilyTreeHandler:
         except Exception as e:
             logger.exception(f"Error generating or saving pyvis HTML file: {e}")
             raise IOError(f"Failed to write Pyvis HTML: {e}") from e
+
+    def _filter_graph_by_weight(self, weight_to_filter_out):
+        """
+        Creates a filtered NetworkX graph instance excluding edges with a specific weight.
+
+        This uses a subgraph view for efficiency and then creates a new graph
+        instance from that view, suitable for passing to libraries like Pyvis.
+
+        Args:
+            weight_to_filter_out: The weight value of edges to exclude.
+
+        Returns:
+            nx.Graph: A new NetworkX graph instance containing only the desired edges.
+                      Note: This currently returns an undirected nx.Graph based on the
+                      original implementation. If directionality needs to be strictly
+                      preserved for Pyvis, consider returning nx.DiGraph(filtered_view).
+        """
+        if not isinstance(self.nx_graph, nx.DiGraph):
+            logger.error("Filtering requires a valid NetworkX graph instance.")
+            # Return an empty graph or raise an error, depending on desired handling
+            return nx.DiGraph()
+
+        # Define the filter function using a standard def for readability and debugging
+        # This function returns True if the edge should be *kept*
+        def filter_edge_func(u, v):
+            # Access the original graph's data using get_edge_data for safety
+            edge_data = self.nx_graph.get_edge_data(u, v, default={})
+            # Keep the edge if its weight is NOT the one to filter out
+            # Also keeps edges that don't have a 'weight' attribute (None != weight_to_filter_out)
+            return edge_data.get("weight") != weight_to_filter_out
+
+        try:
+            # Create a subgraph view using the filter function
+            # This view reflects the original graph but only shows allowed edges/nodes
+            filtered_view = nx.subgraph_view(
+                self.nx_graph, filter_edge=filter_edge_func
+            )
+
+            # Create a new concrete graph instance from the view.
+            # Pyvis might work better with a concrete instance than a view.
+            # NOTE: This converts to an undirected Graph. If the original was a DiGraph
+            # and directionality is crucial for the pyvis layout/arrows,
+            # you might need: filtered_graph = nx.DiGraph(filtered_view)
+            # However, let's stick to the original code's use of nx.Graph for now.
+            filtered_graph = nx.DiGraph(filtered_view)
+            logger.info(
+                f"Created filtered graph with {filtered_graph.number_of_nodes()} nodes and {filtered_graph.number_of_edges()} edges."
+            )
+
+            return filtered_graph
+
+        except Exception as e:
+            logger.exception(f"Error during graph filtering: {e}")
+            # Return the original graph or an empty one in case of error?
+            # Returning original might be safer if filtering fails unexpectedly.
+            return self.nx_graph  # Fallback to original graph on error
 
     def _get_pyvis_graph_options(self):
         # Define options (keep as is, seems reasonable)

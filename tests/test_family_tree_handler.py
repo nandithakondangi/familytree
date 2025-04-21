@@ -3,6 +3,7 @@ import os
 from unittest.mock import patch
 
 import google.protobuf.text_format as text_format
+import networkx as nx
 import pytest
 
 # Assuming protos are generated and accessible relative to the tests directory
@@ -126,6 +127,13 @@ def create_weasley_family_tree_proto():
         ["BILLW", "CHARW", "PERCW", "FREDW", "GEORW", "RONAW", "GINNW"]
     )
 
+    # Add relationships for children (needed for child->parent links)
+    ron_rel = family_tree.relationships["RONAW"]
+    # No spouse or children for Ron in this basic example
+
+    ginny_rel = family_tree.relationships["GINNW"]
+    # No spouse or children for Ginny in this basic example
+
     return family_tree
 
 
@@ -212,14 +220,39 @@ def test_populate_nodes_and_edges(weasley_handler):
     handler, _, _, _ = weasley_handler
     handler.load_from_protobuf()
 
+    # Check nodes
     assert len(handler.nx_graph.nodes) == 9
     assert "ARTHW" in handler.nx_graph.nodes
     assert handler.nx_graph.nodes["ARTHW"]["label"] == "Arthur Weasley"
+
+    # Check spouse edges (weight=0, both directions)
     assert handler.nx_graph.has_edge("ARTHW", "MOLLW")
+    assert handler.nx_graph.edges["ARTHW", "MOLLW"]["weight"] == 0
     assert handler.nx_graph.edges["ARTHW", "MOLLW"]["color"] == COLOR_PALETTLE["pink"]
+    assert handler.nx_graph.has_edge("MOLLW", "ARTHW")
+    assert handler.nx_graph.edges["MOLLW", "ARTHW"]["weight"] == 0
+    assert handler.nx_graph.edges["MOLLW", "ARTHW"]["color"] == COLOR_PALETTLE["pink"]
+
+    # Check visible parent -> child edge (weight=1)
     assert handler.nx_graph.has_edge("ARTHW", "RONAW")
     assert handler.nx_graph.edges["ARTHW", "RONAW"]["weight"] == 1
+    assert "color" not in handler.nx_graph.edges["ARTHW", "RONAW"]  # Default color
 
+    # Check hidden child -> parent edge (weight=-1)
+    assert handler.nx_graph.has_edge("RONAW", "ARTHW")
+    assert handler.nx_graph.edges["RONAW", "ARTHW"]["weight"] == -1
+    assert "color" not in handler.nx_graph.edges["RONAW", "ARTHW"]
+
+    # Check another child pair
+    assert handler.nx_graph.has_edge("MOLLW", "GINNW")
+    assert handler.nx_graph.edges["MOLLW", "GINNW"]["weight"] == 1
+    assert handler.nx_graph.has_edge("GINNW", "MOLLW")
+    assert handler.nx_graph.edges["GINNW", "MOLLW"]["weight"] == -1
+
+    # Check total number of edges (2 between spouses + (7 parent->child + 7 child->parent) * (2 parents) = 30)
+    assert handler.nx_graph.number_of_edges() == 30
+
+    # Check node attributes (Ginny example)
     ginny_node = handler.nx_graph.nodes["GINNW"]
     assert ginny_node["label"] == "Ginny Weasley"
     assert "title" in ginny_node
@@ -410,7 +443,7 @@ def test_create_node_invalid_input(tmp_path, caplog):
     assert len(handler.family_tree.members) == 1  # Still only Tonks
 
 
-# --- Node Update Tests (NEW) ---
+# --- Node Update Tests ---
 
 
 def test_update_node_success(weasley_handler, caplog):
@@ -626,9 +659,54 @@ def test_prepare_member_data_validation(tmp_path):
     assert list(updated_proto.nicknames) == ["NewNick"]  # Old nickname replaced
 
 
-# --- Other Tests (generate_node_title, display_family_tree, save_to_protobuf, etc.) ---
-# These tests seem mostly unaffected by the refactor and can remain as they are.
-# Verify them if issues arise.
+def test_filter_graph_by_weight(weasley_handler):
+    """Test the _filter_graph_by_weight method."""
+    handler, _, _, _ = weasley_handler
+    handler.load_from_protobuf()
+
+    original_graph = handler.nx_graph
+    assert isinstance(original_graph, nx.DiGraph)
+    original_edge_count = original_graph.number_of_edges()
+    assert original_edge_count == 30  # 2 spouse + (7 p->c + 7 c->p)*(each parent)
+
+    # Filter out the hidden edges (weight = -1)
+    hidden_weight = -1
+    filtered_graph = handler._filter_graph_by_weight(hidden_weight)
+
+    # Check the filtered graph
+    assert isinstance(filtered_graph, nx.DiGraph)
+    filtered_edge_count = filtered_graph.number_of_edges()
+
+    # Expected edges: 2 spouse + (7 parent->child) * (each parent) = 16
+    assert filtered_edge_count == 16
+    assert filtered_edge_count < original_edge_count
+
+    # Verify visible edges are present
+    assert filtered_graph.has_edge("ARTHW", "MOLLW")
+    assert filtered_graph.edges["ARTHW", "MOLLW"]["weight"] == 0
+    assert filtered_graph.has_edge("MOLLW", "ARTHW")
+    assert filtered_graph.edges["MOLLW", "ARTHW"]["weight"] == 0
+
+    assert filtered_graph.has_edge("ARTHW", "RONAW")
+    assert filtered_graph.edges["ARTHW", "RONAW"]["weight"] == 1
+    assert filtered_graph.has_edge("MOLLW", "GINNW")
+    assert filtered_graph.edges["MOLLW", "GINNW"]["weight"] == 1
+
+    # Verify hidden edges are NOT present
+    assert not filtered_graph.has_edge("RONAW", "ARTHW")
+    assert not filtered_graph.has_edge("GINNW", "MOLLW")
+    assert not filtered_graph.has_edge("BILLW", "ARTHW")
+
+    # Verify filtering with a different weight (e.g., spouse edges weight=0)
+    spouse_weight = 0
+    filtered_graph_no_spouse = handler._filter_graph_by_weight(spouse_weight)
+    assert isinstance(filtered_graph_no_spouse, nx.DiGraph)
+    # Expected: 30 original - 2 spouse = 28
+    assert filtered_graph_no_spouse.number_of_edges() == 28
+    assert not filtered_graph_no_spouse.has_edge("ARTHW", "MOLLW")
+    assert not filtered_graph_no_spouse.has_edge("MOLLW", "ARTHW")
+    assert filtered_graph_no_spouse.has_edge("ARTHW", "RONAW")  # p->c still there
+    assert filtered_graph_no_spouse.has_edge("RONAW", "ARTHW")  # c->p still there
 
 
 def test_generate_member_id(tmp_path):
