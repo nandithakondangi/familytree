@@ -1,5 +1,7 @@
+import logging
 import os
 
+from chatbot import ChatbotBox
 from family_tree_handler import FamilyTreeHandler
 from PySide6.QtCore import QDate, QObject, Qt, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
@@ -27,6 +29,9 @@ from PySide6.QtWidgets import (
 
 import proto.utils_pb2 as utils_pb2
 
+# Get a logger instance for this module
+logger = logging.getLogger(__name__)
+
 
 # --- Add JavaScript Interface Class ---
 class JavaScriptInterface(QObject):
@@ -41,7 +46,7 @@ class JavaScriptInterface(QObject):
     @Slot(str)  # Decorator exposes this method to JavaScript via QWebChannel
     def handleNodeDoubleClick(self, node_id):
         """Receives the node ID from JavaScript when a node is double-clicked."""
-        print(f"Received nodeDoubleClick signal from JS for node: {node_id}")
+        logger.info(f"Received nodeDoubleClick signal from JS for node: {node_id}")
         if node_id:
             self.edit_node_requested.emit(node_id)  # Emit signal for GUI to handle
 
@@ -50,14 +55,11 @@ class FamilyTreeGUI(QMainWindow):
     # Accept temp_dir_path in constructor
     def __init__(self, temp_dir_path):
         super().__init__()
-        self.temp_dir_path = temp_dir_path  # Store the path
+        self.temp_dir_path = temp_dir_path
         self.setWindowTitle("Family Tree Viewer")
         self.setGeometry(100, 100, 1200, 800)
 
-        # Pass the temp_dir_path to the handler
         self.family_tree_handler = FamilyTreeHandler(temp_dir_path=self.temp_dir_path)
-
-        # --- Culture Setting ---
         self.is_indian_culture = True  # Default to Indian culture enabled
 
         # --- WebChannel Setup ---
@@ -69,9 +71,15 @@ class FamilyTreeGUI(QMainWindow):
         self.js_interface.edit_node_requested.connect(self.open_edit_person_dialog)
         # --- End WebChannel Setup ---
 
+        # UI Elements (Specific to main GUI)
+        self.pyvis_view = None
+        self.chatbot_box = None
+        self.culture_checkbox = None
+        self.import_from_file_form = None
+        self.add_person_button = None
+        self.export_widget = None
+
         self.init_ui()
-        # Load initial empty state or default file if desired
-        # self.load_pyvis_html() # Load initial view (might be empty)
 
     def init_ui(self):
         # Main Splitter
@@ -129,13 +137,12 @@ class FamilyTreeGUI(QMainWindow):
         self.add_person_button.clicked.connect(self.open_add_person_dialog)
         manage_tree_layout.addWidget(self.add_person_button)
 
-        # Add instructions on how to edit:
+        # Edit instructions
         edit_instructions_label = QLabel(
             "✏️ <b>Edit Person:</b>\nDouble-click a node\nin the graph."
         )
-        edit_instructions_label.setAlignment(
-            Qt.AlignmentFlag.AlignLeft
-        )  # Or AlignCenter
+        # Or AlignCenter
+        edit_instructions_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         edit_instructions_label.setWordWrap(True)  # Ensure text wraps if needed
         # Optional styling to make it look less prominent than buttons
         edit_instructions_label.setStyleSheet(
@@ -269,9 +276,11 @@ class FamilyTreeGUI(QMainWindow):
         # settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
         content_area.addWidget(self.pyvis_view)
 
-        # Chatbot Placeholder (Bottom) - Keep simple for now
-        self.chatbot_placeholder = ChatbotPlaceholder()
-        content_area.addWidget(self.chatbot_placeholder)
+        # --- Chatbot (Bottom) - Instantiate ChatbotBox ---
+        # Pass the handler instance to the ChatbotBox
+        self.chatbot_box = ChatbotBox(self.family_tree_handler)
+        content_area.addWidget(self.chatbot_box)
+        # --- End Chatbot ---
 
         # Set initial splitter sizes
         content_area.setSizes([650, 150])
@@ -1043,27 +1052,6 @@ class ExportWidget(QWidget):
                 QMessageBox.critical(
                     self, "Export Error", f"Failed to export graph:\n{e}"
                 )
-
-
-# --- ChatbotPlaceholder ---
-class ChatbotPlaceholder(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        label = QLabel("🤖 Chatbot / Query Area (Future Feature)")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: #aaa;")  # Dim the text
-        layout.addWidget(label)
-        # Add a simple text input and button later
-        # query_input = QLineEdit()
-        # query_input.setPlaceholderText("Ask about the family...")
-        # send_button = QPushButton("Send")
-        # layout.addWidget(query_input)
-        # layout.addWidget(send_button)
 
 
 # --- ImportFromFileForm ---

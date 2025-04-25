@@ -1054,6 +1054,93 @@ class FamilyTreeHandler:
         }
         return options
 
+    def get_graph_summary_text(self, max_nodes: int = 50) -> str:
+        """
+        Generates a textual summary of the family tree graph for context.
+
+        Args:
+            max_nodes: The maximum number of nodes to detail to keep context concise.
+
+        Returns:
+            A string summarizing the graph nodes and basic relationships.
+        """
+        if not self.nx_graph or not self.nx_graph.nodes:
+            return "The family tree data is not loaded or is empty."
+
+        context_lines = ["Family Tree Summary:"]
+        nodes_listed = 0
+
+        # Sort nodes for consistent output (optional)
+        sorted_nodes = sorted(
+            self.nx_graph.nodes(data=True),
+            key=lambda item: item[1].get("label", item[0]),
+        )
+
+        for node_id, data in sorted_nodes:
+            if nodes_listed >= max_nodes:
+                context_lines.append(
+                    f"... (and {len(self.nx_graph.nodes) - max_nodes} more members)"
+                )
+                break
+
+            label = data.get("label", f"ID: {node_id}")
+            line = f"- {label} (ID: {node_id})"
+
+            # Get relationships using graph edges
+            successors = list(self.nx_graph.successors(node_id))
+            # predecessors = list(self.nx_graph.predecessors(node_id)) # Less direct with hidden edges
+
+            spouses = [
+                s
+                for s in successors
+                if self.nx_graph.edges[node_id, s].get("weight") == 0
+            ]
+            children = [
+                s
+                for s in successors
+                if self.nx_graph.edges[node_id, s].get("weight") == 1
+            ]
+            # Infer parents from hidden edges (weight=-1) pointing *from* this node
+            parents = [
+                p
+                for p in successors
+                if self.nx_graph.edges[node_id, p].get("weight") == -1
+            ]
+
+            rel_parts = []
+            if spouses:
+                spouse_names = [
+                    self.nx_graph.nodes[s].get("label", s)
+                    for s in spouses
+                    if s in self.nx_graph.nodes
+                ]
+                if spouse_names:
+                    rel_parts.append(f"married to {', '.join(spouse_names)}")
+            if children:
+                child_names = [
+                    self.nx_graph.nodes[c].get("label", c)
+                    for c in children
+                    if c in self.nx_graph.nodes
+                ]
+                if child_names:
+                    rel_parts.append(f"children: {', '.join(child_names)}")
+            if parents:
+                parent_names = [
+                    self.nx_graph.nodes[p].get("label", p)
+                    for p in parents
+                    if p in self.nx_graph.nodes
+                ]
+                if parent_names:
+                    rel_parts.append(f"parent(s): {', '.join(parent_names)}")
+
+            if rel_parts:
+                line += f" [{'; '.join(rel_parts)}]"
+
+            context_lines.append(line)
+            nodes_listed += 1
+
+        return "\n".join(context_lines)
+
     def print_member_details(self, member_id):
         member = self.family_tree.members[member_id]
         print(f"Member Details ({member_id}):\n{member}")
