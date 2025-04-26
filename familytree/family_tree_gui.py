@@ -1,6 +1,5 @@
 import logging
 import os
-import pathlib
 
 from add_person import AddPersonDialog
 from chatbot import ChatbotBox
@@ -221,9 +220,8 @@ class FamilyTreeGUI(QMainWindow):
         # Using QTextEdit for better rendering and potential scrollbars
         about_text_edit = QTextEdit()
         about_text_edit.setReadOnly(True)
-        script_dir = pathlib.Path(__file__).parent.resolve()
-        base_dir = script_dir.parent
-        resources_dir = os.path.join(base_dir, "resources")
+        resources_dir = self.family_tree_handler.get_resource()
+
         try:
             # --- Jinja Setup ---
             # Set up the environment to load templates from the 'resources/' directory

@@ -1,0 +1,210 @@
+import datetime
+import logging
+
+# Get a logger instance for this module
+logger = logging.getLogger(__name__)
+
+
+class DateUtility:
+    """
+    Utility class for handling date parsing, validation, and population
+    for FamilyMember protobufs.
+    Methods return a tuple: (success: bool, error_message: str | None).
+    """
+
+    @staticmethod
+    def populate_gregorian_date(
+        date_proto, input_data, prefix
+    ) -> tuple[bool, str | None]:
+        """
+        Populates and validates a GregorianDate protobuf message from input data.
+
+        Args:
+            date_proto: The GregorianDate message to populate (e.g., member.date_of_birth).
+            input_data: The dictionary containing potential date parts.
+            prefix: The prefix for the keys in input_data (e.g., "dob", "dod").
+
+        Returns:
+            tuple[bool, str | None]: (True, None) if the date was successfully populated
+                                     or no relevant input was found.
+                                     (False, error_message) if invalid data was provided.
+        """
+        day_str = input_data.get(f"{prefix}_date")
+        month_str = input_data.get(f"{prefix}_month")
+        year_str = input_data.get(f"{prefix}_year")
+
+        # Check if any date part was actually provided (treat empty strings as not provided)
+        if not (day_str or month_str or year_str):
+            return True, None  # No data provided, nothing to validate or set, success.
+
+        try:
+            # Attempt conversion, default to 0 if empty string or None
+            day = int(day_str or 0)
+            month = int(month_str or 0)
+            year = int(year_str or 0)
+
+            # Ensure all parts were provided if at least one was
+            if not (day and month and year):
+                return (
+                    False,
+                    f"Incomplete Gregorian date provided for '{prefix}'. Please provide day, month, and year.",
+                )
+
+            # --- Comprehensive Validation ---
+            # 1. Use datetime for calendar validity (handles leap years, days in month)
+            try:
+                parsed_date = datetime.date(year, month, day)
+            except ValueError as e:
+                # More specific error based on common ValueError messages
+                if "month must be in 1..12" in str(e):
+                    return (
+                        False,
+                        f"Invalid month ({month}) for '{prefix}'. Month must be between 1 and 12.",
+                    )
+                elif "day is out of range for month" in str(e):
+                    return (
+                        False,
+                        f"Invalid day ({day}) for '{prefix}' month {month} and year {year}.",
+                    )
+                elif "year" in str(e):  # Catch other year-related errors if any
+                    return False, f"Invalid year ({year}) provided for '{prefix}'. {e}"
+                else:  # Generic fallback
+                    return (
+                        False,
+                        f"Invalid Gregorian date for '{prefix}': Day={day}, Month={month}, Year={year}. Reason: {e}",
+                    )
+
+            # 2. Check if the date is in the future
+            if parsed_date > datetime.date.today():
+                return (
+                    False,
+                    f"Gregorian date for '{prefix}' ({parsed_date.strftime('%Y-%m-%d')}) cannot be in the future.",
+                )
+
+            # 3. Check for reasonably sensible year (optional, adjust as needed)
+            if year < 1000:  # Or some other sensible minimum year
+                return (
+                    False,
+                    f"Year ({year}) for '{prefix}' seems too far in the past. Please check.",
+                )
+            # --- End Validation ---
+
+            # If all checks pass, populate the proto
+            date_proto.date = day
+            date_proto.month = month
+            date_proto.year = year
+            return True, None  # Successfully populated
+
+        except (ValueError, TypeError):
+            # Catches errors during int() conversion if non-numeric provided
+            return (
+                False,
+                f"Non-numeric value encountered for '{prefix}' date parts (Day='{day_str}', Month='{month_str}', Year='{year_str}'). Please enter numbers.",
+            )
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error validating/populating Gregorian date for prefix '{prefix}': {e}"
+            )
+            return (
+                False,
+                f"An unexpected error occurred processing the Gregorian date for '{prefix}'.",
+            )  # Generic message for unexpected
+
+    @staticmethod
+    def populate_traditional_date(
+        trad_date_proto,
+        input_data,
+        prefix,
+        month_enum,
+        star_enum=None,
+        paksham_enum=None,
+        thithi_enum=None,
+    ) -> tuple[bool, str | None]:
+        """
+        Populates and validates a TraditionalDate protobuf message from input data using enums.
+
+        Args:
+            trad_date_proto: The TraditionalDate message to populate.
+            input_data: The dictionary containing potential date parts.
+            prefix: The prefix for the keys in input_data (e.g., "dob", "dod").
+            month_enum: The protobuf enum type for the Tamil month.
+            star_enum: Optional protobuf enum type for the Tamil star.
+            paksham_enum: Optional protobuf enum type for Paksham.
+            thithi_enum: Optional protobuf enum type for Thithi.
+
+        Returns:
+            tuple[bool, str | None]: (True, None) if the date was successfully populated
+                                     or no relevant input was found.
+                                     (False, error_message) if an invalid enum value string was provided.
+        """
+        try:
+            field_updated = False  # Track if we actually set any field
+
+            # --- Month ---
+            month_str = input_data.get(f"{prefix}_traditional_month")
+            if month_str and month_str != month_enum.Name(
+                0
+            ):  # Check against default "UNKNOWN"
+                try:
+                    trad_date_proto.month = month_enum.Value(month_str)
+                    field_updated = True
+                except ValueError:
+                    return (
+                        False,
+                        f"Invalid traditional month value '{month_str}' for prefix '{prefix}'.",
+                    )
+
+            # --- Star (if applicable) ---
+            if star_enum:
+                star_str = input_data.get(f"{prefix}_traditional_star")
+                if star_str and star_str != star_enum.Name(0):
+                    try:
+                        trad_date_proto.star = star_enum.Value(star_str)
+                        field_updated = True
+                    except ValueError:
+                        return (
+                            False,
+                            f"Invalid traditional star value '{star_str}' for prefix '{prefix}'.",
+                        )
+
+            # --- Paksham (if applicable) ---
+            if paksham_enum:
+                paksham_str = input_data.get(f"{prefix}_traditional_paksham")
+                if paksham_str and paksham_str != paksham_enum.Name(0):
+                    try:
+                        trad_date_proto.paksham = paksham_enum.Value(paksham_str)
+                        field_updated = True
+                    except ValueError:
+                        return (
+                            False,
+                            f"Invalid traditional paksham value '{paksham_str}' for prefix '{prefix}'.",
+                        )
+
+            # --- Thithi (if applicable) ---
+            if thithi_enum:
+                thithi_str = input_data.get(f"{prefix}_traditional_thithi")
+                if thithi_str and thithi_str != thithi_enum.Name(0):
+                    try:
+                        trad_date_proto.thithi = thithi_enum.Value(thithi_str)
+                        field_updated = True
+                    except ValueError:
+                        return (
+                            False,
+                            f"Invalid traditional thithi value '{thithi_str}' for prefix '{prefix}'.",
+                        )
+
+            # If we reached here without returning False, validation passed for provided fields
+            return True, None
+
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error validating/populating traditional date for prefix '{prefix}': {e}"
+            )
+            return (
+                False,
+                f"An unexpected error occurred processing the traditional date for '{prefix}'.",
+            )
+
+    @staticmethod
+    def stringify_date(date_proto) -> str:
+        pass

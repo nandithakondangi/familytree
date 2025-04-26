@@ -113,12 +113,11 @@ class ChatbotBox(QWidget):
 
     def _get_prompt(self, user_query: str) -> str:
         graph_context = self._generate_graph_context()
-        system_prompt = (
-            "You are a helpful assistant knowledgeable about family trees. "
-            "Answer questions based *only* on the provided family tree summary. "
-            "If the answer isn't in the summary, say you don't have that information. "
-            "Be concise."
-        )
+        system_prompt_file = self.family_tree_handler.get_resource("system_prompt.txt")
+        system_prompt = ""
+        with open(system_prompt_file, "r") as f:
+            system_prompt = f.read()
+
         full_prompt = (
             f"{system_prompt}\n\n{graph_context}\n\nUser question: {user_query}"
         )

@@ -8,6 +8,7 @@ import string
 
 import google.protobuf.text_format as text_format
 import networkx as nx
+from date_utils import DateUtility
 from google.protobuf.json_format import MessageToDict
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pyvis.network import Network
@@ -28,207 +29,6 @@ COLOR_PALETTLE = {
     "red": "#ff0000",
     "pink": "#f57db3",
 }
-
-
-class DateUtility:
-    """
-    Utility class for handling date parsing, validation, and population
-    for FamilyMember protobufs.
-    Methods return a tuple: (success: bool, error_message: str | None).
-    """
-
-    @staticmethod
-    def populate_gregorian_date(
-        date_proto, input_data, prefix
-    ) -> tuple[bool, str | None]:
-        """
-        Populates and validates a GregorianDate protobuf message from input data.
-
-        Args:
-            date_proto: The GregorianDate message to populate (e.g., member.date_of_birth).
-            input_data: The dictionary containing potential date parts.
-            prefix: The prefix for the keys in input_data (e.g., "dob", "dod").
-
-        Returns:
-            tuple[bool, str | None]: (True, None) if the date was successfully populated
-                                     or no relevant input was found.
-                                     (False, error_message) if invalid data was provided.
-        """
-        day_str = input_data.get(f"{prefix}_date")
-        month_str = input_data.get(f"{prefix}_month")
-        year_str = input_data.get(f"{prefix}_year")
-
-        # Check if any date part was actually provided (treat empty strings as not provided)
-        if not (day_str or month_str or year_str):
-            return True, None  # No data provided, nothing to validate or set, success.
-
-        try:
-            # Attempt conversion, default to 0 if empty string or None
-            day = int(day_str or 0)
-            month = int(month_str or 0)
-            year = int(year_str or 0)
-
-            # Ensure all parts were provided if at least one was
-            if not (day and month and year):
-                return (
-                    False,
-                    f"Incomplete Gregorian date provided for '{prefix}'. Please provide day, month, and year.",
-                )
-
-            # --- Comprehensive Validation ---
-            # 1. Use datetime for calendar validity (handles leap years, days in month)
-            try:
-                parsed_date = datetime.date(year, month, day)
-            except ValueError as e:
-                # More specific error based on common ValueError messages
-                if "month must be in 1..12" in str(e):
-                    return (
-                        False,
-                        f"Invalid month ({month}) for '{prefix}'. Month must be between 1 and 12.",
-                    )
-                elif "day is out of range for month" in str(e):
-                    return (
-                        False,
-                        f"Invalid day ({day}) for '{prefix}' month {month} and year {year}.",
-                    )
-                elif "year" in str(e):  # Catch other year-related errors if any
-                    return False, f"Invalid year ({year}) provided for '{prefix}'. {e}"
-                else:  # Generic fallback
-                    return (
-                        False,
-                        f"Invalid Gregorian date for '{prefix}': Day={day}, Month={month}, Year={year}. Reason: {e}",
-                    )
-
-            # 2. Check if the date is in the future
-            if parsed_date > datetime.date.today():
-                return (
-                    False,
-                    f"Gregorian date for '{prefix}' ({parsed_date.strftime('%Y-%m-%d')}) cannot be in the future.",
-                )
-
-            # 3. Check for reasonably sensible year (optional, adjust as needed)
-            if year < 1000:  # Or some other sensible minimum year
-                return (
-                    False,
-                    f"Year ({year}) for '{prefix}' seems too far in the past. Please check.",
-                )
-            # --- End Validation ---
-
-            # If all checks pass, populate the proto
-            date_proto.date = day
-            date_proto.month = month
-            date_proto.year = year
-            return True, None  # Successfully populated
-
-        except (ValueError, TypeError):
-            # Catches errors during int() conversion if non-numeric provided
-            return (
-                False,
-                f"Non-numeric value encountered for '{prefix}' date parts (Day='{day_str}', Month='{month_str}', Year='{year_str}'). Please enter numbers.",
-            )
-        except Exception as e:
-            logger.exception(
-                f"Unexpected error validating/populating Gregorian date for prefix '{prefix}': {e}"
-            )
-            return (
-                False,
-                f"An unexpected error occurred processing the Gregorian date for '{prefix}'.",
-            )  # Generic message for unexpected
-
-    @staticmethod
-    def populate_traditional_date(
-        trad_date_proto,
-        input_data,
-        prefix,
-        month_enum,
-        star_enum=None,
-        paksham_enum=None,
-        thithi_enum=None,
-    ) -> tuple[bool, str | None]:
-        """
-        Populates and validates a TraditionalDate protobuf message from input data using enums.
-
-        Args:
-            trad_date_proto: The TraditionalDate message to populate.
-            input_data: The dictionary containing potential date parts.
-            prefix: The prefix for the keys in input_data (e.g., "dob", "dod").
-            month_enum: The protobuf enum type for the Tamil month.
-            star_enum: Optional protobuf enum type for the Tamil star.
-            paksham_enum: Optional protobuf enum type for Paksham.
-            thithi_enum: Optional protobuf enum type for Thithi.
-
-        Returns:
-            tuple[bool, str | None]: (True, None) if the date was successfully populated
-                                     or no relevant input was found.
-                                     (False, error_message) if an invalid enum value string was provided.
-        """
-        try:
-            field_updated = False  # Track if we actually set any field
-
-            # --- Month ---
-            month_str = input_data.get(f"{prefix}_traditional_month")
-            if month_str and month_str != month_enum.Name(
-                0
-            ):  # Check against default "UNKNOWN"
-                try:
-                    trad_date_proto.month = month_enum.Value(month_str)
-                    field_updated = True
-                except ValueError:
-                    return (
-                        False,
-                        f"Invalid traditional month value '{month_str}' for prefix '{prefix}'.",
-                    )
-
-            # --- Star (if applicable) ---
-            if star_enum:
-                star_str = input_data.get(f"{prefix}_traditional_star")
-                if star_str and star_str != star_enum.Name(0):
-                    try:
-                        trad_date_proto.star = star_enum.Value(star_str)
-                        field_updated = True
-                    except ValueError:
-                        return (
-                            False,
-                            f"Invalid traditional star value '{star_str}' for prefix '{prefix}'.",
-                        )
-
-            # --- Paksham (if applicable) ---
-            if paksham_enum:
-                paksham_str = input_data.get(f"{prefix}_traditional_paksham")
-                if paksham_str and paksham_str != paksham_enum.Name(0):
-                    try:
-                        trad_date_proto.paksham = paksham_enum.Value(paksham_str)
-                        field_updated = True
-                    except ValueError:
-                        return (
-                            False,
-                            f"Invalid traditional paksham value '{paksham_str}' for prefix '{prefix}'.",
-                        )
-
-            # --- Thithi (if applicable) ---
-            if thithi_enum:
-                thithi_str = input_data.get(f"{prefix}_traditional_thithi")
-                if thithi_str and thithi_str != thithi_enum.Name(0):
-                    try:
-                        trad_date_proto.thithi = thithi_enum.Value(thithi_str)
-                        field_updated = True
-                    except ValueError:
-                        return (
-                            False,
-                            f"Invalid traditional thithi value '{thithi_str}' for prefix '{prefix}'.",
-                        )
-
-            # If we reached here without returning False, validation passed for provided fields
-            return True, None
-
-        except Exception as e:
-            logger.exception(
-                f"Unexpected error validating/populating traditional date for prefix '{prefix}': {e}"
-            )
-            return (
-                False,
-                f"An unexpected error occurred processing the traditional date for '{prefix}'.",
-            )
 
 
 class FamilyTreeHandler:
@@ -293,16 +93,21 @@ class FamilyTreeHandler:
         # Populate nodes and edges
         self.populate_nodes_and_edges()
 
+    def get_resource(self, resource_name=None):
+        # Use pathlib for more robust path handling
+        script_dir = pathlib.Path(__file__).parent.resolve()  # familytree directory
+        base_dir = script_dir.parent  # Project root directory
+        resource_dir = os.path.join(base_dir, "resources")
+        if not resource_name:
+            return resource_dir
+        else:
+            return pathlib.Path(resource_dir) / resource_name
+
     def get_default_images(self):
         """Gets paths for default local images."""
         default_images = {}
         brokenImage = ""
         try:
-            # Use pathlib for more robust path handling
-            script_dir = pathlib.Path(__file__).parent.resolve()  # familytree directory
-            base_dir = script_dir.parent  # Project root directory
-            images_dir = base_dir / "resources"
-
             default_image_files = {
                 "MALE": "male.png",
                 "FEMALE": "female.png",
@@ -312,13 +117,13 @@ class FamilyTreeHandler:
             broken_image_file = "broken.gif"
 
             for key, filename in default_image_files.items():
-                path = images_dir / filename
+                path = self.get_resource(filename)
                 if path.is_file():
                     default_images[key] = str(path)  # Store as string path
                 else:
                     logger.warning(f"Default image not found for {key} at {path}")
 
-            broken_path = images_dir / broken_image_file
+            broken_path = self.get_resource(broken_image_file)
             if broken_path.is_file():
                 brokenImage = str(broken_path)
             else:
@@ -869,11 +674,8 @@ class FamilyTreeHandler:
         # --- JavaScript Injection for Double Click ---
         js_injection_code = ""  # Initialize to empty string
         try:
-            # Find the path to qwebchannel.js (adjust if necessary)
-            script_dir = pathlib.Path(__file__).parent.resolve()
-            base_dir = script_dir.parent
-            resources_dir = os.path.join(base_dir, "resources")
-            qwebchannel_js_path = str(os.path.join(resources_dir, "qwebchannel.js"))
+            qwebchannel_js_path = str(self.get_resource("qwebchannel.js"))
+            logger.debug(f"qwebchannel.js path: {qwebchannel_js_path}")
             # FIXME: If getting it as an online resource:
             #    <script src="https://cdn.jsdelivr.net/npm/qwebchannel/qwebchannel.js"></script>
 
@@ -896,7 +698,7 @@ class FamilyTreeHandler:
                 logger.info(f"Using qwebchannel.js from: {qwebchannel_js_uri}")
                 # --- Jinja Setup ---
                 # Set up the environment to load templates from the 'resources/' directory
-                template_loader = FileSystemLoader(searchpath=str(resources_dir))
+                template_loader = FileSystemLoader(searchpath=str(self.get_resource()))
                 jinja_env = Environment(
                     loader=template_loader,
                     autoescape=select_autoescape(
@@ -1052,7 +854,7 @@ class FamilyTreeHandler:
         }
         return options
 
-    def get_graph_summary_text(self, max_nodes: int = 50) -> str:
+    def get_graph_summary_text(self, max_nodes: int = 100) -> str:
         """
         Generates a textual summary of the family tree graph for context.
 
@@ -1086,58 +888,67 @@ class FamilyTreeHandler:
 
             # Get relationships using graph edges
             successors = list(self.nx_graph.successors(node_id))
-            # predecessors = list(self.nx_graph.predecessors(node_id)) # Less direct with hidden edges
+            # predecessors = list(self.nx_graph.predecessors(node_id))
 
             spouses = [
                 s
                 for s in successors
                 if self.nx_graph.edges[node_id, s].get("weight") == 0
             ]
+
             children = [
-                s
-                for s in successors
-                if self.nx_graph.edges[node_id, s].get("weight") == 1
+                c
+                for c in successors
+                if self.nx_graph.edges[node_id, c].get("weight") == 1
             ]
+
             # Infer parents from hidden edges (weight=-1) pointing *from* this node
+            # Cannot use predecessors because there'll be an edge from both spouse and child->parent.
             parents = [
                 p
                 for p in successors
                 if self.nx_graph.edges[node_id, p].get("weight") == -1
             ]
+            logger.info(line)
+            logger.info(f"spouses: {spouses}")
+            logger.info(f"children: {children}")
+            logger.info(f"parents: {parents}")
 
-            rel_parts = []
-            if spouses:
-                spouse_names = [
-                    self.nx_graph.nodes[s].get("label", s)
-                    for s in spouses
-                    if s in self.nx_graph.nodes
-                ]
-                if spouse_names:
-                    rel_parts.append(f"married to {', '.join(spouse_names)}")
-            if children:
-                child_names = [
-                    self.nx_graph.nodes[c].get("label", c)
-                    for c in children
-                    if c in self.nx_graph.nodes
-                ]
-                if child_names:
-                    rel_parts.append(f"children: {', '.join(child_names)}")
-            if parents:
-                parent_names = [
-                    self.nx_graph.nodes[p].get("label", p)
-                    for p in parents
-                    if p in self.nx_graph.nodes
-                ]
-                if parent_names:
-                    rel_parts.append(f"parent(s): {', '.join(parent_names)}")
+            relation_info = []
 
-            if rel_parts:
-                line += f" [{'; '.join(rel_parts)}]"
+            for s in spouses:
+                spouse_name = self._get_node_info(s, only_label=True)
+                relation_info.append(f"married to {spouse_name} whose ID is {s}")
+            for c in children:
+                child_name = self._get_node_info(c, only_label=True)
+                relation_info.append(f"has child {child_name} whose ID is {c}")
+            for p in parents:
+                parent_name = self._get_node_info(p, only_label=True)
+                relation_info.append(f"has parent {parent_name} whose ID is {p}")
+            if relation_info:
+                line += f" Relationships= [{'; '.join(relation_info)}];"
+
+            personal_info = self._get_node_info(node_id)
+            if personal_info:
+                line += f" Personal Info= [{personal_info}]"
 
             context_lines.append(line)
             nodes_listed += 1
 
         return "\n".join(context_lines)
+
+    def _get_node_info(self, node_id, only_label=False):
+        if node_id in self.nx_graph.nodes:
+            node_obj = self.nx_graph.nodes[node_id]
+            node_label = node_obj.get("label", node_id)
+            if only_label:
+                return node_label
+            else:
+                node_title = node_obj.get("title", "")
+                node_title_clear_string = node_title.replace("\n", "; ")
+                return node_title_clear_string
+        else:
+            return None
 
     def print_member_details(self, member_id):
         member = self.family_tree.members[member_id]
