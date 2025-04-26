@@ -122,6 +122,7 @@ class ChatbotBox(QWidget):
         full_prompt = (
             f"{system_prompt}\n\n{graph_context}\n\nUser question: {user_query}"
         )
+        print(full_prompt)
         return full_prompt
 
     def generate(self, prompt: str) -> str:

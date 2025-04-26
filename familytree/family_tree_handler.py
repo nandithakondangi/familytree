@@ -9,8 +9,6 @@ import string
 import google.protobuf.text_format as text_format
 import networkx as nx
 from google.protobuf.json_format import MessageToDict
-
-# Import Jinja2
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pyvis.network import Network
 

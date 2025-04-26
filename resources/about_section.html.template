@@ -1,0 +1,24 @@
+<h2>About Family Tree App</h2>
+
+<p>This application allows you to visualize and manage family tree data.</p>
+<p>Built using Python, PySide6, Protobuf, and Pyvis.</p>
+
+<h3>Features:</h3>
+<ul>
+    <li>Load family tree data from <code>.txtpb</code> files.</li>
+    <li>Visualize the tree interactively.</li>
+    <li>Add new family members (with optional traditional Indian dates).</li>
+    <li>Export the data back to <code>.txtpb</code>.</li>
+    <li>Export the interactive graph as an HTML file.</li>
+    <li>Editing existing member details.</li>
+    <li>Chatbot integration for queries.</li>
+</ul>
+
+<h3>Future Enhancements:</h3>
+<ul>
+    <li>Adding/Editing relationships (spouse, children).</li>
+    <li>More robust error handling and user feedback integration.</li>
+    <li>This is currently designed to be a desktop application. Plan is to make it a webapp that runs locally</li>
+</ul>
+<hr>
+<p>Temporary files are stored in: <code>{{temp_dir}}</code></p>
