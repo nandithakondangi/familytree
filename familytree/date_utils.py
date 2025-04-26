@@ -204,7 +204,3 @@ class DateUtility:
                 False,
                 f"An unexpected error occurred processing the traditional date for '{prefix}'.",
             )
-
-    @staticmethod
-    def stringify_date(date_proto) -> str:
-        pass
