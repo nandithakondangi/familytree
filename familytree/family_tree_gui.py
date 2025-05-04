@@ -24,9 +24,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from utils import ResourceUtility
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 # --- Add JavaScript Interface Class ---
@@ -170,7 +172,7 @@ class FamilyTreeGUI(QMainWindow):
     def update_culture_setting(self, state):
         """Updates the culture flag based on the checkbox state."""
         self.is_indian_culture = state == Qt.CheckState.Checked.value
-        print(f"Indian culture setting updated: {self.is_indian_culture}")
+        logger.info(f"Indian culture setting updated: {self.is_indian_culture}")
         # Future: Could potentially trigger updates elsewhere if needed
 
     def open_add_person_dialog(self):
@@ -186,16 +188,16 @@ class FamilyTreeGUI(QMainWindow):
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            print("Add/Edit Person dialog accepted.")
+            logger.info("Add/Edit Person dialog accepted.")
             # Re-rendering is handled within the dialog's save method
         else:
-            print("Add/Edit Person dialog cancelled.")
+            logger.info("Add/Edit Person dialog cancelled.")
 
     def open_edit_person_dialog(self, member_id):
         """Opens the dialog in edit mode for the given member ID."""
-        print(f"Opening edit dialog for member ID: {member_id}")
+        logger.info(f"Opening edit dialog for member ID: {member_id}")
         # Check if member actually exists before opening dialog
-        if member_id not in self.family_tree_handler.family_tree.members:
+        if member_id not in self.family_tree_handler.get_members():
             QMessageBox.warning(
                 self, "Edit Error", f"Member with ID '{member_id}' not found."
             )
@@ -210,17 +212,17 @@ class FamilyTreeGUI(QMainWindow):
         )
         result = dialog.exec()
         if result == QDialog.DialogCode.Accepted:
-            print(f"Edit Person dialog accepted for {member_id}.")
+            logger.info(f"Edit Person dialog accepted for {member_id}.")
             # Re-rendering is handled within the dialog's save method
         else:
-            print(f"Edit Person dialog cancelled for {member_id}.")
+            logger.info(f"Edit Person dialog cancelled for {member_id}.")
 
     def publish_content_to_about_tab(self, about_tab):
         about_layout = QVBoxLayout(about_tab)
         # Using QTextEdit for better rendering and potential scrollbars
         about_text_edit = QTextEdit()
         about_text_edit.setReadOnly(True)
-        resources_dir = self.family_tree_handler.get_resource()
+        resources_dir = ResourceUtility.get_resource()
 
         try:
             # --- Jinja Setup ---
@@ -276,45 +278,46 @@ class FamilyTreeGUI(QMainWindow):
 
     def re_render_tree(self):
         """Re-generates the pyvis graph and reloads it in the view."""
-        print("Re-rendering tree...")
+        logger.info("Re-rendering tree...")
         try:
             # Ensure the handler has data before trying to display
-            if not self.family_tree_handler.family_tree.members:
-                print("No data loaded, clearing view.")
+            if not self.family_tree_handler.get_members():
+                logger.info("No data loaded, clearing view.")
                 self.clear_pyvis_view()
                 # Optionally show a message in the view
                 self.pyvis_view.setHtml(
                     "<p style='color: white; text-align: center; margin-top: 50px;'>Load data or add a person to see the tree.</p>"
                 )
                 return
-
-            self.family_tree_handler.display_family_tree()
+            self.family_tree_handler.display_tree()
             self.load_pyvis_html()
-            print("Tree re-rendered successfully.")
+            logger.info("Tree re-rendered successfully.")
         except Exception as e:
-            print(f"Error during re-rendering: {e}")
+            logger.error(f"Error during re-rendering: {e}")
             QMessageBox.critical(
                 self, "Render Error", f"Failed to re-render the tree:\n{e}"
             )
 
     def load_pyvis_html(self):
         """Loads the generated HTML file into the QWebEngineView."""
-        output_html_file = self.family_tree_handler.output_file
+        output_html_file = self.family_tree_handler.get_output_html_file
         if os.path.exists(output_html_file):
             try:
+                logger.info(f"Loading HTML from: {output_html_file}")
                 # Using file:/// prefix is important for local files
                 local_url = QUrl.fromLocalFile(os.path.abspath(output_html_file))
-                print(f"Loading HTML from: {local_url.toString()}")
+                logger.info(f"local_url: {local_url}")
+                logger.info(f"Loading HTML from: {local_url.toString()}")
                 self.pyvis_view.setUrl(local_url)
                 # self.pyvis_view.reload() # Force reload if needed
             except Exception as e:
-                print(f"Error loading HTML into QWebEngineView: {e}")
+                logger.error(f"Error loading HTML into QWebEngineView: {e}")
                 QMessageBox.critical(
                     self, "Load Error", f"Could not load the HTML file:\n{e}"
                 )
                 self.clear_pyvis_view()
         else:
-            print(f"Output file not found: {output_html_file}")
+            logger.info(f"Output file not found: {output_html_file}")
             self.clear_pyvis_view()
             self.pyvis_view.setHtml(
                 "<p style='color: white; text-align: center; margin-top: 50px;'>HTML file not generated yet.</p>"
@@ -322,26 +325,29 @@ class FamilyTreeGUI(QMainWindow):
 
     def clear_pyvis_view(self):
         """Clears the content of the Pyvis view."""
-        print("Clearing Pyvis view.")
+        logger.info("Clearing Pyvis view.")
         self.pyvis_view.setUrl(QUrl("about:blank"))  # Load a blank page
 
     def load_from_protobuf(self):
         """Loads data using the handler and triggers a re-render."""
         try:
             # Clear existing graph data in handler before loading new file
-            self.family_tree_handler.family_tree.Clear()
-            self.family_tree_handler.nx_graph.clear()
-            self.family_tree_handler.load_from_protobuf()
+            self.family_tree_handler.clear()
+            self.family_tree_handler.load_from_text_file()
             # Re-render the tree after successful load
             self.re_render_tree()
+            # FIXME: (Bug) This message comes in even if there was an error in the previous step
+            # When OS module was not included in graph_handler.py, this success message was still displayed
             QMessageBox.information(self, "Success", "Data loaded successfully!")
         except FileNotFoundError:
             QMessageBox.critical(
-                self, "Error", f"File not found:\n{self.family_tree_handler.input_file}"
+                self,
+                "Error",
+                f"File not found:\n{self.family_tree_handler.get_input_text_file}",
             )
             self.clear_pyvis_view()  # Clear view on error
         except Exception as e:
-            print(f"Failed to load data: {e}")  # Log detailed error
+            logger.error(f"Failed to load data: {e}")  # Log detailed error
             QMessageBox.critical(
                 self, "Load Error", f"Failed to load data from file:\n{e}"
             )

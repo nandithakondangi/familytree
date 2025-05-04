@@ -1,8 +1,62 @@
 import datetime
 import logging
+import os
+import pathlib
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+import proto.family_tree_pb2 as family_tree_pb2
+
+
+class ResourceUtility:
+    """Class for handling resources."""
+
+    @staticmethod
+    def get_resource(resource_name=None):
+        # Use pathlib for more robust path handling
+        script_dir = pathlib.Path(__file__).parent.resolve()  # familytree directory
+        base_dir = script_dir.parent  # Project root directory
+        resource_dir = os.path.join(base_dir, "resources")
+        if not resource_name:
+            return resource_dir
+        else:
+            return pathlib.Path(resource_dir) / resource_name
+
+    @staticmethod
+    def get_default_images():
+        """Gets paths for default local images."""
+        default_images = {}
+        brokenImage = ""
+        try:
+            default_image_files = {
+                "MALE": "male.png",
+                "FEMALE": "female.png",
+                "OTHER": "person.jpg",
+                "GENDER_UNKNOWN": "person.jpg",
+            }
+            broken_image_file = "broken.gif"
+
+            for key, filename in default_image_files.items():
+                path = ResourceUtility.get_resource(filename)
+                if path.is_file():
+                    default_images[key] = str(path)  # Store as string path
+                else:
+                    logger.warning(f"Default image not found for {key} at {path}")
+
+            broken_path = ResourceUtility.get_resource(broken_image_file)
+            if broken_path.is_file():
+                brokenImage = str(broken_path)
+            else:
+                logger.warning(f"Broken image not found at {broken_path}")
+
+        except Exception as e:
+            logger.error(f"Error determining default image paths: {e}")
+            # Return empty dicts/strings on error
+            default_images = {}
+            brokenImage = ""
+
+        return default_images, brokenImage
 
 
 class DateUtility:
@@ -204,3 +258,36 @@ class DateUtility:
                 False,
                 f"An unexpected error occurred processing the traditional date for '{prefix}'.",
             )
+
+    @staticmethod
+    def compare_dob_and_dod(
+        member: family_tree_pb2.FamilyMember,
+    ) -> tuple[bool | None, str]:
+        # --- DOD vs DOB Check (after both are potentially populated) ---
+        dob_populated = member.date_of_birth.year != 0
+        dod_populated = member.date_of_death.year != 0
+
+        if dob_populated and dod_populated:
+            try:
+                dob = datetime.date(
+                    member.date_of_birth.year,
+                    member.date_of_birth.month,
+                    member.date_of_birth.date,
+                )
+                dod = datetime.date(
+                    member.date_of_death.year,
+                    member.date_of_death.month,
+                    member.date_of_death.date,
+                )
+                if dod < dob:
+                    return (
+                        None,
+                        "Validation Error: Date of Death cannot be before Date of Birth.",
+                    )
+                else:
+                    return True, ""
+            except ValueError:
+                logger.error(
+                    "Inconsistency: Could not create date objects for comparison after individual validation passed."
+                )
+                return None, "Internal Error: Could not compare DOB and DOD."

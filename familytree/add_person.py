@@ -1,3 +1,6 @@
+import logging
+
+from proto_handler import ProtoHandler
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -16,6 +19,10 @@ from PySide6.QtWidgets import (
 
 import proto.utils_pb2 as utils_pb2
 
+# Get a logger instance for this module
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 # --- AddDetailsForm ---
 class AddPersonDialog(QDialog):
@@ -28,7 +35,7 @@ class AddPersonDialog(QDialog):
         member_id_to_edit=None,
     ):
         super().__init__()
-        self.family_tree_handler = family_tree_handler
+        self.ft_handler = family_tree_handler
         self.family_tree_gui = family_tree_gui  # Keep reference to main GUI
         self.show_traditional_dates = is_indian_culture  # Store culture flag
 
@@ -117,7 +124,7 @@ class AddPersonDialog(QDialog):
 
     def display_name_field(self, form_layout: QFormLayout):
         self.user_input_fields["name"] = QLineEdit()
-        self.user_input_fields["name"].setPlaceholderText("Full legal name")
+        self.user_input_fields["name"].setPlaceholderText("Name")
         form_layout.addRow(
             QLabel("<b>Name:</b>*"), self.user_input_fields["name"]
         )  # Bold label, add asterisk
@@ -133,7 +140,7 @@ class AddPersonDialog(QDialog):
         gender_label = QLabel("Gender:")
         self.user_input_fields["gender"] = QComboBox()
         # Fetch enum values safely
-        valid_genders = self.family_tree_handler.get_enum_values_from_proto_schema(
+        valid_genders = ProtoHandler.get_enum_values_from_proto_schema(
             "Gender", proto_module=utils_pb2
         )
         if valid_genders:
@@ -182,12 +189,8 @@ class AddPersonDialog(QDialog):
         layout = QHBoxLayout(self.traditional_dob_widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        valid_months = self.family_tree_handler.get_enum_values_from_proto_schema(
-            "TamilMonth"
-        )
-        valid_stars = self.family_tree_handler.get_enum_values_from_proto_schema(
-            "TamilStar"
-        )
+        valid_months = ProtoHandler.get_enum_values_from_proto_schema("TamilMonth")
+        valid_stars = ProtoHandler.get_enum_values_from_proto_schema("TamilStar")
 
         self.user_input_fields["dob_traditional_month"] = QComboBox()
         if valid_months:
@@ -290,15 +293,9 @@ class AddPersonDialog(QDialog):
         traditional_dod_layout = QHBoxLayout(self.traditional_dod_widget)
         traditional_dod_layout.setContentsMargins(0, 0, 0, 0)
 
-        valid_months = self.family_tree_handler.get_enum_values_from_proto_schema(
-            "TamilMonth"
-        )
-        valid_paksham = self.family_tree_handler.get_enum_values_from_proto_schema(
-            "Paksham"
-        )
-        valid_thithi = self.family_tree_handler.get_enum_values_from_proto_schema(
-            "Thithi"
-        )
+        valid_months = ProtoHandler.get_enum_values_from_proto_schema("TamilMonth")
+        valid_paksham = ProtoHandler.get_enum_values_from_proto_schema("Paksham")
+        valid_thithi = ProtoHandler.get_enum_values_from_proto_schema("Thithi")
 
         self.user_input_fields["dod_traditional_month"] = QComboBox()
         if valid_months:
@@ -350,18 +347,9 @@ class AddPersonDialog(QDialog):
         if not self.is_edit_mode or not self.member_id_to_edit:
             return  # Should not happen if called correctly
 
-        try:
-            member = self.family_tree_handler.family_tree.members[
-                self.member_id_to_edit
-            ]
-        except KeyError:
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"Could not find member with ID {self.member_id_to_edit} to edit.",
-            )
-            self.reject()  # Close the dialog if member not found
-            return
+        # Fetch member data
+        member = self.ft_handler.query_member(self.member_id_to_edit)
+        # FIXME: I dont expect invalid member Id as this will be called from double click only
 
         # --- Populate Basic Fields ---
         self.user_input_fields["name"].setText(member.name)
@@ -506,9 +494,7 @@ class AddPersonDialog(QDialog):
             self.traditional_dod_label.setVisible(self.show_traditional_dates)
             self.traditional_dod_widget.setVisible(self.show_traditional_dates)
 
-    # --- Save Action ---
-    def save_member_data(self):
-        """Gathers data, calls handler to validate and create OR update, handles result."""
+    def _gather_values_to_save(self):
         user_input_values = {}
 
         # --- Gather Data (Raw values - same logic as before) ---
@@ -557,16 +543,26 @@ class AddPersonDialog(QDialog):
                 user_input_values["dod_traditional_thithi"] = self.user_input_fields[
                     "dod_traditional_thithi"
                 ].currentText()
+        return user_input_values
 
+    # --- Save Action ---
+    def save_member_data(self):
+        """Gathers data, calls handler to validate and create OR update, handles result."""
+
+        user_input_values = self._gather_values_to_save()
+        if self.is_edit_mode:
+            self.ft_handler.update_member(self.member_id_to_edit, user_input_values)
+        else:
+            self.ft_handler.create_member(user_input_values)
         # --- Call Handler to Create or Update ---
         try:
             if self.is_edit_mode:
                 # --- UPDATE ---
-                print(
+                logger.info(
                     f"Attempting to update member {self.member_id_to_edit} with data:",
                     user_input_values,
                 )
-                success, error_message = self.family_tree_handler.update_node(
+                success, error_message = self.ft_handler.update_node(
                     self.member_id_to_edit, user_input_values
                 )
                 action_verb = "updated"
@@ -576,8 +572,10 @@ class AddPersonDialog(QDialog):
 
             else:
                 # --- CREATE ---
-                print("Attempting to save new member with data:", user_input_values)
-                member_id, error_message = self.family_tree_handler.create_node(
+                logger.info(
+                    "Attempting to save new member with data:", user_input_values
+                )
+                member_id, error_message = self.ft_handler.create_node(
                     user_input_values
                 )
                 success = member_id is not None
@@ -594,7 +592,7 @@ class AddPersonDialog(QDialog):
                 # Keep the dialog open for correction
             else:
                 # Success!
-                print(f"Member {member_name_or_id} {action_verb} successfully.")
+                logger.info(f"Member {member_name_or_id} {action_verb} successfully.")
                 # Trigger re-render in the main GUI
                 self.family_tree_gui.re_render_tree()
                 QMessageBox.information(
@@ -606,7 +604,7 @@ class AddPersonDialog(QDialog):
 
         except Exception as e:
             action = "updating" if self.is_edit_mode else "saving"
-            print(f"Unexpected error during {action} member: {e}")
+            logger.info(f"Unexpected error during {action} member: {e}")
             # logger.exception(f"Unexpected error in save_member_data") # If logger is configured
             QMessageBox.critical(
                 self,

@@ -83,7 +83,7 @@ class ImportFromFileForm(QWidget):
             return
 
         # Confirmation before overwriting existing data (optional but good practice)
-        if self.family_tree_handler.family_tree.members:  # Check if handler has data
+        if self.family_tree_handler.get_members():  # Check if handler has data
             reply = QMessageBox.question(
                 self,
                 "Confirm Load",

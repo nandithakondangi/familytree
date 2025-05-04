@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from utils import ResourceUtility
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
@@ -81,14 +82,6 @@ class ChatbotBox(QWidget):
             return None
         return api_key
 
-    def _generate_graph_context(self) -> str:
-        """Generates a textual summary of the family tree for the prompt."""
-        if not self.family_tree_handler:
-            logger.warning("FamilyTreeHandler not available in ChatbotBox.")
-            return "Error: Family tree data handler is not accessible."
-        # Use the handler's method directly
-        return self.family_tree_handler.get_graph_summary_text()
-
     def _on_send_button_clicked(self):
         """Handles sending the user's query to the chatbot."""
         user_query = self.chat_input.text().strip()
@@ -112,8 +105,8 @@ class ChatbotBox(QWidget):
         self.chat_history.ensureCursorVisible()
 
     def _get_prompt(self, user_query: str) -> str:
-        graph_context = self._generate_graph_context()
-        system_prompt_file = self.family_tree_handler.get_resource("system_prompt.txt")
+        graph_context = self.family_tree_handler.get_context_about_this_family()
+        system_prompt_file = ResourceUtility.get_resource("system_prompt.txt")
         system_prompt = ""
         with open(system_prompt_file, "r") as f:
             system_prompt = f.read()
@@ -121,7 +114,7 @@ class ChatbotBox(QWidget):
         full_prompt = (
             f"{system_prompt}\n\n{graph_context}\n\nUser question: {user_query}"
         )
-        print(full_prompt)
+        logger.debug(full_prompt)
         return full_prompt
 
     def generate(self, prompt: str) -> str:
