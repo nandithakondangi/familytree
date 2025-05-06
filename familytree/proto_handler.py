@@ -101,34 +101,14 @@ class ProtoHandler:
     def get_family_members(self):
         return self.family_tree.members.values()
 
-    @staticmethod
-    def get_enum_values_from_proto_schema(enum_name, proto_module=utils_pb2):
-        """Retrieves the valid string names for a given enum from the protobuf schema."""
-        try:
-            enum_descriptor = proto_module.DESCRIPTOR.enum_types_by_name.get(enum_name)
-            if enum_descriptor:
-                # Return names, including the default/unknown (usually index 0)
-                return [value.name for value in enum_descriptor.values]
-            else:
-                logger.error(
-                    f"Enum '{enum_name}' not found in {proto_module.__name__}."
-                )
-                return []
-        except AttributeError as e:
-            logger.error(f"Error accessing descriptor for enum '{enum_name}': {e}")
-            return []
-        except Exception as e:
-            logger.exception(
-                f"An unexpected error occurred getting enum values for '{enum_name}': {e}"
-            )
-            return []
+    def get_family_member_ids(self):
+        return self.family_tree.members.keys()
 
-    @property
     def get_member_identifiers(self, member_proto: family_tree_pb2.FamilyMember):
         """Returns the main identifiers like ID and name"""
         return member_proto.id, member_proto.name
 
-    def _add_member_to_proto_tree(self, member_proto: family_tree_pb2.FamilyMember):
+    def add_member_to_proto_tree(self, member_proto: family_tree_pb2.FamilyMember):
         self.family_tree.members[member_proto.id].CopyFrom(member_proto)
 
     def merge_another_family_tree(
@@ -148,9 +128,14 @@ class ProtoHandler:
             if member_id not in self.family_tree.members:
                 return member_id
 
-    def _create_proto_member_from_dict(
+    def generate_new_member(self):
+        new_member = family_tree_pb2.FamilyMember()
+        new_member.id = self.generate_member_id()
+        return new_member
+
+    def create_proto_member_from_dict(
         self, input_dict, member_to_update: family_tree_pb2.FamilyMember
-    ) -> tuple[family_tree_pb2.FamilyMember | None, str | None]:
+    ) -> tuple[family_tree_pb2.FamilyMember | None, str]:
         """
         Validates input data and populates a FamilyMember protobuf object.
         Does NOT modify self.family_tree
@@ -167,7 +152,7 @@ class ProtoHandler:
                 (populated_member_proto, None) on successful validation and population.
                 (None, error_message) if validation fails.
         """
-
+        error_message = ""
         member = member_to_update
 
         # --- Basic Info ---
@@ -261,32 +246,7 @@ class ProtoHandler:
             DateUtility.compare_dob_and_dod(member)
 
         # If all validations passed
-        return member, None
-
-    def validate_and_add(
-        self, input_dict
-    ) -> tuple[family_tree_pb2.FamilyMember | None, str | None]:
-        """Validate and add member to proto tree"""
-        new_member = family_tree_pb2.FamilyMember()
-        new_member, status = self._create_proto_member_from_dict(input_dict, new_member)
-        if not new_member:
-            return None, status
-        self._add_member_to_proto_tree(new_member)
-        return new_member, None
-
-    def validate_and_edit(
-        self, input_dict, member_id
-    ) -> tuple[family_tree_pb2.FamilyMember | None, str | None]:
-        existing_member = self.query_proto_member_by_id(member_id)
-        if not existing_member:
-            return None, f"Cannot update: Member with ID '{member_id}' not found."
-        updated_member, status = self._create_proto_member_from_dict(
-            input_dict, existing_member
-        )
-        if not updated_member:
-            return None, status
-        self._add_member_to_proto_tree(updated_member)
-        return updated_member, None
+        return member, error_message
 
     def prepare_node_attributes_for_member(self, member: family_tree_pb2.FamilyMember):
         member_id = member.id

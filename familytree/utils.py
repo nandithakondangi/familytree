@@ -7,6 +7,7 @@ import pathlib
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 import proto.family_tree_pb2 as family_tree_pb2
+import proto.utils_pb2 as utils_pb2
 
 
 class ResourceUtility:
@@ -57,6 +58,50 @@ class ResourceUtility:
             brokenImage = ""
 
         return default_images, brokenImage
+
+
+class ProtoUtility:
+    @staticmethod
+    def get_month_name(star_enum):
+        return utils_pb2.TamilMonth.Name(star_enum)
+
+    @staticmethod
+    def get_star_name(star_enum):
+        return utils_pb2.TamilStar.Name(star_enum)
+
+    @staticmethod
+    def get_gender_name(gender_enum):
+        return utils_pb2.Gender.Name(gender_enum)
+
+    @staticmethod
+    def get_paksham_name(paksham_enum):
+        return utils_pb2.Paksham.Name(paksham_enum)
+
+    @staticmethod
+    def get_thithi_name(thithi_enum):
+        return utils_pb2.Thithi.Name(thithi_enum)
+
+    @staticmethod
+    def get_enum_values_from_proto_schema(enum_name, proto_module=utils_pb2):
+        """Retrieves the valid string names for a given enum from the protobuf schema."""
+        try:
+            enum_descriptor = proto_module.DESCRIPTOR.enum_types_by_name.get(enum_name)
+            if enum_descriptor:
+                # Return names, including the default/unknown (usually index 0)
+                return [value.name for value in enum_descriptor.values]
+            else:
+                logger.error(
+                    f"Enum '{enum_name}' not found in {proto_module.__name__}."
+                )
+                return []
+        except AttributeError as e:
+            logger.error(f"Error accessing descriptor for enum '{enum_name}': {e}")
+            return []
+        except Exception as e:
+            logger.exception(
+                f"An unexpected error occurred getting enum values for '{enum_name}': {e}"
+            )
+            return []
 
 
 class DateUtility:

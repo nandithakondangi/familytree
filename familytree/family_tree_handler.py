@@ -4,6 +4,8 @@ import os
 from graph_handler import GraphHandler
 from proto_handler import ProtoHandler
 
+import proto.family_tree_pb2 as family_tree_pb2
+
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)  # Added
 logger.setLevel(logging.INFO)
@@ -39,17 +41,54 @@ class FamilyTreeHandler:
         )
         self.graph_handler_instance = GraphHandler(output_html_file)
 
-    def create_member(self, input_dict: dict):
-        logger.info("Attempting to add member with data:", {input_dict})
-        status, message = self._add_member_to_protoobj_and_graphobj(input_dict)
-        if not status:
-            raise Exception(message)
+    def create_member(self, input_dict: dict) -> bool:
+        successful = False
+        logger.info(f"Attempting to add member with data: {input_dict}")
+        new_empty_member = self.proto_handler_instance.generate_new_member()
+        validated_proto_member, error_message = (
+            self.proto_handler_instance.create_proto_member_from_dict(
+                input_dict, new_empty_member
+            )
+        )
+        if error_message:
+            raise Exception(error_message)
+        successful = self._add_member_to_protoobj_and_graphobj(validated_proto_member)
+        if successful:
+            member_id, name = self.proto_handler_instance.get_member_identifiers(
+                validated_proto_member
+            )
+            logger.info(
+                f"Successfully added member {member_id} ('{name}') in prototree and graph."
+            )
+        return successful
 
     def update_member(self, member_id: str, input_dict: dict):
-        logger.info(f"Attempting to update member {member_id} with data:", {input_dict})
-        status, message = self.proto_handler_instance.update_node(member_id, input_dict)
-        if not status:
-            raise Exception(message)
+        successful = False
+        logger.info(f"Attempting to update member {member_id} with data: {input_dict}")
+        existing_member = self.proto_handler_instance.query_proto_member_by_id(
+            member_id
+        )
+        if not existing_member:
+            raise Exception(f"Cannot update: Member with ID '{member_id}' not found.")
+
+        validated_proto_member, error_message = (
+            self.proto_handler_instance.create_proto_member_from_dict(
+                input_dict, existing_member
+            )
+        )
+        if error_message:
+            raise Exception(error_message)
+        successful = self._update_member_to_protoobj_and_graphobj(
+            validated_proto_member
+        )
+        if successful:
+            member_id, name = self.proto_handler_instance.get_member_identifiers(
+                validated_proto_member
+            )
+            logging.info(
+                f"Successfully updated member {member_id} ('{name}') in prototree and graph."
+            )
+        return successful
 
     # FIXME: we are not adding relations yet
 
@@ -65,7 +104,6 @@ class FamilyTreeHandler:
         logger.info("Loading data from text file")
         self.clear()
         self.proto_handler_instance.load_from_protobuf()
-        print(self.proto_handler_instance.family_tree)
         self._add_familytree_members_to_graph()
 
     @property
@@ -88,6 +126,10 @@ class FamilyTreeHandler:
     # Pass through method
     def get_members(self):
         return self.proto_handler_instance.get_family_members()
+
+    # Pass through method
+    def get_member_ids(self):
+        return self.proto_handler_instance.get_family_member_ids()
 
     # Pass through method
     def display_tree(self):
@@ -215,34 +257,26 @@ class FamilyTreeHandler:
                     )
 
     def _add_member_to_protoobj_and_graphobj(
-        self, input_dict: dict, member_id_to_edit: str | None = None
-    ) -> tuple[bool, str | None]:
+        self, member_proto: family_tree_pb2.FamilyMember
+    ) -> bool:
         """
-        Adds or updates a validated member proto into the main family tree
+        Adds member proto into the main family tree
         and the NetworkX graph.
 
         Args:
             member_proto: The validated FamilyMember object.
 
         Returns:
-            tuple[bool, str | None]: (True, None) on success.
-                                    (False, error_message) on failure.
+            bool: True on success, flase on failure.
         """
 
         try:
-            # Add/Update in the main protobuf structure
-            if member_id_to_edit:
-                member_proto, status = self.proto_handler_instance.validate_and_edit(
-                    input_dict, member_id_to_edit
-                )
-            else:
-                member_proto, status = self.proto_handler_instance.validate_and_add(
-                    input_dict
-                )
+            # Add member to protoobj
+            self.proto_handler_instance.add_member_to_proto_tree(member_proto)
 
             # Add/Update in the NetworkX graph
             attributes_dict = (
-                self.graph_handler_instance.prepare_node_attributes_for_member(
+                self.proto_handler_instance.prepare_node_attributes_for_member(
                     member_proto
                 )
             )
@@ -253,22 +287,49 @@ class FamilyTreeHandler:
                 title_str=attributes_dict.get("Title"),
                 brokenImage=attributes_dict.get("BrokenImage"),
             )
-            # This function already handles add/update
+            return True
 
-            member_id, name = self.proto_handler_instance.get_member_identifiers(
-                member_proto
-            )
-            logger.info(
-                f"Successfully added/updated member {member_id} ('{name}') in prototree and graph."
-            )
-            return True, None
         except Exception as e:
-            logger.exception(
-                f"Unexpected error adding/updating member {member_id} to tree/graph: {e}"
-            )
+            logger.exception(f"Unexpected error adding member to prototree, graph: {e}")
             # Attempt to roll back if needed (complex, might leave inconsistent state)
             # For simplicity, we just report the error.
-            return (
-                False,
-                f"Internal error occurred while saving/updating member state: {e}",
+            return False
+
+    def _update_member_to_protoobj_and_graphobj(
+        self, member_proto: family_tree_pb2.FamilyMember
+    ) -> bool:
+        """
+        Adds or updates a validated member proto into the main family tree
+        and the NetworkX graph.
+
+        Args:
+            member_proto: The validated FamilyMember object.
+
+        Returns:
+            bool - True on success, false on failure.
+        """
+
+        try:
+            # Update in the main protobuf structure
+            # This will also update as it is a dictionary overwrite
+            self.proto_handler_instance.add_member_to_proto_tree(member_proto)
+
+            # Update in the NetworkX graph
+            attributes_dict = (
+                self.proto_handler_instance.prepare_node_attributes_for_member(
+                    member_proto
+                )
             )
+            self.graph_handler_instance.add_node_in_graph(
+                member_id=attributes_dict.get("ID"),
+                final_image_path=attributes_dict.get("NodeImagePath"),
+                member_name=attributes_dict.get("Name"),
+                title_str=attributes_dict.get("Title"),
+                brokenImage=attributes_dict.get("BrokenImage"),
+            )
+            return True
+        except Exception as e:
+            logger.exception(f"Unexpected error updating member to tree/graph: {e}")
+            # Attempt to roll back if needed (complex, might leave inconsistent state)
+            # For simplicity, we just report the error.
+            return False

@@ -197,7 +197,7 @@ class FamilyTreeGUI(QMainWindow):
         """Opens the dialog in edit mode for the given member ID."""
         logger.info(f"Opening edit dialog for member ID: {member_id}")
         # Check if member actually exists before opening dialog
-        if member_id not in self.family_tree_handler.get_members():
+        if member_id not in self.family_tree_handler.get_member_ids():
             QMessageBox.warning(
                 self, "Edit Error", f"Member with ID '{member_id}' not found."
             )
@@ -281,7 +281,7 @@ class FamilyTreeGUI(QMainWindow):
         logger.info("Re-rendering tree...")
         try:
             # Ensure the handler has data before trying to display
-            if not self.family_tree_handler.get_members():
+            if not self.family_tree_handler.get_member_ids():
                 logger.info("No data loaded, clearing view.")
                 self.clear_pyvis_view()
                 # Optionally show a message in the view

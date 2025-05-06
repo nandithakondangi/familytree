@@ -1,6 +1,5 @@
 import logging
 
-from proto_handler import ProtoHandler
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -16,8 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-import proto.utils_pb2 as utils_pb2
+from utils import ProtoUtility
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
@@ -140,9 +138,7 @@ class AddPersonDialog(QDialog):
         gender_label = QLabel("Gender:")
         self.user_input_fields["gender"] = QComboBox()
         # Fetch enum values safely
-        valid_genders = ProtoHandler.get_enum_values_from_proto_schema(
-            "Gender", proto_module=utils_pb2
-        )
+        valid_genders = ProtoUtility.get_enum_values_from_proto_schema("Gender")
         if valid_genders:
             self.user_input_fields["gender"].addItems(valid_genders)
             # Optionally set a default, e.g., GENDER_UNKNOWN
@@ -189,8 +185,8 @@ class AddPersonDialog(QDialog):
         layout = QHBoxLayout(self.traditional_dob_widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        valid_months = ProtoHandler.get_enum_values_from_proto_schema("TamilMonth")
-        valid_stars = ProtoHandler.get_enum_values_from_proto_schema("TamilStar")
+        valid_months = ProtoUtility.get_enum_values_from_proto_schema("TamilMonth")
+        valid_stars = ProtoUtility.get_enum_values_from_proto_schema("TamilStar")
 
         self.user_input_fields["dob_traditional_month"] = QComboBox()
         if valid_months:
@@ -293,9 +289,9 @@ class AddPersonDialog(QDialog):
         traditional_dod_layout = QHBoxLayout(self.traditional_dod_widget)
         traditional_dod_layout.setContentsMargins(0, 0, 0, 0)
 
-        valid_months = ProtoHandler.get_enum_values_from_proto_schema("TamilMonth")
-        valid_paksham = ProtoHandler.get_enum_values_from_proto_schema("Paksham")
-        valid_thithi = ProtoHandler.get_enum_values_from_proto_schema("Thithi")
+        valid_months = ProtoUtility.get_enum_values_from_proto_schema("TamilMonth")
+        valid_paksham = ProtoUtility.get_enum_values_from_proto_schema("Paksham")
+        valid_thithi = ProtoUtility.get_enum_values_from_proto_schema("Thithi")
 
         self.user_input_fields["dod_traditional_month"] = QComboBox()
         if valid_months:
@@ -356,7 +352,7 @@ class AddPersonDialog(QDialog):
         self.user_input_fields["nicknames"].setText(", ".join(member.nicknames))
 
         # Gender: Find the index corresponding to the enum name
-        gender_name = utils_pb2.Gender.Name(member.gender)
+        gender_name = ProtoUtility.get_gender_name(member.gender)
         gender_index = self.user_input_fields["gender"].findText(gender_name)
         if gender_index != -1:
             self.user_input_fields["gender"].setCurrentIndex(gender_index)
@@ -381,7 +377,7 @@ class AddPersonDialog(QDialog):
         # Check if Traditional DOB exists (only if culture is enabled)
         if self.show_traditional_dates and member.HasField("traditional_date_of_birth"):
             # Month
-            month_name = utils_pb2.TamilMonth.Name(
+            month_name = ProtoUtility.get_month_name(
                 member.traditional_date_of_birth.month
             )
             month_index = self.user_input_fields["dob_traditional_month"].findText(
@@ -392,7 +388,9 @@ class AddPersonDialog(QDialog):
                     month_index
                 )
             # Star
-            star_name = utils_pb2.TamilStar.Name(member.traditional_date_of_birth.star)
+            star_name = ProtoUtility.get_star_name(
+                member.traditional_date_of_birth.star
+            )
             star_index = self.user_input_fields["dob_traditional_star"].findText(
                 star_name
             )
@@ -418,7 +416,7 @@ class AddPersonDialog(QDialog):
                 "traditional_date_of_death"
             ):
                 # Month
-                month_name = utils_pb2.TamilMonth.Name(
+                month_name = ProtoUtility.get_month_name(
                     member.traditional_date_of_death.month
                 )
                 month_index = self.user_input_fields["dod_traditional_month"].findText(
@@ -429,7 +427,7 @@ class AddPersonDialog(QDialog):
                         month_index
                     )
                 # Paksham
-                paksham_name = utils_pb2.Paksham.Name(
+                paksham_name = ProtoUtility.get_paksham_name(
                     member.traditional_date_of_death.paksham
                 )
                 paksham_index = self.user_input_fields[
@@ -440,7 +438,7 @@ class AddPersonDialog(QDialog):
                         paksham_index
                     )
                 # Thithi
-                thithi_name = utils_pb2.Thithi.Name(
+                thithi_name = ProtoUtility.get_thithi_name(
                     member.traditional_date_of_death.thithi
                 )
                 thithi_index = self.user_input_fields[
@@ -550,10 +548,10 @@ class AddPersonDialog(QDialog):
         """Gathers data, calls handler to validate and create OR update, handles result."""
 
         user_input_values = self._gather_values_to_save()
-        if self.is_edit_mode:
-            self.ft_handler.update_member(self.member_id_to_edit, user_input_values)
-        else:
-            self.ft_handler.create_member(user_input_values)
+        action_verb = "updation" if self.is_edit_mode else "addition"
+        success = False
+        member_name = user_input_values.get("name", "NAME_NOT_AVAILABLE")
+
         # --- Call Handler to Create or Update ---
         try:
             if self.is_edit_mode:
@@ -562,12 +560,8 @@ class AddPersonDialog(QDialog):
                     f"Attempting to update member {self.member_id_to_edit} with data:",
                     user_input_values,
                 )
-                success, error_message = self.ft_handler.update_node(
+                success = self.ft_handler.update_member(
                     self.member_id_to_edit, user_input_values
-                )
-                action_verb = "updated"
-                member_name_or_id = (
-                    f"'{user_input_values['name']}' (ID: {self.member_id_to_edit})"
                 )
 
             else:
@@ -575,40 +569,24 @@ class AddPersonDialog(QDialog):
                 logger.info(
                     "Attempting to save new member with data:", user_input_values
                 )
-                member_id, error_message = self.ft_handler.create_node(
-                    user_input_values
-                )
-                success = member_id is not None
-                action_verb = "added"
-                member_name_or_id = (
-                    f"'{user_input_values['name']}'"  # ID not known until success
-                )
+                success = self.ft_handler.create_member(user_input_values)
 
-            # --- Handle Result ---
-            if (
-                not success
-            ):  # Check if success is False (update) or member_id is None (create)
-                QMessageBox.warning(self, "Validation Error", error_message)
-                # Keep the dialog open for correction
-            else:
-                # Success!
-                logger.info(f"Member {member_name_or_id} {action_verb} successfully.")
+            if success:
+                logger.info(f"Member {member_name} {action_verb} successfully.")
                 # Trigger re-render in the main GUI
                 self.family_tree_gui.re_render_tree()
                 QMessageBox.information(
                     self,
                     "Success",
-                    f"Member {member_name_or_id} {action_verb} successfully!",
+                    f"Member {action_verb} for {member_name} successful!",
                 )
                 self.accept()  # Close the dialog successfully
 
         except Exception as e:
-            action = "updating" if self.is_edit_mode else "saving"
-            logger.info(f"Unexpected error during {action} member: {e}")
-            # logger.exception(f"Unexpected error in save_member_data") # If logger is configured
+            logger.info(f"Unexpected error during {action_verb} member: {e}")
             QMessageBox.critical(
                 self,
-                f"{action.capitalize()} Error",
+                f"{action_verb.capitalize()} Error",
                 f"An unexpected error occurred:\n{e}",
             )
             # Don't close the dialog on unexpected error
