@@ -20,12 +20,77 @@ from utils import ResourceUtility
 logger = logging.getLogger(__name__)
 
 
-class ChatbotBox(QWidget):
-    def __init__(self, family_tree_handler, parent=None):
-        super().__init__(parent)
+class ChatbotLogic:
+    def __init__(self, family_tree_handler):
         self.family_tree_handler = family_tree_handler
         self.client = None
 
+    def get_api_key(self) -> str | None:
+        """Retrieves the Google API key from environment variables."""
+        api_key = os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            QMessageBox.warning(
+                self,  # Parent is now ChatbotBox (a QWidget)
+                "API Key Missing",
+                "The GOOGLE_API_KEY environment variable is not set.\n"
+                "Please set it to your Google AI Studio API key to use the chatbot.",
+            )
+            return None
+        return api_key
+
+    def _get_prompt(self, user_query: str) -> str:
+        graph_context = self.family_tree_handler.get_context_about_this_family()
+        system_prompt_file = ResourceUtility.get_resource("system_prompt.txt")
+        system_prompt = ""
+        with open(system_prompt_file, "r") as f:
+            system_prompt = f.read()
+
+        full_prompt = (
+            f"{system_prompt}\n\n{graph_context}\n\nUser question: {user_query}"
+        )
+        logger.debug(full_prompt)
+        return full_prompt
+
+    def get_response_chunks(self, prompt: str, gemini_api_key: str):
+        self.client = genai.Client(api_key=gemini_api_key)
+
+        # model = "gemma-3-1b-it"
+        model = "gemini-2.0-flash"
+        contents = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(text=self._get_prompt(prompt)),
+                ],
+            )
+        ]
+        generate_content_config = types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(
+                thinking_budget=0,
+            ),
+            safety_settings=[
+                types.SafetySetting(
+                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold="BLOCK_LOW_AND_ABOVE",  # Block most
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="BLOCK_ONLY_HIGH",  # Block few
+                ),
+            ],
+            response_mime_type="text/plain",
+        )
+        return self.client.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=generate_content_config,
+        )
+
+
+class ChatbotBox(QWidget):
+    def __init__(self, family_tree_handler, parent=None):
+        super().__init__(parent)
+        self.chatbot_logic = ChatbotLogic(family_tree_handler)
         # UI Elements (will be created in init_ui)
         self.chat_history = None
         self.chat_input = None
@@ -69,19 +134,6 @@ class ChatbotBox(QWidget):
             self.chat_history.verticalScrollBar().maximum()
         )
 
-    def _get_api_key(self) -> str | None:
-        """Retrieves the Google API key from environment variables."""
-        api_key = os.environ.get("GOOGLE_API_KEY")
-        if not api_key:
-            QMessageBox.warning(
-                self,  # Parent is now ChatbotBox (a QWidget)
-                "API Key Missing",
-                "The GOOGLE_API_KEY environment variable is not set.\n"
-                "Please set it to your Google AI Studio API key to use the chatbot.",
-            )
-            return None
-        return api_key
-
     def _on_send_button_clicked(self):
         """Handles sending the user's query to the chatbot."""
         user_query = self.chat_input.text().strip()
@@ -104,74 +156,32 @@ class ChatbotBox(QWidget):
         # Ensure the view scrolls down to show the start of the bot's turn
         self.chat_history.ensureCursorVisible()
 
-    def _get_prompt(self, user_query: str) -> str:
-        graph_context = self.family_tree_handler.get_context_about_this_family()
-        system_prompt_file = ResourceUtility.get_resource("system_prompt.txt")
-        system_prompt = ""
-        with open(system_prompt_file, "r") as f:
-            system_prompt = f.read()
-
-        full_prompt = (
-            f"{system_prompt}\n\n{graph_context}\n\nUser question: {user_query}"
-        )
-        logger.debug(full_prompt)
-        return full_prompt
+    def _handle_no_api_key(self):
+        # If API key is missing, we still need to close the paragraph started and re-enable controls.
+        try:
+            cursor = self.chat_history.textCursor()
+            cursor.movePosition(QTextCursor.End)
+            cursor.insertHtml(
+                "API Key not configured.</p>"
+            )  # Add message and close tag
+        except Exception as e_cursor:
+            logger.error(f"Error finalizing message after API key check: {e_cursor}")
+        finally:
+            self.send_button.setEnabled(True)
+            self.chat_input.setEnabled(True)
+        return
 
     def generate(self, prompt: str) -> str:
-        gemini_api_key = self._get_api_key()
+        gemini_api_key = self.chatbot_logic.get_api_key()
         if gemini_api_key is None:
-            # If API key is missing, we still need to close the paragraph started and re-enable controls.
-            try:
-                cursor = self.chat_history.textCursor()
-                cursor.movePosition(QTextCursor.End)
-                cursor.insertHtml(
-                    "API Key not configured.</p>"
-                )  # Add message and close tag
-            except Exception as e_cursor:
-                logger.error(
-                    f"Error finalizing message after API key check: {e_cursor}"
-                )
-            finally:
-                self.send_button.setEnabled(True)
-                self.chat_input.setEnabled(True)
+            self._handle_no_api_key()
             return
+        self.stream_content_in_chatbox(prompt, gemini_api_key)
 
-        self.client = genai.Client(api_key=gemini_api_key)
-
-        # model = "gemma-3-1b-it"
-        model = "gemini-2.0-flash"
-        contents = [
-            types.Content(
-                role="user",
-                parts=[
-                    types.Part.from_text(text=self._get_prompt(prompt)),
-                ],
-            )
-        ]
-        generate_content_config = types.GenerateContentConfig(
-            thinking_config=types.ThinkingConfig(
-                thinking_budget=0,
-            ),
-            safety_settings=[
-                types.SafetySetting(
-                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold="BLOCK_LOW_AND_ABOVE",  # Block most
-                ),
-                types.SafetySetting(
-                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold="BLOCK_ONLY_HIGH",  # Block few
-                ),
-            ],
-            response_mime_type="text/plain",
-        )
-
+    def stream_content_in_chatbox(self, prompt: str, gemini_api_key: str):
         try:
             # Stream the content
-            for chunk in self.client.models.generate_content_stream(
-                model=model,
-                contents=contents,
-                config=generate_content_config,
-            ):
+            for chunk in self.chatbot_logic.get_response_chunks(prompt, gemini_api_key):
                 stream_successful = True  # Mark that we received at least one chunk
                 print(chunk.text, end="")  # Keep console log
 

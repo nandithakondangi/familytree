@@ -3,11 +3,14 @@ import logging
 import os
 import pathlib
 
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+import proto.family_tree_pb2 as family_tree_pb2
+import proto.utils_pb2 as utils_pb2
+
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-import proto.family_tree_pb2 as family_tree_pb2
-import proto.utils_pb2 as utils_pb2
 
 
 class ResourceUtility:
@@ -58,6 +61,27 @@ class ResourceUtility:
             brokenImage = ""
 
         return default_images, brokenImage
+
+    @staticmethod
+    def get_info_about_this_software(temp_dir_path: str = "UNKNOWN"):
+        # --- Jinja Setup ---
+        # Set up the environment to load templates from the 'resources/' directory
+        resources_dir = ResourceUtility.get_resource()
+        template_loader = FileSystemLoader(searchpath=str(resources_dir))
+        jinja_env = Environment(
+            loader=template_loader,
+            autoescape=select_autoescape(
+                ["html", "xml", "js"]
+            ),  # Enable autoescaping for safety
+        )
+
+        # Load the template file
+        template_name = "about_section.html.template"
+        template = jinja_env.get_template(template_name)
+
+        # Render the template with the dynamic URI
+        content = template.render(temp_dir=temp_dir_path)
+        return content
 
 
 class ProtoUtility:

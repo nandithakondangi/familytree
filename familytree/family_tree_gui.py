@@ -6,7 +6,6 @@ from chatbot import ChatbotBox
 from export import ExportWidget
 from family_tree_handler import FamilyTreeHandler
 from import_from_file import ImportFromFileForm
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -196,12 +195,6 @@ class FamilyTreeGUI(QMainWindow):
     def open_edit_person_dialog(self, member_id):
         """Opens the dialog in edit mode for the given member ID."""
         logger.info(f"Opening edit dialog for member ID: {member_id}")
-        # Check if member actually exists before opening dialog
-        if member_id not in self.family_tree_handler.get_member_ids():
-            QMessageBox.warning(
-                self, "Edit Error", f"Member with ID '{member_id}' not found."
-            )
-            return
 
         # Pass handler, self, culture setting, and the member_id to edit
         dialog = AddPersonDialog(
@@ -222,25 +215,11 @@ class FamilyTreeGUI(QMainWindow):
         # Using QTextEdit for better rendering and potential scrollbars
         about_text_edit = QTextEdit()
         about_text_edit.setReadOnly(True)
-        resources_dir = ResourceUtility.get_resource()
 
         try:
-            # --- Jinja Setup ---
-            # Set up the environment to load templates from the 'resources/' directory
-            template_loader = FileSystemLoader(searchpath=str(resources_dir))
-            jinja_env = Environment(
-                loader=template_loader,
-                autoescape=select_autoescape(
-                    ["html", "xml", "js"]
-                ),  # Enable autoescaping for safety
+            content = ResourceUtility.get_info_about_this_software(
+                temp_dir_path=self.temp_dir_path
             )
-
-            # Load the template file
-            template_name = "about_section.html.template"
-            template = jinja_env.get_template(template_name)
-
-            # Render the template with the dynamic URI
-            content = template.render(temp_dir=self.temp_dir_path)
 
         except Exception as e:
             logger.exception(f"Error loading about tab content: {e}")
@@ -303,7 +282,6 @@ class FamilyTreeGUI(QMainWindow):
         output_html_file = self.family_tree_handler.get_output_html_file
         if os.path.exists(output_html_file):
             try:
-                logger.info(f"Loading HTML from: {output_html_file}")
                 # Using file:/// prefix is important for local files
                 local_url = QUrl.fromLocalFile(os.path.abspath(output_html_file))
                 logger.info(f"local_url: {local_url}")
