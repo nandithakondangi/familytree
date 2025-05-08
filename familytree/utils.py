@@ -360,3 +360,7 @@ class DateUtility:
                     "Inconsistency: Could not create date objects for comparison after individual validation passed."
                 )
                 return None, "Internal Error: Could not compare DOB and DOD."
+
+        # If not both DOB and DOD are populated, the comparison is not applicable.
+        # Consider this a "pass" for this specific validation rule (DOD is not before DOB).
+        return True, ""

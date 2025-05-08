@@ -148,6 +148,10 @@ class FamilyTreeHandler:
         self.proto_handler_instance.update_output_data_file(output_data_file)
 
     # Pass through method
+    def update_output_html_file(self, output_data_file):
+        self.graph_handler_instance.update_output_html_file(output_data_file)
+
+    # Pass through method
     def get_context_about_this_family(self) -> str:
         """Generates a textual summary of the family tree for the prompt."""
         return self.graph_handler_instance.get_graph_summary_text()

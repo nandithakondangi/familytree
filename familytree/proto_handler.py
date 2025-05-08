@@ -91,10 +91,6 @@ class ProtoHandler:
             # Raise a NEW, more informative exception, linking the original 'e' as the cause
             raise Exception(log_message) from e  # <--- MODIFIED LINE
 
-    def print_member_details(self, member_id):
-        member = self.family_tree.members[member_id]
-        print(f"Member Details ({member_id}):\n{member}")
-
     def query_proto_member_by_id(self, member_id):
         return self.family_tree.members.get(member_id, None)
 
@@ -141,64 +137,70 @@ class ProtoHandler:
         Does NOT modify self.family_tree
         If existing_member is provided, it works on a COPY and returns the
         validated copy on success.
-
         Args:
             input_dict: Dictionary containing the raw input data.
-            existing_member: If provided, updates this existing member object.
-                             If None, creates and returns a new member object.
-
+            member_to_update: The FamilyMember protobuf object to be populated.
+                              This can be a new shell (from generate_new_member)
+                              or an existing member from the tree.
         Returns:
             tuple[FamilyMember | None, str | None]:
                 (populated_member_proto, None) on successful validation and population.
                 (None, error_message) if validation fails.
         """
         error_message = ""
-        member = member_to_update
+        # Create a working copy of the member_to_update.
+        # This ensures that if validation fails, the original member_to_update
+        # (especially if it's an existing member from the tree) is not altered.
+        # The ID is preserved from member_to_update.
+        working_member = family_tree_pb2.FamilyMember()
+        working_member.CopyFrom(member_to_update)
 
         # --- Basic Info ---
-        member.name = input_dict.get("name", "").strip()
-        if not member.name:
+        working_member.name = input_dict.get("name", "").strip()
+        if not working_member.name:
             return None, "Validation Error: Name cannot be empty."
 
         # Clear existing nicknames before adding new ones (important for updates)
-        member.ClearField("nicknames")
+        working_member.ClearField("nicknames")
         nicknames_str = input_dict.get("nicknames", "")
         if nicknames_str:
-            member.nicknames.extend(
+            working_member.nicknames.extend(
                 [nick.strip() for nick in nicknames_str.split(",") if nick.strip()]
             )
 
         try:
-            member.gender = utils_pb2.Gender.Value(
+            working_member.gender = utils_pb2.Gender.Value(
+                input_dict.get("gender", "GENDER_UNKNOWN")
+            )
+            working_member.gender = utils_pb2.Gender.Value(
                 input_dict.get("gender", "GENDER_UNKNOWN")
             )
         except ValueError:
             logger.warning(
-                f"Invalid gender value '{input_dict.get('gender')}' for {member.name}. Setting to UNKNOWN."
+                f"Invalid gender value '{input_dict.get('gender')}' for {working_member.name}. Setting to UNKNOWN."
             )
-            member.gender = utils_pb2.GENDER_UNKNOWN
+            working_member.gender = utils_pb2.GENDER_UNKNOWN
 
         # --- DOB Population and Validation ---
         # Clear existing date fields before potentially repopulating (important for updates)
-        member.ClearField("date_of_birth")
-        member.ClearField("traditional_date_of_birth")
+        working_member.ClearField("date_of_birth")
+        working_member.ClearField("traditional_date_of_birth")
 
         dob_provided = any(
             k in input_dict for k in ["dob_date", "dob_month", "dob_year"]
         )
         if dob_provided:
             is_valid, error_msg = DateUtility.populate_gregorian_date(
-                member.date_of_birth, input_dict, "dob"
+                working_member.date_of_birth, input_dict, "dob"
             )
             if not is_valid:
                 return None, f"Date of Birth Error: {error_msg}"
-
         trad_dob_provided = any(
             k in input_dict for k in ["dob_traditional_month", "dob_traditional_star"]
         )
         if trad_dob_provided:
             is_valid, error_msg = DateUtility.populate_traditional_date(
-                member.traditional_date_of_birth,
+                working_member.traditional_date_of_birth,
                 input_dict,
                 "dob",
                 utils_pb2.TamilMonth,
@@ -207,18 +209,18 @@ class ProtoHandler:
             if not is_valid:
                 return None, f"Traditional Date of Birth Error: {error_msg}"
 
-        member.alive = input_dict.get("IsAlive", True)
+        working_member.alive = input_dict.get("IsAlive", True)
         # --- DOD Population and Validation ---
         # Clear existing DoD fields before potentially repopulating (important for updates)
-        member.ClearField("date_of_death")
-        member.ClearField("traditional_date_of_death")
-        if not member.alive:
+        working_member.ClearField("date_of_death")
+        working_member.ClearField("traditional_date_of_death")
+        if not working_member.alive:
             dod_provided = any(
                 k in input_dict for k in ["dod_date", "dod_month", "dod_year"]
             )
             if dod_provided:
                 is_valid, error_msg = DateUtility.populate_gregorian_date(
-                    member.date_of_death, input_dict, "dod"
+                    working_member.date_of_death, input_dict, "dod"
                 )
                 if not is_valid:
                     return None, f"Date of Death Error: {error_msg}"
@@ -233,7 +235,7 @@ class ProtoHandler:
             )
             if trad_dod_provided:
                 is_valid, error_msg = DateUtility.populate_traditional_date(
-                    member.traditional_date_of_death,
+                    working_member.traditional_date_of_death,
                     input_dict,
                     "dod",
                     utils_pb2.TamilMonth,
@@ -243,10 +245,15 @@ class ProtoHandler:
                 if not is_valid:
                     return None, f"Traditional Date of Death Error: {error_msg}"
 
-            DateUtility.compare_dob_and_dod(member)
+            # Perform DOB vs DOD comparison if both might be populated
+            is_valid_comparison, comparison_error_msg = DateUtility.compare_dob_and_dod(
+                working_member
+            )
+            if not is_valid_comparison:  # is_valid_comparison will be None on error
+                return None, comparison_error_msg
 
         # If all validations passed
-        return member, error_message
+        return working_member, error_message
 
     def prepare_node_attributes_for_member(self, member: family_tree_pb2.FamilyMember):
         member_id = member.id
