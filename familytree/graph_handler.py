@@ -87,7 +87,18 @@ class GraphHandler:
             f"Added hidden edge {child_id}->{parent_id} with weight {hidden_edge_weight}"
         )
 
-    # --- Modify display_family_tree ---
+    def add_relationship(
+        self, member1_id: str, member2_id: str, relationship_type: str
+    ):
+        if relationship_type == "spouse":
+            self.add_spouse_edges(member1_id, member2_id)
+        elif relationship_type == "child":  # member1 is parent, member2 is child
+            self.add_child_edges(parent_id=member1_id, child_id=member2_id)
+        elif relationship_type == "parent":  # member1 is child, member2 is parent
+            self.add_child_edges(parent_id=member2_id, child_id=member1_id)
+        else:
+            raise ValueError(f"Unknown relationship type: {relationship_type}")
+
     def display_family_tree(self):
         self._create_dir_to_save_html()
         graph_to_render = self._sanitycheck_and_filter_graph()

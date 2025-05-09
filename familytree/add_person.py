@@ -40,6 +40,7 @@ class AddPersonDialog(QDialog):
         self.member_id_to_edit = member_id_to_edit  # Store the ID if editing
         self.is_edit_mode = member_id_to_edit is not None
         self.user_input_fields = {}  # Store input widgets
+        self.newly_created_member_id = None  # To store ID of newly created member
 
         # Widgets that need state toggling
         self.dod_fields_widget = None
@@ -548,11 +549,11 @@ class AddPersonDialog(QDialog):
         """Gathers data, calls handler to validate and create OR update, handles result."""
 
         user_input_values = self._gather_values_to_save()
-        action_verb = "updation" if self.is_edit_mode else "addition"
-        success = False
+        if not user_input_values:  # Validation in _gather_values_to_save failed
+            return
+        action_verb = "updation" if self.is_edit_mode else "creation"
         member_name = user_input_values.get("name", "NAME_NOT_AVAILABLE")
-
-        # --- Call Handler to Create or Update ---
+        self.newly_created_member_id = None  # Reset
         try:
             if self.is_edit_mode:
                 # --- UPDATE ---
@@ -563,18 +564,24 @@ class AddPersonDialog(QDialog):
                 success = self.ft_handler.update_member(
                     self.member_id_to_edit, user_input_values
                 )
-
+                if success:  # update_member returns bool
+                    self.newly_created_member_id = (
+                        self.member_id_to_edit
+                    )  # For consistency if GUI needs it
             else:
                 # --- CREATE ---
                 logger.info(
-                    "Attempting to save new member with data:", user_input_values
+                    f"Attempting to save new member with data: {user_input_values}"
                 )
-                success = self.ft_handler.create_member(user_input_values)
+                # create_member now returns the ID or None
+                created_id = self.ft_handler.create_member(user_input_values)
+                if created_id:
+                    self.newly_created_member_id = created_id
+                    success = True
+                else:
+                    success = False
 
             if success:
-                logger.info(f"Member {member_name} {action_verb} successfully.")
-                # Trigger re-render in the main GUI
-                self.family_tree_gui.re_render_tree()
                 QMessageBox.information(
                     self,
                     "Success",
@@ -582,11 +589,13 @@ class AddPersonDialog(QDialog):
                 )
                 self.accept()  # Close the dialog successfully
 
+            # If not success, an exception might have been raised by the handler, or create_member returned None
+
         except Exception as e:
-            logger.info(f"Unexpected error during {action_verb} member: {e}")
+            logger.exception(f"Unexpected error during member {action_verb}: {e}")
             QMessageBox.critical(
                 self,
                 f"{action_verb.capitalize()} Error",
-                f"An unexpected error occurred:\n{e}",
+                f"An unexpected error occurred:\n{str(e)}",
             )
             # Don't close the dialog on unexpected error

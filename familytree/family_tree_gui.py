@@ -7,6 +7,7 @@ from export import ExportWidget
 from family_tree_handler import FamilyTreeHandler
 from import_from_file import ImportFromFileForm
 from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
+from PySide6.QtGui import QAction, QCursor  # Added QAction, QCursor
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QLabel,
     QMainWindow,
+    QMenu,  # Added QMenu
     QMessageBox,
     QPushButton,
     QSizePolicy,
@@ -36,6 +38,7 @@ class JavaScriptInterface(QObject):
 
     # Signal to request editing a node, carrying the node ID (member_id)
     edit_node_requested = Signal(str)
+    node_right_clicked = Signal(str, int, int)  # New signal for right-click
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -46,6 +49,15 @@ class JavaScriptInterface(QObject):
         logger.info(f"Received nodeDoubleClick signal from JS for node: {node_id}")
         if node_id:
             self.edit_node_requested.emit(node_id)  # Emit signal for GUI to handle
+
+    @Slot(str, int, int)  # New slot for right-click
+    def handleNodeRightClick(self, node_id, x, y):
+        """Receives node ID and click coordinates from JS on right-click."""
+        logger.info(
+            f"Received nodeRightClick signal from JS for node: {node_id} at ({x},{y})"
+        )
+        if node_id:
+            self.node_right_clicked.emit(node_id, x, y)
 
 
 class FamilyTreeGUI(QMainWindow):
@@ -66,6 +78,9 @@ class FamilyTreeGUI(QMainWindow):
         self.channel.registerObject("pythonInterface", self.js_interface)
         # Connect the signal from the interface to the GUI's handler method
         self.js_interface.edit_node_requested.connect(self.open_edit_person_dialog)
+        self.js_interface.node_right_clicked.connect(
+            self.show_node_context_menu
+        )  # Connect new signal
         # --- End WebChannel Setup ---
 
         # UI Elements (Specific to main GUI)
@@ -209,6 +224,86 @@ class FamilyTreeGUI(QMainWindow):
             # Re-rendering is handled within the dialog's save method
         else:
             logger.info(f"Edit Person dialog cancelled for {member_id}.")
+
+    @Slot(str, int, int)
+    def show_node_context_menu(self, node_id: str, x: int, y: int):
+        """Displays a context menu for the given node ID at the cursor's position."""
+        logger.info(f"Showing context menu for node: {node_id}")
+        context_menu = QMenu(self)
+
+        add_spouse_action = QAction("Add Spouse", self)
+        # Use lambda to pass additional arguments (node_id, relationship_type)
+        add_spouse_action.triggered.connect(
+            lambda: self.handle_add_relationship_via_dialog(node_id, "spouse")
+        )
+        context_menu.addAction(add_spouse_action)
+
+        add_child_action = QAction("Add Child", self)
+        add_child_action.triggered.connect(
+            lambda: self.handle_add_relationship_via_dialog(node_id, "child")
+        )
+        context_menu.addAction(add_child_action)
+
+        add_parent_action = QAction("Add Parent", self)
+        add_parent_action.triggered.connect(
+            lambda: self.handle_add_relationship_via_dialog(node_id, "parent")
+        )
+        context_menu.addAction(add_parent_action)
+
+        # Show the menu at the current global cursor position
+        context_menu.popup(QCursor.pos())
+
+    def handle_add_relationship_via_dialog(
+        self, origin_node_id: str, relationship_type: str
+    ):
+        """Opens AddPersonDialog to create a new person, then establishes a relationship."""
+        logger.info(f"Attempting to add {relationship_type} for node {origin_node_id}")
+
+        dialog = AddPersonDialog(
+            family_tree_handler=self.family_tree_handler,
+            family_tree_gui=self,
+            is_indian_culture=self.is_indian_culture,
+            member_id_to_edit=None,  # Always for a new person
+        )
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            new_member_id = getattr(dialog, "newly_created_member_id", None)
+            if new_member_id:
+                logger.info(
+                    f"New person created (ID: {new_member_id}). Establishing {relationship_type} with {origin_node_id}."
+                )
+                try:
+                    success, message = (
+                        self.family_tree_handler.add_exhaustive_relations(
+                            origin_node_id, new_member_id, relationship_type
+                        )
+                    )
+                    if success:
+                        logger.info(f"Relationship established: {message}")
+                        QMessageBox.information(
+                            self, "Success", f"Relationship established: {message}"
+                        )
+                    else:
+                        logger.warning(f"Failed to establish relationship: {message}")
+                        QMessageBox.warning(
+                            self, "Error", f"Failed to add relationship: {message}"
+                        )
+                except Exception as e:
+                    logger.exception(f"Error establishing relationship: {e}")
+                    QMessageBox.critical(
+                        self, "Error", f"Failed to add relationship: {str(e)}"
+                    )
+                self.re_render_tree()  # Re-render even on error to show current state
+            else:
+                logger.warning("AddPersonDialog accepted, but new_member_id not found.")
+                QMessageBox.warning(
+                    self,
+                    "Operation Incomplete",
+                    "New person created, but their ID was not retrieved to form the relationship.",
+                )
+        else:
+            logger.info("AddPersonDialog cancelled. No relationship added.")
 
     def publish_content_to_about_tab(self, about_tab):
         about_layout = QVBoxLayout(about_tab)

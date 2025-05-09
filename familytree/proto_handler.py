@@ -104,8 +104,66 @@ class ProtoHandler:
         """Returns the main identifiers like ID and name"""
         return member_proto.id, member_proto.name
 
+    def get_children_ids_of_member(self, member_id: str) -> list[str]:
+        """Returns a list of children IDs for a given member."""
+        if member_id in self.family_tree.relationships:
+            return list(self.family_tree.relationships[member_id].children_ids)
+        return []
+
+    def get_spouse_ids_of_member(self, member_id: str) -> list[str]:
+        """Returns a list of spouse IDs for a given member."""
+        if member_id in self.family_tree.relationships:
+            return list(self.family_tree.relationships[member_id].spouse_ids)
+        return []
+
+    def get_parent_ids_of_member(self, child_id: str) -> list[str]:
+        """Returns a list of parent IDs for a given child by checking all relationships."""
+        parent_ids = []
+        for member_id, rels in self.family_tree.relationships.items():
+            if child_id in rels.children_ids:
+                parent_ids.append(member_id)
+        return parent_ids
+
     def add_member_to_proto_tree(self, member_proto: family_tree_pb2.FamilyMember):
         self.family_tree.members[member_proto.id].CopyFrom(member_proto)
+
+    def add_relationship(
+        self, member1_id: str, member2_id: str, relationship_type: str
+    ):
+        """Updates the Relationships message in the family_tree protobuf."""
+
+        # FIXME: We dont have member ID in relationships. Do we need?
+        """
+        # Ensure relationship entries exist for both members by accessing them.
+        # If a key doesn't exist, accessing it with [] creates a new default Relationship message.
+        # Then set the id field for these newly created (or existing) Relationship messages.
+        if member1_id not in self.family_tree.relationships:
+            self.family_tree.relationships[member1_id].id = member1_id
+        if member2_id not in self.family_tree.relationships:
+            self.family_tree.relationships[member2_id].id = member2_id
+        """
+
+        rel1 = self.family_tree.relationships[member1_id]
+        rel2 = self.family_tree.relationships[member2_id]
+
+        if relationship_type == "spouse":
+            if member2_id not in rel1.spouse_ids:
+                rel1.spouse_ids.append(member2_id)
+            if member1_id not in rel2.spouse_ids:
+                rel2.spouse_ids.append(member1_id)
+            logger.info(
+                f"Proto: Added spouse relationship between {member1_id} and {member2_id}"
+            )
+        elif relationship_type == "child":  # member1 is parent, member2 is child
+            if member2_id not in rel1.children_ids:
+                rel1.children_ids.append(member2_id)
+            logger.info(f"Proto: Added {member1_id} as parent of {member2_id}")
+        elif relationship_type == "parent":  # member1 is child, member2 is parent
+            if member1_id not in rel2.children_ids:  # member2 is the parent
+                rel2.children_ids.append(member1_id)
+            logger.info(f"Proto: Added {member2_id} as parent of {member1_id}")
+        else:
+            raise ValueError(f"Unknown relationship type: {relationship_type}")
 
     def merge_another_family_tree(
         self, new_tree: family_tree_pb2.FamilyTree, connecting_member_id=None

@@ -63,6 +63,17 @@ function attachVisNetworkListener() {
                 }
             });
             console.log("doubleClick listener attached.");
+            // Listen for contextmenu (right-click) events on the network
+            network.on("oncontext", function (params) {
+                params.event.preventDefault(); // Prevent the default browser context menu
+                var nodeId = network.getNodeAt(params.pointer.DOM);
+                if (nodeId && typeof pythonInterface !== 'undefined' && pythonInterface.handleNodeRightClick) {
+                    console.log("Right-clicked node ID:", nodeId);
+                    // Send node ID. The x, y coordinates are relative to the canvas.
+                    // The Python side will use QCursor.pos() for menu positioning.
+                    pythonInterface.handleNodeRightClick(nodeId, params.pointer.DOM.x, params.pointer.DOM.y);
+                }
+            });
         } else {
             console.warn("vis.js network object not found yet, retrying listener attachment...");
             // Retry attachment after a longer delay if needed
