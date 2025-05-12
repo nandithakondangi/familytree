@@ -159,6 +159,21 @@ class FamilyTreeHandler:
         member = self.proto_handler_instance.query_proto_member_by_id(member_id)
         return member.name if member else None
 
+    def get_all_member_names_and_ids_for_selection(
+        self, exclude_id: str = None
+    ) -> list[tuple[str, str]]:
+        """Returns a list of (display_name, id) tuples for all members, optionally excluding one."""
+        members_list = []
+        for member_id in self.get_member_ids():
+            if exclude_id and member_id == exclude_id:
+                continue
+            name = self.get_member_name_by_id(member_id)
+            if name:  # Should always have a name if ID exists
+                members_list.append(
+                    (f"{name} (ID: {member_id})", member_id)
+                )  # display_name, actual_id
+        return members_list
+
     # Pass through method
     def display_tree(self):
         self.graph_handler_instance.display_family_tree()

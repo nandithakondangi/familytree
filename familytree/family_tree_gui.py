@@ -13,6 +13,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
+    QInputDialog,  # Added QInputDialog
     QLabel,
     QMainWindow,
     QMenu,  # Added QMenu
@@ -277,6 +278,29 @@ class FamilyTreeGUI(QMainWindow):
         )
         context_menu.addAction(add_parent_action)
 
+        context_menu.addSeparator()  # Separator for "Connect to Existing"
+
+        connect_spouse_action = QAction("🔗 Connect to existing spouse", self)
+        connect_spouse_action.triggered.connect(
+            lambda: self.handle_connect_to_existing_dialog(node_id, "existing_spouse")
+        )
+        context_menu.addAction(connect_spouse_action)
+
+        connect_child_action = QAction(
+            "🔗 Make Existing person a child of this person", self
+        )
+        connect_child_action.triggered.connect(
+            lambda: self.handle_connect_to_existing_dialog(node_id, "existing_child")
+        )
+        context_menu.addAction(connect_child_action)
+
+        connect_parent_action = QAction(
+            "🔗 Make existing person a parent of this person", self
+        )
+        connect_parent_action.triggered.connect(
+            lambda: self.handle_connect_to_existing_dialog(node_id, "existing_parent")
+        )
+        context_menu.addAction(connect_parent_action)
         context_menu.addSeparator()
 
         delete_member_action = QAction("🗑️ Delete Member", self)  # Added icon
@@ -377,6 +401,105 @@ class FamilyTreeGUI(QMainWindow):
 
         else:
             logger.info("AddPersonDialog cancelled. No relationship added.")
+
+    def handle_connect_to_existing_dialog(
+        self, origin_node_id: str, connection_type: str
+    ):
+        """Handles connecting the origin_node_id to an existing member."""
+        logger.info(
+            f"Attempting to connect {origin_node_id} via '{connection_type}' to an existing member."
+        )
+
+        # Get list of other members for selection
+        member_options = (
+            self.family_tree_handler.get_all_member_names_and_ids_for_selection(
+                exclude_id=origin_node_id
+            )
+        )
+        if not member_options:
+            QMessageBox.information(
+                self,
+                "No Other Members",
+                "There are no other members in the tree to connect to.",
+            )
+            return
+
+        item_display_names = [
+            display_name for display_name, member_id in member_options
+        ]
+
+        # Prompt user to select the target member
+        target_display_name, ok = QInputDialog.getItem(
+            self,
+            f"Select Target Member for {connection_type.replace('_', ' ').title()}",
+            f"Connect '{self.family_tree_handler.get_member_name_by_id(origin_node_id)}' to:",
+            item_display_names,
+            0,  # Current index
+            False,  # Not editable
+        )
+
+        if ok and target_display_name:
+            # Find the actual member_id from the selected display_name
+            target_node_id = None
+            for display_name, member_id_val in member_options:
+                if display_name == target_display_name:
+                    target_node_id = member_id_val
+                    break
+
+            if not target_node_id:
+                logger.error(
+                    f"Could not find ID for selected display name: {target_display_name}"
+                )
+                QMessageBox.critical(
+                    self, "Error", "Could not identify the selected target member."
+                )
+                return
+
+            # Determine the relationship_type for add_relations and the order of IDs
+            rel_type_for_handler = ""
+            id1_for_handler = origin_node_id
+            id2_for_handler = target_node_id
+
+            if connection_type == "existing_spouse":
+                rel_type_for_handler = "spouse"
+            elif (
+                connection_type == "existing_child"
+            ):  # origin_node is parent, target_node is child
+                rel_type_for_handler = "child"
+            elif (
+                connection_type == "existing_parent"
+            ):  # origin_node is child, target_node is parent
+                rel_type_for_handler = "parent"
+            else:
+                logger.error(f"Unknown connection_type: {connection_type}")
+                return
+
+            logger.info(
+                f"Establishing '{rel_type_for_handler}' between {id1_for_handler} and {id2_for_handler}"
+            )
+            try:
+                success, message = self.family_tree_handler.add_relations(
+                    id1_for_handler, id2_for_handler, rel_type_for_handler
+                )
+                if success:
+                    status_msg = f"Relationship established: {message}"
+                    logger.info(status_msg)
+                    self.show_status_message(status_msg, 7000)
+                else:
+                    status_msg = f"Failed to add relationship: {message}"
+                    logger.warning(status_msg)
+                    self.show_status_message(status_msg, 7000)  # Or QMessageBox.warning
+            except Exception as e:
+                logger.exception(
+                    f"Error establishing relationship with existing member: {e}"
+                )
+                QMessageBox.critical(
+                    self, "Error", f"Failed to add relationship: {str(e)}"
+                )
+            finally:
+                self.re_render_tree()
+        else:
+            logger.info("Connection to existing member cancelled by user.")
 
     def publish_content_to_about_tab(self, about_tab):
         about_layout = QVBoxLayout(about_tab)
