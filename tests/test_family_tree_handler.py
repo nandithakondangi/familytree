@@ -138,9 +138,9 @@ def test_create_member_basic(tmp_path, caplog):
     handler = FamilyTreeHandler(temp_dir_path=str(tmp_path))
     caplog.set_level(logging.INFO)
     input_data = {"name": "Sirius Black", "gender": "MALE", "IsAlive": False}
-    success = handler.create_member(input_data)
+    new_member_id_val = handler.create_member(input_data)
 
-    assert success is True
+    assert new_member_id_val is not None
     assert len(handler.proto_handler_instance.family_tree.members) == 1
     # Get the ID of the newly created member (it's random)
     member_id = list(handler.proto_handler_instance.family_tree.members.keys())[0]
@@ -149,6 +149,7 @@ def test_create_member_basic(tmp_path, caplog):
     assert sirius.id == member_id
     assert sirius.name == "Sirius Black"
     assert sirius.gender == utils_pb2.MALE
+    assert new_member_id_val == member_id
     assert not sirius.alive
 
     assert len(handler.graph_handler_instance.nx_graph.nodes) == 1
@@ -183,9 +184,9 @@ def test_create_member_full(tmp_path):
         "dod_traditional_paksham": "KRISHNA",
         "dod_traditional_thithi": "DWITHIYAI",
     }
-    success = handler.create_member(input_data)
+    new_member_id_val = handler.create_member(input_data)
 
-    assert success is True
+    assert new_member_id_val is not None
     assert len(handler.proto_handler_instance.family_tree.members) == 1
     member_id = list(handler.proto_handler_instance.family_tree.members.keys())[0]
 
@@ -199,6 +200,7 @@ def test_create_member_full(tmp_path):
     assert not lupin.alive
     assert lupin.date_of_death.year == 1998
     assert lupin.traditional_date_of_death.paksham == utils_pb2.KRISHNA
+    assert new_member_id_val == member_id
 
     assert member_id in handler.graph_handler_instance.nx_graph.nodes
     assert (
@@ -220,10 +222,10 @@ def test_create_member_invalid_input(tmp_path, caplog):
 
     # Invalid gender (should still create but log warning and set default)
     # create_member should succeed here as ProtoHandler.create_proto_member_from_dict handles this
-    success = handler.create_member(
+    new_member_id_val = handler.create_member(
         {"name": "Nymphadora Tonks", "gender": "METAMORPHMAGUS"}
     )
-    assert success is True
+    assert new_member_id_val is not None
     assert len(handler.proto_handler_instance.family_tree.members) == 1
     member_id = list(handler.proto_handler_instance.family_tree.members.keys())[0]
     tonks = handler.proto_handler_instance.family_tree.members[member_id]
@@ -252,6 +254,13 @@ def test_create_member_invalid_input(tmp_path, caplog):
     assert "Date of Birth Error: Invalid day (31) for 'dob' month 2" in str(
         excinfo.value
     )
+    # Ensure create_member returns None on validation error from proto_handler
+    # This requires create_member to catch the exception and return None, or for the test to expect an exception.
+    # Based on current FamilyTreeHandler.create_member, it raises the exception.
+    # If it were to return None, the test would be:
+    # new_id = handler.create_member(...)
+    # assert new_id is None
+
     assert len(handler.proto_handler_instance.family_tree.members) == 1  # Still Tonks
 
 

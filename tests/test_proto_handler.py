@@ -260,3 +260,124 @@ def test_add_member_to_proto_tree(proto_handler_empty):
     handler.add_member_to_proto_tree(updated_member)
     assert len(handler.family_tree.members) == 1
     assert handler.family_tree.members["ADD1"].name == "Updated Name"
+
+
+# --- Relationship and Deletion Tests ---
+
+
+@pytest.fixture
+def proto_handler_for_relations(proto_handler_empty):
+    """ProtoHandler with a few members for relationship tests."""
+    handler = proto_handler_empty
+    handler.add_member_to_proto_tree(create_simple_member_proto("P1", "Parent One"))
+    handler.add_member_to_proto_tree(create_simple_member_proto("P2", "Parent Two"))
+    handler.add_member_to_proto_tree(create_simple_member_proto("C1", "Child One"))
+    return handler
+
+
+def test_add_relationship_spouse(proto_handler_for_relations):
+    handler = proto_handler_for_relations
+    # Mock inference to isolate direct addition
+    with patch.object(
+        handler, "_infer_relations_for_spouse", return_value=[]
+    ) as mock_infer:
+        established_rels, message = handler.add_relationship("P1", "P2", "spouse")
+
+    assert isinstance(established_rels, list)
+    assert ("spouse", "P1", "P2") in established_rels
+    assert "Relationships processed." in message  # Default success
+    mock_infer.assert_called_once_with(member1_id="P1", member2_id="P2")
+    assert "P2" in handler.family_tree.relationships["P1"].spouse_ids
+    assert "P1" in handler.family_tree.relationships["P2"].spouse_ids
+
+
+def test_add_relationship_child(proto_handler_for_relations):
+    handler = proto_handler_for_relations
+    with patch.object(
+        handler, "_infer_relations_for_child", return_value=[]
+    ) as mock_infer:
+        established_rels, message = handler.add_relationship("P1", "C1", "child")
+
+    assert ("child", "P1", "C1") in established_rels
+    mock_infer.assert_called_once_with(member1_id="P1", member2_id="C1")
+    assert "C1" in handler.family_tree.relationships["P1"].children_ids
+    assert "P1" in handler.family_tree.relationships["C1"].parent_ids
+
+
+def test_add_relationship_parent(proto_handler_for_relations):
+    handler = proto_handler_for_relations
+    with patch.object(
+        handler, "_infer_relations_for_parent", return_value=[]
+    ) as mock_infer:
+        established_rels, message = handler.add_relationship(
+            "C1", "P2", "parent"
+        )  # C1 is child, P2 is parent
+
+    assert ("child", "P2", "C1") in established_rels  # Canonical form
+    mock_infer.assert_called_once_with(member1_id="C1", member2_id="P2")
+    assert "C1" in handler.family_tree.relationships["P2"].children_ids
+    assert "P2" in handler.family_tree.relationships["C1"].parent_ids
+
+
+def test_delete_member_from_proto_tree_comprehensive(proto_handler_for_relations):
+    handler = proto_handler_for_relations
+    # Setup: P1 and P2 are spouses. P1 is parent of C1.
+    handler.family_tree.relationships["P1"].spouse_ids.append("P2")
+    handler.family_tree.relationships["P2"].spouse_ids.append("P1")
+    handler.family_tree.relationships["P1"].children_ids.append("C1")
+    handler.family_tree.relationships["C1"].parent_ids.append("P1")
+
+    member_to_delete = "P1"
+    handler.delete_member_from_proto_tree(member_to_delete)
+
+    assert member_to_delete not in handler.family_tree.members
+    assert member_to_delete not in handler.family_tree.relationships
+    assert member_to_delete not in handler.family_tree.relationships["P2"].spouse_ids
+    assert member_to_delete not in handler.family_tree.relationships["C1"].parent_ids
+
+
+def test_infer_relations_for_parent_multi_other_parents(proto_handler_empty):
+    handler = proto_handler_empty
+    # Setup: Child C1 has existing parents P1 and P2. New parent P3 is added.
+    handler.add_member_to_proto_tree(create_simple_member_proto("C1", "Child"))
+    handler.add_member_to_proto_tree(create_simple_member_proto("P1", "Parent One"))
+    handler.add_member_to_proto_tree(create_simple_member_proto("P2", "Parent Two"))
+    handler.add_member_to_proto_tree(create_simple_member_proto("P3", "New Parent"))
+
+    handler.family_tree.relationships["C1"].parent_ids.extend(["P1", "P2"])
+    handler.family_tree.relationships["P1"].children_ids.append("C1")
+    handler.family_tree.relationships["P2"].children_ids.append("C1")
+
+    # Mock _add_spouse_relation and _add_child_relation as they are called by the inference
+    with (
+        patch.object(
+            handler, "_add_spouse_relation", return_value=[]
+        ) as mock_add_spouse,
+        patch.object(handler, "_add_child_relation", return_value=[]) as mock_add_child,
+    ):
+        # Action: Add P3 as a parent to C1. This internally calls _infer_relations_for_parent.
+        # We are testing _infer_relations_for_parent's logic when called in such a scenario.
+        # The direct call to _infer_relations_for_parent is for focused testing.
+        inferred_list = handler._infer_relations_for_parent(
+            member1_id="C1", member2_id="P3"
+        )
+
+    # Assertions for multi-other-parent scenario:
+    assert "Child C1 has multiple other parents" in handler.message_to_propagate
+    assert (
+        "{'P1', 'P2'}" in handler.message_to_propagate
+        or "{'P2', 'P1'}" in handler.message_to_propagate
+    )
+    mock_add_spouse.assert_not_called()  # Spousal relationship is not automatically inferred with all other parents
+    # mock_add_child might be called if P1/P2 had other children (step-siblings for C1 via P3)
+    # For this specific test setup, P1/P2 have no other children, so mock_add_child shouldn't be called for that reason.
+    # If the logic was to make P3 parent of C1's siblings through P1/P2, then it would be called.
+    # The current _infer_relations_for_parent focuses on spousal for new parent, and step-parenting to new parent's other children.
+    # Let's assume for now no other children of P1/P2 to simplify.
+    # If P1/P2 had other children, mock_add_child would be called to make P3 their step-parent.
+
+    # Test updating existing member
+    updated_member = create_simple_member_proto("ADD1", "Updated Name")
+    handler.add_member_to_proto_tree(updated_member)
+    assert len(handler.family_tree.members) == 1
+    assert handler.family_tree.members["ADD1"].name == "Updated Name"
