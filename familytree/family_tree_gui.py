@@ -226,11 +226,11 @@ class FamilyTreeGUI(QMainWindow):
         # exec() is blocking, use open() for non-blocking if needed later
         result = dialog.exec()
 
-        if result == QDialog.DialogCode.Accepted:
-            logger.debug("Add/Edit Person dialog accepted.")
-            # Re-rendering is handled within the dialog's save method
+        if result == QDialog.DialogCode.Accepted:  # Check if dialog was accepted
+            logger.info("Add Person dialog accepted. Re-rendering tree.")
+            self.re_render_tree()  # Re-render to show the new person
         else:
-            logger.debug("Add/Edit Person dialog cancelled.")
+            logger.info("Add Person dialog cancelled.")
 
     def open_edit_person_dialog(self, member_id):
         """Opens the dialog in edit mode for the given member ID."""
@@ -245,10 +245,12 @@ class FamilyTreeGUI(QMainWindow):
         )
         result = dialog.exec()
         if result == QDialog.DialogCode.Accepted:
-            logger.debug(f"Edit Person dialog accepted for {member_id}.")
-            # Re-rendering is handled within the dialog's save method
+            logger.info(
+                f"Edit Person dialog accepted for {member_id}. Re-rendering tree."
+            )
+            self.re_render_tree()  # Re-render to show updated details
         else:
-            logger.debug(f"Edit Person dialog cancelled for {member_id}.")
+            logger.info(f"Edit Person dialog cancelled for {member_id}.")
 
     @Slot(str, int, int)
     def show_node_context_menu(self, node_id: str, x: int, y: int):
@@ -275,8 +277,54 @@ class FamilyTreeGUI(QMainWindow):
         )
         context_menu.addAction(add_parent_action)
 
+        context_menu.addSeparator()
+
+        delete_member_action = QAction("🗑️ Delete Member", self)  # Added icon
+        delete_member_action.triggered.connect(
+            lambda: self.handle_delete_member(node_id)
+        )
+        context_menu.addAction(delete_member_action)
+
         # Show the menu at the current global cursor position
         context_menu.popup(QCursor.pos())
+
+    def handle_delete_member(self, member_id_to_delete: str):
+        """Handles the deletion of a member after confirmation."""
+        member_name = self.family_tree_handler.get_member_name_by_id(
+            member_id_to_delete
+        )
+        if not member_name:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Could not find member with ID: {member_id_to_delete} to delete.",
+            )
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            f"Are you sure you want to delete '{member_name}' (ID: {member_id_to_delete}) and all their relationships?\nThis action cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            logger.info(
+                f"Attempting to delete member: {member_name} ({member_id_to_delete})"
+            )
+            success, message = self.family_tree_handler.delete_member(
+                member_id_to_delete
+            )
+            self.show_status_message(message, 7000)
+            if success:
+                logger.info(message)
+                self.re_render_tree()  # Re-render the graph to reflect the deletion
+            else:
+                logger.error(message)
+                QMessageBox.warning(
+                    self, "Deletion Failed", message
+                )  # Show a more prominent warning for deletion failure
 
     def handle_add_relationship_via_dialog(
         self, origin_node_id: str, relationship_type: str

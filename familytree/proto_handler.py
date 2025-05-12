@@ -158,8 +158,35 @@ class ProtoHandler:
         member2_name = self.family_tree.members[member2_id].name
         return member1_name, member2_name
 
-    def delete_member(self, member_id: str):
-        member = self.family_tree.members.get(member_id)
+    def delete_member_from_proto_tree(self, member_id: str):
+        """Deletes a member from the family tree."""
+        member_id = str(member_id)
+        if member_id in self.family_tree.members:
+            # 1. Delete the member from the members map
+            del self.family_tree.members[member_id]
+            # Remove references to this member in relationship of others
+            logger.debug(f"Deleted member {member_id} from members map.")
+
+            # 2. Remove the relationship entry keyed by the deleted member_id, if it exists
+            if member_id in self.family_tree.relationships:
+                del self.family_tree.relationships[member_id]
+                logger.debug(f"Deleted relationship entry for {member_id}.")
+
+            # 3. Remove references to this member_id in relationship lists of *other* members
+            # Use list() for safe iteration while modifying
+            for rel_id, relationships in list(self.family_tree.relationships.items()):
+                if member_id in relationships.spouse_ids:
+                    # These should be mutable changes
+                    relationships.spouse_ids.remove(member_id)
+                    logger.debug(f"Removed {member_id} from spouse_ids of {rel_id}")
+                if member_id in relationships.children_ids:
+                    relationships.children_ids.remove(member_id)
+                    logger.debug(f"Removed {member_id} from children_ids of {rel_id}")
+                if member_id in relationships.parent_ids:  # Address the FIXME
+                    relationships.parent_ids.remove(member_id)
+                    logger.debug(f"Removed {member_id} from parent_ids of {rel_id}")
+        else:
+            logger.warning(f"Attempted to delete non-existent member: {member_id}")
 
     def _add_spouse_relation(
         self, spouse1_id: str, spouse2_id: str, infer_relations: bool = True

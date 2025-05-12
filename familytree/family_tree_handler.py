@@ -94,8 +94,16 @@ class FamilyTreeHandler:
 
     # FIXME: we are not adding relations yet
 
-    def delete_member(self):
-        pass
+    def delete_member(self, member_id: str) -> tuple[bool]:
+        logger.info(f"Attempting to delete member {member_id}.")
+        try:
+            self.proto_handler_instance.delete_member_from_proto_tree(member_id)
+            self.graph_handler_instance.delete_node_from_graph(member_id)
+            message = f"Successfully deleted member {member_id}"
+        except Exception as e:
+            message = f"Failed to delete member {member_id}: {e}"
+            logger.exception(message)
+        return True, message
 
     def clear(self):
         logger.info("Clearing any old data before loading new data.")

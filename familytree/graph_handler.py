@@ -66,6 +66,9 @@ class GraphHandler:
             self.nx_graph.nodes[member_id].update(node_options)
             logger.info(f"Updated node data for existing node: {member_id}")
 
+    def delete_node_from_graph(self, member_id):
+        self.nx_graph.remove_node(member_id)
+
     def add_spouse_edges(self, member_id, spouse_id):
         self.nx_graph.add_edge(
             member_id, spouse_id, color=COLOR_PALETTLE["pink"], weight=0
