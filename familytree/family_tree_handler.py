@@ -343,7 +343,11 @@ class FamilyTreeHandler:
             return False
 
     def add_relations(
-        self, member1_id: str, member2_id: str, relationship_type: str
+        self,
+        member1_id: str,
+        member2_id: str,
+        relationship_type: str,
+        infer_relations: bool = True,
     ) -> tuple[bool, str]:
         """
         Adds a relationship between two members.
@@ -351,7 +355,7 @@ class FamilyTreeHandler:
         """
         message = ""
         logger.info(
-            f"Attempting to add relationship: {member1_id} --({relationship_type})--> {member2_id}"
+            f"Attempting to add relationship: {member1_id} --({relationship_type})--> {member2_id} (Infer: {infer_relations})"
         )
         if not member1_id or not member2_id:
             message = "Cannot add relationship: One or both member IDs are missing."
@@ -375,7 +379,10 @@ class FamilyTreeHandler:
             # and a message.
             established_relations, proto_message = (
                 self.proto_handler_instance.add_relationship(
-                    member1_id, member2_id, relationship_type
+                    member1_id,
+                    member2_id,
+                    relationship_type,
+                    infer_relations=infer_relations,
                 )
             )
 

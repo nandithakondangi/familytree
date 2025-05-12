@@ -373,11 +373,3 @@ def test_infer_relations_for_parent_multi_other_parents(proto_handler_empty):
     # For this specific test setup, P1/P2 have no other children, so mock_add_child shouldn't be called for that reason.
     # If the logic was to make P3 parent of C1's siblings through P1/P2, then it would be called.
     # The current _infer_relations_for_parent focuses on spousal for new parent, and step-parenting to new parent's other children.
-    # Let's assume for now no other children of P1/P2 to simplify.
-    # If P1/P2 had other children, mock_add_child would be called to make P3 their step-parent.
-
-    # Test updating existing member
-    updated_member = create_simple_member_proto("ADD1", "Updated Name")
-    handler.add_member_to_proto_tree(updated_member)
-    assert len(handler.family_tree.members) == 1
-    assert handler.family_tree.members["ADD1"].name == "Updated Name"

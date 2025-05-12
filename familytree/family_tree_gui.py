@@ -78,6 +78,7 @@ class FamilyTreeGUI(QMainWindow):
 
         self.family_tree_handler = FamilyTreeHandler(temp_dir_path=self.temp_dir_path)
         self.is_indian_culture = True  # Default to Indian culture enabled
+        self.infer_relationships_enabled = True  # Default to inference enabled
 
         # --- WebChannel Setup ---
         self.js_interface = JavaScriptInterface(self)  # Create the interface object
@@ -95,6 +96,7 @@ class FamilyTreeGUI(QMainWindow):
         self.pyvis_view = None
         self.chatbot_box = None
         self.culture_checkbox = None
+        self.infer_relationships_checkbox = None
         self.import_from_file_form = None
         self.add_person_button = None
         self.export_widget = None
@@ -165,6 +167,19 @@ class FamilyTreeGUI(QMainWindow):
         manage_tree_layout.addWidget(self.culture_checkbox)
         # --- End Culture Checkbox ---
 
+        # --- Infer Relationships Checkbox ---
+        self.infer_relationships_checkbox = QCheckBox("🔗 Infer Relationships")
+        self.infer_relationships_checkbox.setChecked(self.infer_relationships_enabled)
+        self.infer_relationships_checkbox.setToolTip(
+            "If checked, the system will try to automatically infer related spouses, parents, or children.\n"
+            "Uncheck for manual control, especially in non-monogamous or complex family structures."
+        )
+        self.infer_relationships_checkbox.stateChanged.connect(
+            self.update_infer_relationships_setting
+        )
+        manage_tree_layout.addWidget(self.infer_relationships_checkbox)
+        # --- End Culture Checkbox ---
+
         # Import from file Form
         self.import_from_file_form = ImportFromFileForm(self.family_tree_handler, self)
         manage_tree_layout.addWidget(self.import_from_file_form)
@@ -214,6 +229,13 @@ class FamilyTreeGUI(QMainWindow):
         self.is_indian_culture = state == Qt.CheckState.Checked.value
         logger.info(f"Indian culture setting updated: {self.is_indian_culture}")
         # Future: Could potentially trigger updates elsewhere if needed
+
+    def update_infer_relationships_setting(self, state):
+        """Updates the relationship inference flag based on the checkbox state."""
+        self.infer_relationships_enabled = state == Qt.CheckState.Checked.value
+        logger.info(
+            f"Relationship inference setting updated: {self.infer_relationships_enabled}"
+        )
 
     def open_add_person_dialog(self):
         # Pass the handler, self (GUI), and the current culture setting to the dialog, and indicate it's for ADDING (member_id=None)
@@ -371,11 +393,14 @@ class FamilyTreeGUI(QMainWindow):
                     f"New person created (ID: {new_member_id}). Establishing {relationship_type} with {origin_node_id}."
                 )
                 try:
-                    print(f"origin_node_id: {origin_node_id}")
-                    print(f"new_member_id: {new_member_id}")
-                    print(f"relationship_type: {relationship_type}")
+                    logger.debug(f"origin_node_id: {origin_node_id}")
+                    logger.debug(f"new_member_id: {new_member_id}")
+                    logger.debug(f"relationship_type: {relationship_type}")
                     success, message = self.family_tree_handler.add_relations(
-                        origin_node_id, new_member_id, relationship_type
+                        origin_node_id,
+                        new_member_id,
+                        relationship_type,
+                        infer_relations=self.infer_relationships_enabled,
                     )
                     if success:
                         status_msg = f"Relationship established: {message}"
@@ -479,7 +504,10 @@ class FamilyTreeGUI(QMainWindow):
             )
             try:
                 success, message = self.family_tree_handler.add_relations(
-                    id1_for_handler, id2_for_handler, rel_type_for_handler
+                    id1_for_handler,
+                    id2_for_handler,
+                    rel_type_for_handler,
+                    infer_relations=self.infer_relationships_enabled,
                 )
                 if success:
                     status_msg = f"Relationship established: {message}"
