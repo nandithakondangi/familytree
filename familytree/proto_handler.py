@@ -24,6 +24,7 @@ class ProtoHandler:
         self.family_tree = family_tree_pb2.FamilyTree()
         self.input_text_file = input_text_file
         self.output_proto_data_file = output_data_file
+        self.message_to_propagate = ""
 
     def update_data_source(self, input_text_file):
         self.input_text_file = input_text_file
@@ -33,7 +34,7 @@ class ProtoHandler:
 
     def load_from_protobuf(self):
         # logger is now defined at module level
-        logger.info(f"Loading data from: {self.input_text_file}")
+        logger.debug(f"Loading data from: {self.input_text_file}")
         try:
             # Ensure file exists before opening
             if not self.input_text_file or not os.path.exists(self.input_text_file):
@@ -41,13 +42,9 @@ class ProtoHandler:
                     f"Input file not specified or not found: {self.input_text_file}"
                 )
 
-            with open(
-                self.input_text_file, "r", encoding="utf-8"
-            ) as f:  # Specify encoding
+            with open(self.input_text_file, "r", encoding="utf-8") as f:
                 text_format.Merge(f.read(), self.family_tree)
-                logger.info(
-                    f"Successfully loaded {self.input_text_file}"
-                )  # Kept as logger.info
+                logger.info(f"Successfully loaded {self.input_text_file}")
         except FileNotFoundError as e:
             logger.error(f"File not found: {e}")
             raise  # Re-raise for GUI to handle
@@ -86,84 +83,339 @@ class ProtoHandler:
         except Exception as e:
             # Log the original exception details
             log_message = f"An unexpected error occurred during saving: {e}"
-            logger.exception(log_message)  # logger.exception includes traceback
+            logger.exception(log_message)
 
             # Raise a NEW, more informative exception, linking the original 'e' as the cause
             raise Exception(log_message) from e  # <--- MODIFIED LINE
 
-    def query_proto_member_by_id(self, member_id):
-        return self.family_tree.members.get(member_id, None)
+    def query_proto_member_by_id(self, member_id: str):
+        return self.family_tree.members.get(str(member_id), None)
 
-    def get_family_members(self):
+    def get_family_members(self) -> family_tree_pb2.FamilyMember:
         return self.family_tree.members.values()
 
-    def get_family_member_ids(self):
-        return self.family_tree.members.keys()
+    def get_family_member_ids(self) -> list:
+        return [str(key) for key in self.family_tree.members.keys()]
 
     def get_member_identifiers(self, member_proto: family_tree_pb2.FamilyMember):
         """Returns the main identifiers like ID and name"""
-        return member_proto.id, member_proto.name
+        return str(member_proto.id), member_proto.name
 
     def get_children_ids_of_member(self, member_id: str) -> list[str]:
         """Returns a list of children IDs for a given member."""
+        children_ids_list = []
         if member_id in self.family_tree.relationships:
-            return list(self.family_tree.relationships[member_id].children_ids)
-        return []
+            # self.family_tree.relationships[member_id].children_ids is a RepeatedScalarContainer
+            for child_id_proto in self.family_tree.relationships[
+                member_id
+            ].children_ids:
+                children_ids_list.append(str(child_id_proto))
+        return children_ids_list
 
     def get_spouse_ids_of_member(self, member_id: str) -> list[str]:
         """Returns a list of spouse IDs for a given member."""
+        spouse_ids_list = []
         if member_id in self.family_tree.relationships:
-            return list(self.family_tree.relationships[member_id].spouse_ids)
-        return []
+            # self.family_tree.relationships[member_id].spouse_ids is a RepeatedScalarContainer
+            for spouse_id_proto in self.family_tree.relationships[member_id].spouse_ids:
+                spouse_ids_list.append(str(spouse_id_proto))
+        return spouse_ids_list
 
-    def get_parent_ids_of_member(self, child_id: str) -> list[str]:
+    def get_parent_ids_of_member(self, member_id: str) -> list[str]:
         """Returns a list of parent IDs for a given child by checking all relationships."""
-        parent_ids = []
-        for member_id, rels in self.family_tree.relationships.items():
-            if child_id in rels.children_ids:
-                parent_ids.append(member_id)
-        return parent_ids
+        parent_ids_list = []
+        if member_id in self.family_tree.relationships:
+            # self.family_tree.relationships[member_id].parent_ids is a RepeatedScalarContainer
+            for parent_id_proto in self.family_tree.relationships[member_id].parent_ids:
+                parent_ids_list.append(str(parent_id_proto))
+        return parent_ids_list
 
     def add_member_to_proto_tree(self, member_proto: family_tree_pb2.FamilyMember):
         self.family_tree.members[member_proto.id].CopyFrom(member_proto)
 
+    def _sanity_check_and_get_member_names(
+        self, member1_id: str, member2_id: str
+    ) -> tuple[str, str]:
+        member1_id = str(member1_id)
+        member2_id = str(member2_id)
+        logger.debug(f"Sanity check for member IDs: {member1_id}, {member2_id}")
+
+        all_family_member_ids = self.get_family_member_ids()
+        if (
+            member1_id not in all_family_member_ids
+            or member2_id not in all_family_member_ids
+        ):
+            logger.error(
+                f"Invalid member IDs during sanity check: {member1_id} or {member2_id} not in {all_family_member_ids}"
+            )
+            raise ValueError(
+                f"Invalid member IDs: {member1_id} or {member2_id} not found."
+            )
+        if member1_id == member2_id:
+            logger.error(f"Member IDs cannot be the same in sanity check: {member1_id}")
+            raise ValueError("Member IDs cannot be the same.")
+        member1_name = self.family_tree.members[member1_id].name
+        member2_name = self.family_tree.members[member2_id].name
+        return member1_name, member2_name
+
+    def delete_member(self, member_id: str):
+        member = self.family_tree.members.get(member_id)
+
+    def _add_spouse_relation(
+        self, spouse1_id: str, spouse2_id: str, infer_relations: bool = True
+    ) -> list:
+        established_relations_list = []
+        spouse1_id = str(spouse1_id)
+        spouse2_id = str(spouse2_id)
+        spouse1_name, spouse2_name = self._sanity_check_and_get_member_names(
+            spouse1_id, spouse2_id
+        )
+        relation_entry_for_member1 = self.family_tree.relationships[spouse1_id]
+        relation_entry_for_member2 = self.family_tree.relationships[spouse2_id]
+
+        newly_added = False
+        if spouse2_id not in relation_entry_for_member1.spouse_ids:
+            relation_entry_for_member1.spouse_ids.append(spouse2_id)
+            newly_added = True
+        if spouse1_id not in relation_entry_for_member2.spouse_ids:
+            relation_entry_for_member2.spouse_ids.append(spouse1_id)
+            newly_added = True  # Even if one side was new, consider it added for graph
+
+        if newly_added:
+            established_relations_list.append(("spouse", spouse1_id, spouse2_id))
+            logger.info(
+                f"Added spouse relationship between {spouse1_name} ({spouse1_id}) and {spouse2_name} ({spouse2_id})"
+            )
+
+        if infer_relations:  # Inference can happen even if direct relation existed, to catch other implications
+            inferred_list = self._infer_relations_for_spouse(
+                member1_id=spouse1_id, member2_id=spouse2_id
+            )
+            established_relations_list.extend(inferred_list)
+        return established_relations_list
+
+    def _add_child_relation(
+        self, parent_id: str, child_id: str, infer_relations: bool = True
+    ) -> list:
+        # parent_id is parent, child_id is child
+        established_relations_list = []
+        parent_name, child_name = self._sanity_check_and_get_member_names(
+            parent_id, child_id
+        )
+        relation_entry_for_parent = self.family_tree.relationships[parent_id]
+        relation_entry_for_child = self.family_tree.relationships[child_id]
+        if child_id not in relation_entry_for_parent.children_ids:
+            relation_entry_for_parent.children_ids.append(child_id)
+            established_relations_list.append(("child", parent_id, child_id))
+            logger.info(
+                f"Added {parent_name} as parent of {child_name} (child {child_id} to parent {parent_id})"
+            )
+
+        if parent_id not in relation_entry_for_child.parent_ids:
+            relation_entry_for_child.parent_ids.append(parent_id)
+            # Avoid double-adding to list if already added above, but ensure logging if this path adds it
+            if ("child", parent_id, child_id) not in established_relations_list:
+                established_relations_list.append(("child", parent_id, child_id))
+                logger.info(
+                    f"Added {parent_name} as parent of {child_name} (parent {parent_id} to child {child_id})"
+                )
+
+        if infer_relations:
+            inferred_list = self._infer_relations_for_child(
+                member1_id=parent_id, member2_id=child_id
+            )
+            established_relations_list.extend(inferred_list)
+        return established_relations_list
+
+    def _add_parent_relation(
+        self, child_id: str, parent_id: str, infer_relations: bool = True
+    ) -> list:
+        # child_id is child, parent_id is parent
+        established_relations_list = []
+        # child_id is the ID of the child, parent_id is the ID of the parent.
+        parent_name, child_name = self._sanity_check_and_get_member_names(
+            parent_id,
+            child_id,  # Order for name fetching doesn't strictly matter here
+        )
+
+        relation_entry_for_child = self.family_tree.relationships[child_id]
+        relation_entry_for_parent = self.family_tree.relationships[parent_id]
+
+        # Add parent_id to the child's list of parents
+        if parent_id not in relation_entry_for_child.parent_ids:
+            relation_entry_for_child.parent_ids.append(parent_id)
+            # Canonical form is ("child", parent_id, child_id)
+            established_relations_list.append(("child", parent_id, child_id))
+            logger.info(
+                f"Added {child_name} ({child_id}) as child of {parent_name} ({parent_id}) (parent {parent_id} to child {child_id}'s list)"
+            )
+
+        # Add child_id to the parent's list of children
+        if child_id not in relation_entry_for_parent.children_ids:
+            relation_entry_for_parent.children_ids.append(child_id)
+            if (
+                "child",
+                parent_id,
+                child_id,
+            ) not in established_relations_list:  # Avoid double add
+                established_relations_list.append(("child", parent_id, child_id))
+                logger.info(
+                    f"Added {child_name} ({child_id}) as child of {parent_name} ({parent_id}) (child {child_id} to parent {parent_id}'s list)"
+                )
+
+        if infer_relations:
+            # member1_id is child, member2_id is parent for _infer_relations_for_parent
+            inferred_list = self._infer_relations_for_parent(
+                member1_id=child_id,
+                member2_id=parent_id,
+            )
+            established_relations_list.extend(inferred_list)
+        return established_relations_list
+
+    def _infer_relations_for_spouse(self, member1_id: str, member2_id: str) -> list:
+        """M1 and M2 are spouses. Infer children relationships."""
+        inferred_relations_list = []
+        logger.debug(f"Inferring relations for spouses: {member1_id} and {member2_id}")
+        children_of_M1 = self.get_children_ids_of_member(member1_id)
+        children_of_M2 = self.get_children_ids_of_member(member2_id)
+
+        # Add other existing children of M2 as children of M1
+        other_children_of_M2 = set(children_of_M2) - set(children_of_M1)
+        for child_id in other_children_of_M2:
+            # logger.debug(
+            #     f"Making {member1_id} a parent of {child_id} (child of {member2_id}) due to spousal inference"
+            # )
+            newly_established = self._add_child_relation(
+                parent_id=member1_id, child_id=child_id, infer_relations=False
+            )
+            inferred_relations_list.extend(newly_established)
+
+        # Add other existing children of M1 as children of M2
+        other_children_of_M1 = set(children_of_M1) - set(children_of_M2)
+        for child_id in other_children_of_M1:
+            # logger.debug(
+            #     f"Making {member2_id} a parent of {child_id} (child of {member1_id}) due to spousal inference"
+            # )
+            newly_established = self._add_child_relation(
+                parent_id=member2_id, child_id=child_id, infer_relations=False
+            )
+            inferred_relations_list.extend(newly_established)
+        return inferred_relations_list
+
+    def _infer_relations_for_child(self, member1_id: str, member2_id: str) -> list:
+        """M1 is parent of M2 (child). Infer other parent for M2."""
+        inferred_relations_list = []
+        logger.debug(
+            f"Inferring relations for child: parent={member1_id}, child={member2_id}"
+        )
+        spouse_of_M1 = self.get_spouse_ids_of_member(member1_id)
+        # Add the spouse of parent (M1) as the other parent to child M2
+        for spouse_id in spouse_of_M1:
+            # logger.debug(
+            #     f"Making {spouse_id} (spouse of {member1_id}) a parent of child {member2_id} due to child inference"
+            # )
+            newly_established = self._add_parent_relation(
+                child_id=member2_id, parent_id=spouse_id, infer_relations=False
+            )
+            inferred_relations_list.extend(newly_established)
+        return inferred_relations_list
+
+    def _infer_relations_for_parent(self, member1_id: str, member2_id: str) -> list:
+        """M1 (member1_id) is child of M2 (member2_id, the new parent). Infer spousal and step-sibling relations for M2."""
+        inferred_relations_list = []
+        logger.debug(
+            f"Inferring relations for new parent: child_id={member1_id}, new_parent_id={member2_id}"
+        )
+
+        parents_of_M1 = self.get_parent_ids_of_member(member1_id)
+        logger.debug(f"Existing parents of child {member1_id}: {parents_of_M1}")
+
+        # Find other parents of M1, excluding the new parent M2.
+        other_parents_of_M1_set = set(parents_of_M1) - {
+            member2_id
+        }  # Corrected set difference
+        logger.debug(
+            f"Other parents of child {member1_id} (excluding new parent {member2_id}): {other_parents_of_M1_set}"
+        )
+
+        if len(other_parents_of_M1_set) == 1:
+            the_single_other_parent_id = list(other_parents_of_M1_set)[0]
+            # logger.debug(
+            #     f"Child {member1_id} has one other parent: {the_single_other_parent_id}. Adding new parent {member2_id} and {the_single_other_parent_id} as spouses due to parent inference."
+            # )
+            newly_established = self._add_spouse_relation(
+                spouse1_id=member2_id,
+                spouse2_id=the_single_other_parent_id,
+                infer_relations=True,
+            )
+            inferred_relations_list.extend(newly_established)
+        elif len(other_parents_of_M1_set) > 1:
+            self.message_to_propagate += (
+                f"Child {member1_id} has multiple other parents ({other_parents_of_M1_set}). "
+                f"Cannot automatically infer spousal relationship for new parent {member2_id} with all of them. "
+                "Spousal relationships may need to be added manually if appropriate. "
+            )
+            logger.warning(self.message_to_propagate)
+            # M2 (new parent) becomes step-parent to M1's half-siblings through each other parent.
+            for other_parent_id_element in other_parents_of_M1_set:
+                if other_parent_id_element:  # Ensure not empty string
+                    siblings_via_other_parent = self.get_children_ids_of_member(
+                        other_parent_id_element
+                    )
+                    # logger.debug(
+                    #     f"Considering siblings of {member1_id} via other parent {other_parent_id_element}: {siblings_via_other_parent} for parent inference"
+                    # )
+                    for sibling_id in siblings_via_other_parent:
+                        if sibling_id != member1_id:  # M1 is already child of M2
+                            # logger.debug(
+                            #     f"Adding new parent {member2_id} as (step-)parent to sibling {sibling_id} due to parent inference"
+                            # )
+                            newly_established = self._add_child_relation(
+                                parent_id=member2_id,
+                                child_id=sibling_id,
+                                infer_relations=False,
+                            )
+                            inferred_relations_list.extend(newly_established)
+        return inferred_relations_list
+
     def add_relationship(
-        self, member1_id: str, member2_id: str, relationship_type: str
-    ):
+        self,
+        member1_id: str,
+        member2_id: str,
+        relationship_type: str,
+        infer_relations: bool = True,
+    ) -> tuple[list, str]:
         """Updates the Relationships message in the family_tree protobuf."""
-
-        # FIXME: We dont have member ID in relationships. Do we need?
-        """
-        # Ensure relationship entries exist for both members by accessing them.
-        # If a key doesn't exist, accessing it with [] creates a new default Relationship message.
-        # Then set the id field for these newly created (or existing) Relationship messages.
-        if member1_id not in self.family_tree.relationships:
-            self.family_tree.relationships[member1_id].id = member1_id
-        if member2_id not in self.family_tree.relationships:
-            self.family_tree.relationships[member2_id].id = member2_id
-        """
-
-        rel1 = self.family_tree.relationships[member1_id]
-        rel2 = self.family_tree.relationships[member2_id]
+        self.message_to_propagate = ""
+        member1_id = str(member1_id)
+        member2_id = str(member2_id)
 
         if relationship_type == "spouse":
-            if member2_id not in rel1.spouse_ids:
-                rel1.spouse_ids.append(member2_id)
-            if member1_id not in rel2.spouse_ids:
-                rel2.spouse_ids.append(member1_id)
-            logger.info(
-                f"Proto: Added spouse relationship between {member1_id} and {member2_id}"
+            all_established_relations = self._add_spouse_relation(
+                member1_id, member2_id, infer_relations
             )
-        elif relationship_type == "child":  # member1 is parent, member2 is child
-            if member2_id not in rel1.children_ids:
-                rel1.children_ids.append(member2_id)
-            logger.info(f"Proto: Added {member1_id} as parent of {member2_id}")
-        elif relationship_type == "parent":  # member1 is child, member2 is parent
-            if member1_id not in rel2.children_ids:  # member2 is the parent
-                rel2.children_ids.append(member1_id)
-            logger.info(f"Proto: Added {member2_id} as parent of {member1_id}")
+        elif relationship_type == "child":
+            # member1 is parent, member2 is child
+            all_established_relations = self._add_child_relation(
+                parent_id=member1_id,
+                child_id=member2_id,
+                infer_relations=infer_relations,
+            )
+        elif relationship_type == "parent":
+            # member1 is child, member2 is parent
+            all_established_relations = self._add_parent_relation(
+                child_id=member1_id,
+                parent_id=member2_id,
+                infer_relations=infer_relations,
+            )
         else:
             raise ValueError(f"Unknown relationship type: {relationship_type}")
+
+        # self.message_to_propagate can be appended to by inference methods.
+        return (
+            all_established_relations,
+            self.message_to_propagate or "Relationships processed.",
+        )
 
     def merge_another_family_tree(
         self, new_tree: family_tree_pb2.FamilyTree, connecting_member_id=None

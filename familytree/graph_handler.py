@@ -162,7 +162,7 @@ class GraphHandler:
                 qwebchannel_js_uri = (
                     pathlib.Path(qwebchannel_js_path).resolve().as_uri()
                 )
-                logger.info(f"Using qwebchannel.js from: {qwebchannel_js_uri}")
+                logger.debug(f"Using qwebchannel.js from: {qwebchannel_js_uri}")
                 # --- Jinja Setup ---
                 # Set up the environment to load templates from the 'resources/' directory
                 template_loader = FileSystemLoader(
@@ -209,7 +209,7 @@ class GraphHandler:
         # --- Filter the graph before passing to pyvis ---
         # Define the weight used for hidden parent edges
         hidden_edge_weight = -1
-        logger.info(
+        logger.debug(
             f"Filtering out edges with weight {hidden_edge_weight} for display."
         )
         # Get the filtered graph (which is a new nx.Graph instance)
@@ -228,11 +228,11 @@ class GraphHandler:
     def _generate_html_from_pyvis_graph(self, pyvis_graph):
         # --- Generate HTML and Inject JS ---
         try:
-            logger.info("Generating family tree HTML content...")
+            logger.debug("Generating family tree HTML content...")
             # 1. Get the HTML content from pyvis first
             # Use generate_html() which returns the string
             html_content = pyvis_graph.generate_html(notebook=False)
-            logger.info("HTML content generated.")
+            logger.debug("HTML content generated.")
 
             # 2. Inject the JavaScript code before the closing </body> tag
             # A simple string replacement is usually sufficient
@@ -241,7 +241,7 @@ class GraphHandler:
                 html_content = html_content.replace(
                     "</body>", js_injection_code + "\n</body>", 1
                 )
-                logger.info("JavaScript injection code inserted before </body>.")
+                logger.debug("JavaScript injection code inserted before </body>.")
             else:
                 # Fallback if </body> tag isn't found (less likely for full HTML)
                 html_content += js_injection_code
@@ -250,7 +250,9 @@ class GraphHandler:
                 )
 
             # 3. Write the modified HTML content to the file
-            logger.info(f"Saving modified family tree HTML to: {self.output_html_file}")
+            logger.debug(
+                f"Saving modified family tree HTML to: {self.output_html_file}"
+            )
             with open(self.output_html_file, "w", encoding="utf-8") as f:
                 f.write(html_content)
 
@@ -303,7 +305,7 @@ class GraphHandler:
             # you might need: filtered_graph = nx.DiGraph(filtered_view)
             # However, let's stick to the original code's use of nx.Graph for now.
             filtered_graph = nx.DiGraph(filtered_view)
-            logger.info(
+            logger.debug(
                 f"Created filtered graph with {filtered_graph.number_of_nodes()} nodes and {filtered_graph.number_of_edges()} edges."
             )
 
@@ -410,10 +412,10 @@ class GraphHandler:
                 for p in successors
                 if self.nx_graph.edges[node_id, p].get("weight") == -1
             ]
-            logger.info(line)
-            logger.info(f"spouses: {spouses}")
-            logger.info(f"children: {children}")
-            logger.info(f"parents: {parents}")
+            logger.debug(line)
+            logger.debug(f"spouses: {spouses}")
+            logger.debug(f"children: {children}")
+            logger.debug(f"parents: {parents}")
 
             relation_info = []
 

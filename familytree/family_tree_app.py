@@ -1,4 +1,5 @@
 import atexit
+import logging
 import os
 import shutil
 import sys
@@ -51,6 +52,10 @@ def main():
         sys.exit(f"Fatal Error: Could not create temporary directory. {e}")
     # --- End Temporary Directory Setup ---
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
     app = QApplication(sys.argv)
     print(f"QApplication created in {time.time() - orig_time:.4f} seconds")
 

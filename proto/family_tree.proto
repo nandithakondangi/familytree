@@ -21,6 +21,7 @@ message FamilyMember {
 message Relationships {
   repeated string children_ids = 1;
   repeated string spouse_ids = 2;
+  repeated string parent_ids = 3;
 }
 
 message FamilyUnit {

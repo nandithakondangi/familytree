@@ -582,11 +582,7 @@ class AddPersonDialog(QDialog):
                     success = False
 
             if success:
-                QMessageBox.information(
-                    self,
-                    "Success",
-                    f"Member {action_verb} for {member_name} successful!",
-                )
+                # Success message is now handled by the main GUI's status bar after dialog closes.
                 self.accept()  # Close the dialog successfully
 
             # If not success, an exception might have been raised by the handler, or create_member returned None

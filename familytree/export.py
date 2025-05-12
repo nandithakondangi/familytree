@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtWidgets import (
     QFileDialog,
     QMessageBox,
@@ -5,6 +7,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from utils import ResourceUtility
 
 
 # --- ExportWidget ---
@@ -37,7 +40,13 @@ class ExportWidget(QWidget):
         # Suggest a filename based on input or default
         suggested_name = "family_tree_export.txtpb"
         # Use handler's default data file path's directory as starting point if possible
-        default_dir = os.path.dirname(self.family_tree_handler.output_proto_data_file)
+        output_file = self.family_tree_handler.get_output_data_file
+        if output_file:
+            output_dir = os.path.dirname(output_file)
+        else:
+            output_dir = os.path.dirname(ResourceUtility.get_resource())
+
+        default_dir = os.path.dirname(output_dir)
 
         file_name, _ = QFileDialog.getSaveFileName(
             self,
@@ -47,14 +56,10 @@ class ExportWidget(QWidget):
         )
         if file_name:
             try:
-                self.family_tree_handler.update_output_data_file(
-                    file_name
-                )  # Update handler's target
-                self.family_tree_handler.save_to_protobuf()  # Call save method
-                QMessageBox.information(
-                    self,
-                    "Export Successful",
-                    f"Data exported successfully to:\n{file_name}",
+                self.family_tree_handler.update_output_data_file(file_name)
+                self.family_tree_handler.save_data_to_file()
+                self.family_tree_gui.show_status_message(
+                    f"Data exported to: {file_name}", 7000
                 )
             except Exception as e:
                 print(f"Error exporting data: {e}")
@@ -65,8 +70,8 @@ class ExportWidget(QWidget):
     def export_graph_to_file(self):
         # Suggest a filename based on input or default
         suggested_name = "family_tree_graph.html"
-        # Use handler's default html file path's directory as starting point
-        default_dir = os.path.dirname(self.family_tree_handler.output_file)
+        # Use handler's default html file path's directory as starting point. Corrected property access.
+        default_dir = os.path.dirname(self.family_tree_handler.get_output_html_file)
 
         file_name, _ = QFileDialog.getSaveFileName(
             self,
@@ -82,17 +87,13 @@ class ExportWidget(QWidget):
                 self.family_tree_gui.re_render_tree()
                 # Check if file was actually created after re-render
                 if os.path.exists(file_name):
-                    QMessageBox.information(
-                        self,
-                        "Export Successful",
-                        f"Graph exported successfully to:\n{file_name}",
+                    self.family_tree_gui.show_status_message(
+                        f"Graph exported to: {file_name}", 7000
                     )
                 else:
                     # This might happen if display_family_tree fails silently
-                    QMessageBox.warning(
-                        self,
-                        "Export Warning",
-                        f"Graph rendering completed, but the file was not found at:\n{file_name}",
+                    self.family_tree_gui.show_status_message(
+                        f"Graph rendered, but file not found: {file_name}", 7000
                     )
             except Exception as e:
                 print(f"Error exporting graph: {e}")

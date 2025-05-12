@@ -5,8 +5,8 @@ from add_person import AddPersonDialog
 from chatbot import ChatbotBox
 from export import ExportWidget
 from family_tree_handler import FamilyTreeHandler
-from import_from_file import ImportFromFileForm
-from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
+from import_from_file import ImportFromFileForm  # noqa F401
+from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal, Slot  # Added QTimer
 from PySide6.QtGui import QAction, QCursor  # Added QAction, QCursor
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSplitter,
+    QStatusBar,  # Added QStatusBar
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
@@ -46,18 +47,24 @@ class JavaScriptInterface(QObject):
     @Slot(str)  # Decorator exposes this method to JavaScript via QWebChannel
     def handleNodeDoubleClick(self, node_id):
         """Receives the node ID from JavaScript when a node is double-clicked."""
-        logger.info(f"Received nodeDoubleClick signal from JS for node: {node_id}")
-        if node_id:
-            self.edit_node_requested.emit(node_id)  # Emit signal for GUI to handle
+        # Ensure node_id is treated as a string, especially if it could be numeric
+        s_node_id = str(node_id) if node_id is not None else None
+        logger.debug(
+            f"Received nodeDoubleClick signal from JS for node: {s_node_id} (original: {node_id})"
+        )
+        if s_node_id is not None:
+            self.edit_node_requested.emit(s_node_id)  # Emit signal for GUI to handle
 
     @Slot(str, int, int)  # New slot for right-click
     def handleNodeRightClick(self, node_id, x, y):
         """Receives node ID and click coordinates from JS on right-click."""
-        logger.info(
-            f"Received nodeRightClick signal from JS for node: {node_id} at ({x},{y})"
+        # Ensure node_id is treated as a string
+        s_node_id = str(node_id) if node_id is not None else None
+        logger.debug(
+            f"Received nodeRightClick signal from JS for node: {s_node_id} (original: {node_id}) at ({x},{y})"
         )
-        if node_id:
-            self.node_right_clicked.emit(node_id, x, y)
+        if s_node_id is not None:
+            self.node_right_clicked.emit(s_node_id, x, y)
 
 
 class FamilyTreeGUI(QMainWindow):
@@ -90,6 +97,7 @@ class FamilyTreeGUI(QMainWindow):
         self.import_from_file_form = None
         self.add_person_button = None
         self.export_widget = None
+        self.status_label = None  # For custom status messages
 
         self.init_ui()
 
@@ -109,6 +117,22 @@ class FamilyTreeGUI(QMainWindow):
 
         # Set initial splitter sizes (adjust as needed)
         main_splitter.setSizes([350, 850])  # Adjusted sizes slightly
+
+        # Add a status bar
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        # Add a permanent label "Status: "
+        status_prefix_label = QLabel("Status: ")
+        self.status_bar.addWidget(status_prefix_label)
+        # Create and add a QLabel for rich text status messages
+        self.status_label = QLabel()
+        # self.status_label.setTextFormat(Qt.RichText) # QLabel often infers for simple HTML
+        self.status_bar.addWidget(
+            self.status_label, 1
+        )  # Stretch factor 1 to take available space
+
+        self.show_status_message("Ready.", 5000)  # Initial message
+        self.update_add_person_button_state()  # Initial check for button state
 
     def create_sidebar(self):
         sidebar_wrapper = QWidget()
@@ -158,7 +182,8 @@ class FamilyTreeGUI(QMainWindow):
         edit_instructions_label.setWordWrap(True)  # Ensure text wraps if needed
         # Optional styling to make it look less prominent than buttons
         edit_instructions_label.setStyleSheet(
-            "color: #ccc; margin-top: 10px; margin-bottom: 5px;"
+            "margin-top: 10px; margin-bottom: 5px;"
+            # "color: #ccc;"
         )
         manage_tree_layout.addWidget(edit_instructions_label)
 
@@ -202,14 +227,14 @@ class FamilyTreeGUI(QMainWindow):
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            logger.info("Add/Edit Person dialog accepted.")
+            logger.debug("Add/Edit Person dialog accepted.")
             # Re-rendering is handled within the dialog's save method
         else:
-            logger.info("Add/Edit Person dialog cancelled.")
+            logger.debug("Add/Edit Person dialog cancelled.")
 
     def open_edit_person_dialog(self, member_id):
         """Opens the dialog in edit mode for the given member ID."""
-        logger.info(f"Opening edit dialog for member ID: {member_id}")
+        logger.debug(f"Opening edit dialog for member ID: {member_id}")
 
         # Pass handler, self, culture setting, and the member_id to edit
         dialog = AddPersonDialog(
@@ -220,15 +245,15 @@ class FamilyTreeGUI(QMainWindow):
         )
         result = dialog.exec()
         if result == QDialog.DialogCode.Accepted:
-            logger.info(f"Edit Person dialog accepted for {member_id}.")
+            logger.debug(f"Edit Person dialog accepted for {member_id}.")
             # Re-rendering is handled within the dialog's save method
         else:
-            logger.info(f"Edit Person dialog cancelled for {member_id}.")
+            logger.debug(f"Edit Person dialog cancelled for {member_id}.")
 
     @Slot(str, int, int)
     def show_node_context_menu(self, node_id: str, x: int, y: int):
         """Displays a context menu for the given node ID at the cursor's position."""
-        logger.info(f"Showing context menu for node: {node_id}")
+        logger.debug(f"Showing context menu for node: {node_id}")
         context_menu = QMenu(self)
 
         add_spouse_action = QAction("Add Spouse", self)
@@ -268,27 +293,28 @@ class FamilyTreeGUI(QMainWindow):
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            new_member_id = getattr(dialog, "newly_created_member_id", None)
+            new_member_id = str(getattr(dialog, "newly_created_member_id", None))
             if new_member_id:
                 logger.info(
                     f"New person created (ID: {new_member_id}). Establishing {relationship_type} with {origin_node_id}."
                 )
                 try:
-                    success, message = (
-                        self.family_tree_handler.add_exhaustive_relations(
-                            origin_node_id, new_member_id, relationship_type
-                        )
+                    print(f"origin_node_id: {origin_node_id}")
+                    print(f"new_member_id: {new_member_id}")
+                    print(f"relationship_type: {relationship_type}")
+                    success, message = self.family_tree_handler.add_relations(
+                        origin_node_id, new_member_id, relationship_type
                     )
                     if success:
-                        logger.info(f"Relationship established: {message}")
-                        QMessageBox.information(
-                            self, "Success", f"Relationship established: {message}"
-                        )
+                        status_msg = f"Relationship established: {message}"
+                        logger.info(status_msg)
+                        self.show_status_message(status_msg, 7000)
                     else:
-                        logger.warning(f"Failed to establish relationship: {message}")
-                        QMessageBox.warning(
-                            self, "Error", f"Failed to add relationship: {message}"
-                        )
+                        status_msg = f"Failed to add relationship: {message}"
+                        logger.warning(status_msg)
+                        # This might still be a good candidate for a QMessageBox if it's a significant failure
+                        self.show_status_message(status_msg, 7000)
+                        # QMessageBox.warning(self, "Error", status_msg) # Kept for consideration
                 except Exception as e:
                     logger.exception(f"Error establishing relationship: {e}")
                     QMessageBox.critical(
@@ -297,11 +323,10 @@ class FamilyTreeGUI(QMainWindow):
                 self.re_render_tree()  # Re-render even on error to show current state
             else:
                 logger.warning("AddPersonDialog accepted, but new_member_id not found.")
-                QMessageBox.warning(
-                    self,
-                    "Operation Incomplete",
-                    "New person created, but their ID was not retrieved to form the relationship.",
+                self.show_status_message(
+                    "New person created, but ID not retrieved for relationship.", 7000
                 )
+
         else:
             logger.info("AddPersonDialog cancelled. No relationship added.")
 
@@ -352,7 +377,7 @@ class FamilyTreeGUI(QMainWindow):
 
     def re_render_tree(self):
         """Re-generates the pyvis graph and reloads it in the view."""
-        logger.info("Re-rendering tree...")
+        logger.debug("Re-rendering tree...")
         try:
             # Ensure the handler has data before trying to display
             if not self.family_tree_handler.get_member_ids():
@@ -364,13 +389,17 @@ class FamilyTreeGUI(QMainWindow):
                 )
                 return
             self.family_tree_handler.display_tree()
-            self.load_pyvis_html()
-            logger.info("Tree re-rendered successfully.")
+            if self.load_pyvis_html():  # load_pyvis_html will now return bool
+                logger.debug("Tree re-rendered successfully.")
+                self.show_status_message("Graph re-rendered.", 3000)
+            self.update_add_person_button_state()  # Update button state after render
         except Exception as e:
-            logger.error(f"Error during re-rendering: {e}")
+            error_msg = f"Failed to re-render the tree: {e}"
+            logger.error(f"Error during re-rendering: {error_msg}")
             QMessageBox.critical(
-                self, "Render Error", f"Failed to re-render the tree:\n{e}"
-            )
+                self, "Render Error", error_msg
+            )  # Keep critical for major render failures
+            self.update_add_person_button_state()  # Also update on error
 
     def load_pyvis_html(self):
         """Loads the generated HTML file into the QWebEngineView."""
@@ -379,22 +408,23 @@ class FamilyTreeGUI(QMainWindow):
             try:
                 # Using file:/// prefix is important for local files
                 local_url = QUrl.fromLocalFile(os.path.abspath(output_html_file))
-                logger.info(f"local_url: {local_url}")
-                logger.info(f"Loading HTML from: {local_url.toString()}")
+                logger.debug(f"local_url: {local_url}")
+                logger.debug(f"Loading HTML from: {local_url.toString()}")
                 self.pyvis_view.setUrl(local_url)
-                # self.pyvis_view.reload() # Force reload if needed
+                return True
             except Exception as e:
-                logger.error(f"Error loading HTML into QWebEngineView: {e}")
-                QMessageBox.critical(
-                    self, "Load Error", f"Could not load the HTML file:\n{e}"
-                )
+                error_msg = f"Could not load the HTML file: {e}"
+                logger.error(f"Error loading HTML into QWebEngineView: {error_msg}")
+                self.show_status_message(f"Error loading graph: {error_msg}", 7000)
                 self.clear_pyvis_view()
+                return False
         else:
             logger.info(f"Output file not found: {output_html_file}")
             self.clear_pyvis_view()
             self.pyvis_view.setHtml(
                 "<p style='color: white; text-align: center; margin-top: 50px;'>HTML file not generated yet.</p>"
             )
+            return False
 
     def clear_pyvis_view(self):
         """Clears the content of the Pyvis view."""
@@ -409,10 +439,8 @@ class FamilyTreeGUI(QMainWindow):
             self.family_tree_handler.load_from_text_file()
             # Re-render the tree after successful load
             self.re_render_tree()
-            # FIXME: (Bug) This message comes in even if there was an error in the previous step
-            # When OS module was not included in graph_handler.py, this success message was still displayed
-            QMessageBox.information(self, "Success", "Data loaded successfully!")
-        except FileNotFoundError:
+            self.show_status_message("Data loaded successfully!", 5000)
+        except FileNotFoundError:  # This is a critical error for loading
             QMessageBox.critical(
                 self,
                 "Error",
@@ -422,6 +450,35 @@ class FamilyTreeGUI(QMainWindow):
         except Exception as e:
             logger.error(f"Failed to load data: {e}")  # Log detailed error
             QMessageBox.critical(
-                self, "Load Error", f"Failed to load data from file:\n{e}"
+                self,
+                "Load Error",
+                f"Failed to load data from file:\n{e}",  # Keep critical
             )
             self.clear_pyvis_view()  # Clear view on error
+
+    def show_status_message(self, message: str, timeout: int = 5000):
+        """Displays a message in the status bar for a specified duration."""
+        if self.status_label:
+            self.status_label.setText(f"<b>{message}</b>")
+            if timeout > 0:
+                QTimer.singleShot(timeout, self.clear_status_message)
+        logger.debug(f"Status: {message}")
+
+    def clear_status_message(self):
+        """Clears the text of the status label."""
+        if self.status_label:
+            self.status_label.clear()
+
+    def update_add_person_button_state(self):
+        """Enables or disables the 'Add New Person' button based on tree content."""
+        if self.add_person_button:  # Ensure button exists
+            if self.family_tree_handler and self.family_tree_handler.get_member_ids():
+                self.add_person_button.setEnabled(False)
+                self.add_person_button.setToolTip(
+                    "Add members via right-click on existing nodes once the tree has people."
+                )
+            else:
+                self.add_person_button.setEnabled(True)
+                self.add_person_button.setToolTip(
+                    "Add the first person to the family tree."
+                )

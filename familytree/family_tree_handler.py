@@ -45,7 +45,7 @@ class FamilyTreeHandler:
         self, input_dict: dict
     ) -> str | None:  # Return new member's ID or None
         new_member_id = None
-        logger.info(f"Attempting to add member with data: {input_dict}")
+        logger.debug(f"Attempting to add member with data: {input_dict}")
         new_empty_member = self.proto_handler_instance.generate_new_member()
         validated_proto_member, error_message = (
             self.proto_handler_instance.create_proto_member_from_dict(
@@ -66,7 +66,7 @@ class FamilyTreeHandler:
 
     def update_member(self, member_id: str, input_dict: dict):
         successful = False
-        logger.info(f"Attempting to update member {member_id} with data: {input_dict}")
+        logger.debug(f"Attempting to update member {member_id} with data: {input_dict}")
         existing_member = self.proto_handler_instance.query_proto_member_by_id(
             member_id
         )
@@ -121,7 +121,10 @@ class FamilyTreeHandler:
         return self.proto_handler_instance.input_text_file
 
     # Pass through method
+    def save_data_to_file(self):
+        self.proto_handler_instance.save_to_protobuf()
 
+    # Pass through method
     def query_member(self, member_id: str):
         return self.proto_handler_instance.query_proto_member_by_id(member_id)
 
@@ -133,7 +136,7 @@ class FamilyTreeHandler:
     def get_member_ids(self):
         return self.proto_handler_instance.get_family_member_ids()
 
-    # Pass through methods for new ProtoHandler getters
+    # Pass through method
     def get_children_ids_of_member(self, member_id: str) -> list[str]:
         return self.proto_handler_instance.get_children_ids_of_member(member_id)
 
@@ -174,7 +177,7 @@ class FamilyTreeHandler:
         return self.graph_handler_instance.get_graph_summary_text()
 
     def _add_familytree_members_to_graph(self):
-        logger.info("Populating graph nodes...")
+        logger.debug("Populating graph nodes...")
         # Use list comprehension for potentially slightly better performance if tree is large
         family_tree = self.proto_handler_instance.family_tree
         members_to_process = list(family_tree.members.items())
@@ -213,7 +216,7 @@ class FamilyTreeHandler:
                     f"Skipping uninitialized member with ID {actual_member_id}."
                 )
 
-        logger.info("Populating graph edges...")
+        logger.debug("Populating graph edges...")
         # Use list comprehension for potentially slightly better performance
         relationships_to_process = list(family_tree.relationships.items())
 
@@ -316,119 +319,84 @@ class FamilyTreeHandler:
             # For simplicity, we just report the error.
             return False
 
-    def add_relationship(
+    def add_relations(
         self, member1_id: str, member2_id: str, relationship_type: str
-    ) -> bool:
+    ) -> tuple[bool, str]:
         """
         Adds a relationship between two members.
         Updates both the protobuf data and the graph.
         """
+        message = ""
         logger.info(
             f"Attempting to add relationship: {member1_id} --({relationship_type})--> {member2_id}"
         )
         if not member1_id or not member2_id:
-            logger.error("Cannot add relationship: One or both member IDs are missing.")
-            return False
+            message = "Cannot add relationship: One or both member IDs are missing."
+            logger.error(message)
+            return False, message
         if member1_id == member2_id:  # Prevent self-relationships through this flow
-            logger.error("Cannot add relationship: Member IDs are the same.")
-            return False
+            message = "Cannot add relationship: Member IDs are the same."
+            logger.error(message)
+            return False, message
 
         # Ensure both members exist
         if not self.proto_handler_instance.query_proto_member_by_id(
             member1_id
         ) or not self.proto_handler_instance.query_proto_member_by_id(member2_id):
-            logger.error(
-                f"Cannot add relationship: Member {member1_id} or {member2_id} not found."
-            )
-            return False
+            message = f"Cannot add relationship: Member {member1_id} or {member2_id} not found."
+            logger.error(message)
+            return False, message
         try:
             # 1. Update Protobuf data
-            self.proto_handler_instance.add_relationship(
-                member1_id, member2_id, relationship_type
+            # This now returns a list of all (type, id1, id2) relationships established,
+            # and a message.
+            established_relations, proto_message = (
+                self.proto_handler_instance.add_relationship(
+                    member1_id, member2_id, relationship_type
+                )
             )
 
-            # 2. Update Graph data
-            self.graph_handler_instance.add_relationship(
-                member1_id, member2_id, relationship_type
-            )
-            return True
+            # 2. Update Graph data for ALL established relationships
+            if established_relations:
+                for (
+                    rel_type_from_proto,
+                    r_member1_id,
+                    r_member2_id,
+                ) in established_relations:
+                    # Translate proto relationship type to graph relationship type if needed
+                    # Current canonical types from proto: "spouse", "child" (parent, child)
+                    graph_rel_type = rel_type_from_proto  # Direct mapping for now
+
+                    # GraphHandler.add_relationship expects:
+                    # "spouse" -> (m1, m2, "spouse")
+                    # "child" (m1=parent, m2=child) -> (m1, m2, "child")
+                    # "parent" (m1=child, m2=parent) -> (m1, m2, "parent")
+                    # ProtoHandler returns ("child", parent_id, child_id)
+                    # So, if rel_type_from_proto is "child", r_member1_id is parent, r_member2_id is child.
+                    # This maps directly to graph_handler.add_relationship(parent_id, child_id, "child")
+                    self.graph_handler_instance.add_relationship(
+                        r_member1_id, r_member2_id, graph_rel_type
+                    )
+                message = proto_message or "Successfully processed relationships."
+                return True, message
+            else:
+                # No relations established, or proto_handler indicated failure implicitly
+                message = (
+                    proto_message
+                    or f"No new relationships established between {member1_id} and {member2_id}."
+                )
+                logger.info(message)  # Log it, might not be an error.
+                return (
+                    True,
+                    message,
+                )  # Still true if proto_handler didn't error, just did nothing new.
+
         except Exception as e:
-            logger.exception(
+            message = (
                 f"Failed to add relationship between {member1_id} and {member2_id}: {e}"
             )
-            return False
-
-    def add_exhaustive_relations(
-        self,
-        origin_member_id,
-        new_member_id: str,
-        relationship_type: str,
-        inherit_and_link: bool = True,
-    ) -> tuple[bool, str]:
-        """
-        Adds relationships accounting for inferred spouse and child relations.
-        Returns success/fail, with message string.
-        Options: inherit_and_link
-            -> other parent for child addition
-            -> other children for spouse addition
-        """
-        # 1. Establish the primary relationship
-        primary_success = self.add_relationship(
-            origin_member_id, new_member_id, relationship_type
-        )
-        message = ""
-        if not primary_success:
-            return (
-                False,
-                f"Relationship Error: Failed to add primary relationship ({relationship_type})",
-            )
-        else:
-            message = (
-                f"{relationship_type.capitalize()} relationship added successfully."
-            )
-        if not inherit_and_link:
-            message += "Not attempting to add additional inferred relationships."
-            return (True, message)
-
-        # 2. Handle conditional secondary relationships
-        secondary_relationships_added = False
-
-        if relationship_type == "spouse":
-            # origin_member_id is existing member, new_member_id is new spouse
-            children_of_origin = self.get_children_ids_of_member(origin_member_id)
-            for child_id in children_of_origin:
-                self.add_relationship(new_member_id, child_id, "child")
-                secondary_relationships_added = True
-
-        elif relationship_type == "child":
-            # origin_member_id is existing parent, new_member_id is new child
-            spouses_of_origin = self.get_spouse_ids_of_member(origin_member_id)
-
-            for spouse_id in spouses_of_origin:
-                self.add_relationship(spouse_id, new_member_id, "child")
-                secondary_relationships_added = True
-
-        elif relationship_type == "parent":
-            # origin_node_id is existing child, new_member_id is new parent
-            all_parents_of_origin = self.get_parent_ids_of_member(origin_member_id)
-            # Filter out the newly added parent (new_member_id) to find *other* existing parents
-            other_existing_parents = [
-                p_id for p_id in all_parents_of_origin if p_id != new_member_id
-            ]
-            if len(other_existing_parents) > 1:
-                warning_message = f"Multiple parents found: {other_existing_parents}. Skipping link to other parents."
-                logger.warning(warning_message)
-                # Primary relationship is still established
-                return (True, warning_message)
-
-            for other_parent_id in other_existing_parents:
-                self.add_relationship(new_member_id, other_parent_id, "spouse")
-                secondary_relationships_added = True
-
-        if secondary_relationships_added:
-            message += "\nAdditional parental/spousal links also established."
-
-        return (True, message)
+            logger.exception(message)
+            return False, message
 
     def _update_member_to_protoobj_and_graphobj(
         self, member_proto: family_tree_pb2.FamilyMember
