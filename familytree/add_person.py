@@ -43,11 +43,13 @@ class AddPersonDialog(QDialog):
         self.newly_created_member_id = None  # To store ID of newly created member
 
         # Widgets that need state toggling
-        self.dod_fields_widget = None
-        self.dod_label = None
+        self.dod_section_widget = None  # Overall container for DoD, toggled by IsAlive
+        self.dod_section_label = None  # Label for the overall DoD section
         self.dob_details_widget = None
         self.dob_details_label = None
         self.dob_known_checkbox = None
+        self.dod_known_checkbox = None  # New checkbox for DoD known
+        self.dod_input_fields_container = None  # Container for actual DoD date inputs
 
         # Widgets for traditional dates (to toggle visibility)
         self.traditional_dob_widget = None
@@ -115,9 +117,10 @@ class AddPersonDialog(QDialog):
         # These toggles need to run AFTER potential population in edit mode
         # We call them here and again after populating if editing
         self.toggle_dob_details()
-        self.toggle_dod_fields()
+        self.toggle_dod_section_visibility()  # Renamed from toggle_dod_fields
+        self.toggle_dod_input_fields_visibility()  # New call for DoD known
         self.toggle_traditional_dob_visibility()
-        self.toggle_traditional_dod_visibility()
+        self.toggle_traditional_dod_visibility()  # For traditional DoD part
 
     # --- Field Creation Methods (Helper functions for init_ui) ---
 
@@ -248,14 +251,31 @@ class AddPersonDialog(QDialog):
     def display_is_alive_field(self, form_layout: QFormLayout):
         self.user_input_fields["IsAlive"] = QCheckBox("This person is alive")
         self.user_input_fields["IsAlive"].setChecked(True)  # Default to alive
-        self.user_input_fields["IsAlive"].stateChanged.connect(self.toggle_dod_fields)
+        self.user_input_fields["IsAlive"].stateChanged.connect(
+            self.toggle_dod_section_visibility
+        )
         form_layout.addRow(self.user_input_fields["IsAlive"])  # Checkbox spans row
 
     def display_dod_field(self, form_layout: QFormLayout):
-        # Main container for all DoD fields
-        self.dod_fields_widget = QWidget()
-        main_dod_layout = QVBoxLayout(self.dod_fields_widget)
-        main_dod_layout.setContentsMargins(0, 0, 0, 0)
+        # self.dod_section_widget is the main container for the entire DoD section (label + inputs)
+        # Its visibility is controlled by the "IsAlive" checkbox.
+        self.dod_section_widget = QWidget()
+        dod_section_layout = QVBoxLayout(self.dod_section_widget)
+        dod_section_layout.setContentsMargins(0, 0, 0, 0)
+
+        # 1. "Is Date of Death Known?" Checkbox
+        self.dod_known_checkbox = QCheckBox("Is Date of Death Known?")
+        self.dod_known_checkbox.setChecked(False)  # Default to unknown
+        self.dod_known_checkbox.stateChanged.connect(
+            self.toggle_dod_input_fields_visibility
+        )
+        dod_section_layout.addWidget(self.dod_known_checkbox)
+
+        # 2. Container for the actual DoD input fields (Gregorian, Traditional)
+        # Its visibility is controlled by dod_known_checkbox.
+        self.dod_input_fields_container = QWidget()
+        dod_input_fields_layout = QVBoxLayout(self.dod_input_fields_container)
+        dod_input_fields_layout.setContentsMargins(0, 0, 0, 0)
 
         # --- Gregorian DoD ---
         gregorian_dod_widget = QWidget()
@@ -278,11 +298,9 @@ class AddPersonDialog(QDialog):
         gregorian_dod_layout.addWidget(QLabel("Year:"))
         gregorian_dod_layout.addWidget(self.user_input_fields["dod_year"])
         gregorian_dod_layout.addStretch()
-        main_dod_layout.addWidget(QLabel("Gregorian DoD:"))  # Add sub-label
-        main_dod_layout.addWidget(gregorian_dod_widget)
+        dod_input_fields_layout.addWidget(QLabel("Gregorian DoD:"))
+        dod_input_fields_layout.addWidget(gregorian_dod_widget)
         # --- End Gregorian DoD ---
-
-        main_dod_layout.addSpacing(10)  # Space between Gregorian and Traditional
 
         # --- Traditional DoD ---
         # Store the widget reference
@@ -329,14 +347,21 @@ class AddPersonDialog(QDialog):
         traditional_dod_layout.addStretch()
         # Store the label reference
         self.traditional_dod_label = QLabel("Traditional DoD:")
-        main_dod_layout.addWidget(self.traditional_dod_label)  # Add sub-label
-        main_dod_layout.addWidget(self.traditional_dod_widget)  # Add the widget itself
+        dod_input_fields_layout.addSpacing(
+            10
+        )  # Space between Gregorian and Traditional
+        dod_input_fields_layout.addWidget(self.traditional_dod_label)
+        dod_input_fields_layout.addWidget(self.traditional_dod_widget)
         # --- End Traditional DoD ---
 
-        self.dod_label = QLabel(
+        dod_section_layout.addWidget(
+            self.dod_input_fields_container
+        )  # Add input fields container to section
+
+        self.dod_section_label = QLabel(
             "<b>Date of Death Details:</b>"
         )  # Main label for the section
-        form_layout.addRow(self.dod_label, self.dod_fields_widget)
+        form_layout.addRow(self.dod_section_label, self.dod_section_widget)
 
     # --- Add method to populate fields when editing ---
     def populate_fields_for_edit(self):
@@ -402,72 +427,91 @@ class AddPersonDialog(QDialog):
 
         # --- Populate IsAlive and DOD ---
         self.user_input_fields["IsAlive"].setChecked(member.alive)
-        # IMPORTANT: Trigger toggle_dod_fields *after* setting IsAlive state
-        self.toggle_dod_fields()
+        self.toggle_dod_section_visibility()  # Show/hide entire DoD section
 
         if not member.alive:
-            # Check if Gregorian DOD exists
-            if member.HasField("date_of_death") and member.date_of_death.year > 0:
+            # If person is not alive, check if DoD data actually exists in proto
+            dod_data_exists_in_proto = (
+                member.HasField("date_of_death") and member.date_of_death.year > 0
+            )
+            self.dod_known_checkbox.setChecked(dod_data_exists_in_proto)
+            self.toggle_dod_input_fields_visibility()  # Show/hide actual input fields
+
+            if dod_data_exists_in_proto:  # Only populate if data exists
+                # Populate Gregorian DOD
                 self.user_input_fields["dod_date"].setValue(member.date_of_death.date)
                 self.user_input_fields["dod_month"].setValue(member.date_of_death.month)
                 self.user_input_fields["dod_year"].setValue(member.date_of_death.year)
 
-            # Check if Traditional DOD exists (only if culture is enabled)
-            if self.show_traditional_dates and member.HasField(
-                "traditional_date_of_death"
-            ):
-                # Month
-                month_name = ProtoUtility.get_month_name(
-                    member.traditional_date_of_death.month
-                )
-                month_index = self.user_input_fields["dod_traditional_month"].findText(
-                    month_name
-                )
-                if month_index != -1:
-                    self.user_input_fields["dod_traditional_month"].setCurrentIndex(
-                        month_index
+                # Populate Traditional DOD (only if culture is enabled and data exists)
+                if self.show_traditional_dates and member.HasField(
+                    "traditional_date_of_death"
+                ):
+                    # Month
+                    month_name = ProtoUtility.get_month_name(
+                        member.traditional_date_of_death.month
                     )
-                # Paksham
-                paksham_name = ProtoUtility.get_paksham_name(
-                    member.traditional_date_of_death.paksham
-                )
-                paksham_index = self.user_input_fields[
-                    "dod_traditional_paksham"
-                ].findText(paksham_name)
-                if paksham_index != -1:
-                    self.user_input_fields["dod_traditional_paksham"].setCurrentIndex(
-                        paksham_index
+                    month_index = self.user_input_fields[
+                        "dod_traditional_month"
+                    ].findText(month_name)
+                    if month_index != -1:
+                        self.user_input_fields["dod_traditional_month"].setCurrentIndex(
+                            month_index
+                        )
+                    # Paksham
+                    paksham_name = ProtoUtility.get_paksham_name(
+                        member.traditional_date_of_death.paksham
                     )
-                # Thithi
-                thithi_name = ProtoUtility.get_thithi_name(
-                    member.traditional_date_of_death.thithi
-                )
-                thithi_index = self.user_input_fields[
-                    "dod_traditional_thithi"
-                ].findText(thithi_name)
-                if thithi_index != -1:
-                    self.user_input_fields["dod_traditional_thithi"].setCurrentIndex(
-                        thithi_index
+                    paksham_index = self.user_input_fields[
+                        "dod_traditional_paksham"
+                    ].findText(paksham_name)
+                    if paksham_index != -1:
+                        self.user_input_fields[
+                            "dod_traditional_paksham"
+                        ].setCurrentIndex(paksham_index)
+                    # Thithi
+                    thithi_name = ProtoUtility.get_thithi_name(
+                        member.traditional_date_of_death.thithi
                     )
+                    thithi_index = self.user_input_fields[
+                        "dod_traditional_thithi"
+                    ].findText(thithi_name)
+                    if thithi_index != -1:
+                        self.user_input_fields[
+                            "dod_traditional_thithi"
+                        ].setCurrentIndex(thithi_index)
 
         # Ensure visibility toggles are correct after population
         self.toggle_dob_details()
-        # toggle_dod_fields was called after setting IsAlive
+        # toggle_dod_section_visibility was called after setting IsAlive
+        # self.toggle_dod_input_fields_visibility() # Called if not alive
         self.toggle_traditional_dob_visibility()
         self.toggle_traditional_dod_visibility()
 
     # --- Toggle Visibility Methods ---
 
-    def toggle_dod_fields(self):
+    def toggle_dod_section_visibility(self):
         """Shows/hides the entire DoD section based on 'Is Alive' checkbox."""
-        if self.dod_label and self.dod_fields_widget:
+        if self.dod_section_label and self.dod_section_widget:
             is_alive = self.user_input_fields["IsAlive"].isChecked()
             visible = not is_alive  # Show if NOT alive
-            self.dod_label.setVisible(visible)
-            self.dod_fields_widget.setVisible(visible)
-            # Note: Traditional DOD fields are *inside* dod_fields_widget,
-            # so they are hidden/shown along with it. Their specific visibility
-            # based on culture is set initially and doesn't need to change here.
+            self.dod_section_label.setVisible(visible)
+            self.dod_section_widget.setVisible(visible)
+            if visible:  # If the DoD section is now visible,
+                # ensure its sub-components (input fields, traditional part) are correctly set
+                self.toggle_dod_input_fields_visibility()
+
+    def toggle_dod_input_fields_visibility(self):
+        """Shows/hides the actual DoD input fields based on 'dod_known_checkbox'."""
+        if self.dod_input_fields_container and self.dod_known_checkbox:
+            # Only proceed if the parent dod_section_widget is itself visible
+            if self.dod_section_widget and self.dod_section_widget.isVisible():
+                is_known = self.dod_known_checkbox.isChecked()
+                self.dod_input_fields_container.setVisible(is_known)
+                if is_known:  # If the input fields are now visible,
+                    self.toggle_traditional_dod_visibility()  # ensure traditional part is correct
+            else:  # If parent section is hidden, hide these too
+                self.dod_input_fields_container.setVisible(False)
 
     def toggle_dob_details(self):
         """Shows/hides DOB fields based on 'DOB known' checkbox."""
@@ -488,10 +532,20 @@ class AddPersonDialog(QDialog):
 
     def toggle_traditional_dod_visibility(self):
         """Shows/hides traditional DOD fields based *only* on culture setting."""
-        # Visibility of the parent DOD section is handled by toggle_dod_fields.
+        # Visibility of the parent dod_section_widget is handled by toggle_dod_section_visibility.
+        # Visibility of the parent dod_input_fields_container is handled by toggle_dod_input_fields_visibility.
         if self.traditional_dod_label and self.traditional_dod_widget:
-            self.traditional_dod_label.setVisible(self.show_traditional_dates)
-            self.traditional_dod_widget.setVisible(self.show_traditional_dates)
+            # Only show if culture is enabled AND its direct parent (dod_input_fields_container) is visible
+            parent_visible = (
+                self.dod_input_fields_container
+                and self.dod_input_fields_container.isVisible()
+            )
+            self.traditional_dod_label.setVisible(
+                self.show_traditional_dates and parent_visible
+            )
+            self.traditional_dod_widget.setVisible(
+                self.show_traditional_dates and parent_visible
+            )
 
     def _gather_values_to_save(self):
         user_input_values = {}
@@ -528,20 +582,25 @@ class AddPersonDialog(QDialog):
         user_input_values["IsAlive"] = is_alive
 
         # DoD gathering
-        if not is_alive:
+        if (
+            not is_alive and self.dod_known_checkbox.isChecked()
+        ):  # Only gather if not alive AND known
             user_input_values["dod_date"] = self.user_input_fields["dod_date"].value()
             user_input_values["dod_month"] = self.user_input_fields["dod_month"].value()
             user_input_values["dod_year"] = self.user_input_fields["dod_year"].value()
-            if self.show_traditional_dates:
-                user_input_values["dod_traditional_month"] = self.user_input_fields[
-                    "dod_traditional_month"
-                ].currentText()
-                user_input_values["dod_traditional_paksham"] = self.user_input_fields[
-                    "dod_traditional_paksham"
-                ].currentText()
-                user_input_values["dod_traditional_thithi"] = self.user_input_fields[
-                    "dod_traditional_thithi"
-                ].currentText()
+            if self.show_traditional_dates:  # And if traditional dates are enabled
+                if (
+                    self.traditional_dod_widget.isVisible()
+                ):  # And if the widget is actually visible
+                    user_input_values["dod_traditional_month"] = self.user_input_fields[
+                        "dod_traditional_month"
+                    ].currentText()
+                    user_input_values["dod_traditional_paksham"] = (
+                        self.user_input_fields["dod_traditional_paksham"].currentText()
+                    )
+                    user_input_values["dod_traditional_thithi"] = (
+                        self.user_input_fields["dod_traditional_thithi"].currentText()
+                    )
         return user_input_values
 
     # --- Save Action ---
