@@ -2,6 +2,8 @@ syntax = "proto3";
 package family_tree;
 import "proto/utils.proto";
 
+
+// Family member information. Each node in the family tree will be stored as a FamilyMember
 message FamilyMember {
   string id = 1;
   string name = 2;
@@ -18,12 +20,14 @@ message FamilyMember {
   map<string, string> additional_info = 13;
 }
 
+// Relationship (Edges) between family members
 message Relationships {
   repeated string children_ids = 1;
   repeated string spouse_ids = 2;
   repeated string parent_ids = 3;
 }
 
+// Group that denotes a single household or the most granular family consisting of partners and children
 message FamilyUnit {
   string id = 1;
   repeated int64 parent_ids = 2;
@@ -32,6 +36,7 @@ message FamilyUnit {
   map<string, string> additional_info = 5;
 }
 
+// Family Tree with all the members and relationships
 message FamilyTree {
   map<string, FamilyMember> members = 1;
   map<string, Relationships> relationships = 2;
