@@ -1,12 +1,16 @@
+// Common utils used across the project
+// Contains date formats, enums etc
 syntax = "proto3";
 package utils;
 
+// Custom date to define Gregorian date format
 message GregorianDate {
     int32 year = 1;
     int32 month = 2;
     int32 date = 3;
 }
 
+// Custom date to define Tamil Hindu date format
 message TraditionalDate {
     TamilMonth month = 1;
     TamilStar star = 2;
@@ -15,12 +19,14 @@ message TraditionalDate {
 }
 
 //Enums are scoped for the entire file => They cannot have same "UNKNOWN" values across different enums
+// Paksham based on the moon phase
 enum Paksham { 
     PAKSHAM_UNKNOWN = 0;
     KRISHNA = 1;
     SHUKLA = 2;
 }
 
+// Day based on the moon's rotation around the earth
 enum Thithi {
     THITHI_UNKNOWN = 0;
     PRATHAMAI = 1;
@@ -41,6 +47,7 @@ enum Thithi {
     POURNAMI = 16;
 }
 
+// Tamil months of a year
 enum TamilMonth {
     TAMIL_MONTH_UNKNOWN = 0;
     CHITHIRAI = 1;
@@ -57,6 +64,7 @@ enum TamilMonth {
     PANGUNI = 12;
 }
 
+// Tamil stars of a month
 enum TamilStar {
     TAMIL_STAR_UNKNOWN = 0;
     ASHWINI = 1;
