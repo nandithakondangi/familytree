@@ -15,3 +15,30 @@ input_data/
 
 #vscode
 .vscode/
+
+# === Rules merged from frontend/.gitignore ===
+
+.DS_Store
+frontend/.DS_Store
+frontend/node_modules
+frontend/dist/
+
+
+# local env files from frontend/.gitignore
+frontend/.env.local # Originally .env.local
+frontend/.env.*.local # Originally .env.*.local
+
+# Log files from frontend/.gitignore
+frontend/npm-debug.log* # Originally npm-debug.log*
+frontend/yarn-debug.log* # Originally yarn-debug.log*
+frontend/yarn-error.log* # Originally yarn-error.log*
+frontend/pnpm-debug.log* # Originally pnpm-debug.log*
+
+# Editor directories and files from frontend/.gitignore
+.idea
+# .vscode from frontend/.gitignore is omitted as .vscode/ is already present above
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
