@@ -58,10 +58,10 @@
     </div>
 
     <button
-      @click="addNewPerson"
-      :disabled="isDataLoaded"
+      @click="showAddPersonModal = true"
+      :disabled="isDataLoaded()"
       class="w-full px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-      :title="isDataLoaded ? 'Add members via right-click on existing nodes once the tree has people.' : 'Add the first person to the family tree.'"
+      :title="isDataLoaded() ? 'Add members via right-click on existing nodes once the tree has people.' : 'Add the first person to the family tree.'"
     >
       ➕ ADD NEW PERSON
     </button>
@@ -93,14 +93,24 @@
       🔄 Re-render Graph
     </button>
 
+    <AddPersonModal
+      :isVisible="showAddPersonModal"
+      @close="showAddPersonModal = false"
+      @save="addNewPerson"
+    />
+
   </div>
 </template>
 
 <script>
-import { inject } from 'vue';
+import { inject, ref } from 'vue';
+import AddPersonModal from './AddPersonModal.vue';
 
 export default {
   name: 'ManageTreeTab',
+  components: {
+    AddPersonModal,
+  },
   setup() {
     // Inject the provided state and methods from App.vue
     const statusMessage = inject('statusMessage');
@@ -121,6 +131,8 @@ export default {
     const handleConnectToExisting = inject('handleConnectToExisting'); // Example usage for context menu actions
 
 
+    const showAddPersonModal = ref(false);
+
     return {
       statusMessage,
       isIndianCulture,
@@ -137,6 +149,8 @@ export default {
       handleAddRelationship, // Expose if needed for child components or direct calls
       handleDeleteMember, // Expose if needed
       handleConnectToExisting, // Expose if needed
+
+      showAddPersonModal,  // Expose modal visibility state
     };
   },
   data() {
@@ -221,12 +235,15 @@ export default {
         this.setDataLoaded(false); // Update global state
       });
     },
-    addNewPerson() {
-      // This will trigger the modal/dialog in App.vue
-      this.openAddPersonDialog();
-      // After the person is added via the dialog and backend,
-      // the dialog component or a callback should trigger re-render
-      // this.triggerReRender();
+    addNewPerson(newPersonData) {
+      console.log('Person saved from modal:', newPersonData);
+      // Modal is already closed by the modal component on save
+      // TODO: Call backend using FastApi to save the person
+
+      // Trigger re-render of the graph to show the new person
+      this.triggerReRender();
+      // Show a status message like "Person added successfully!"
+      this.updateStatus('Person added successfully!', 5000);
     },
     exportData() {
       this.updateStatus('Exporting data...');
