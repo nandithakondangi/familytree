@@ -17,21 +17,22 @@
     <div class="flex flex-grow overflow-hidden p-1">
       <aside
         :class="{
-          'flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl': true,
-          'transform transition-all duration-1500 ease-in-out': true,
-          'w-96 p-4 overflow-y-auto': isSidebarOpen,
-          'w-0 p-0 -translate-x-full': !isSidebarOpen,
+          'w-96 flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl p-4 overflow-y-auto': true, // Always has its width and padding
+          'transform transition-transform duration-300 ease-in-out': true, // Animate the slide
+          '-translate-x-full': !isSidebarOpen, // Slide out when closed
+          'translate-x-0': isSidebarOpen,      // Slide in when open
         }"
       >
-        <div :class="{'opacity-0 invisible': !isSidebarOpen, 'opacity-100 visible transition-opacity duration-300': isSidebarOpen }">
+        <div :class="{'opacity-0': !isSidebarOpen, 'opacity-100': isSidebarOpen, 'transition-opacity duration-300 ease-in-out': true }">
           <Sidebar />
         </div>
       </aside>
-
       <main
         :class="{
           'flex-grow flex flex-col overflow-hidden p-2': true,
-          'transition-all duration-1500 ease-in-out': true,
+          'transition-all duration-300 ease-in-out': true,
+          'ml-0': isSidebarOpen,      // No margin needed when sidebar is open and taking its space
+          'ml-[-24rem]': !isSidebarOpen, // Pull main content left to cover the space of the hidden sidebar (24rem = w-96)
         }"
       >
         <div class="flex-grow bg-white/30 backdrop-blur-lg shadow-xl rounded-xl overflow-hidden">

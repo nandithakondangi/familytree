@@ -51,7 +51,7 @@
       </button>
     </div>
 
-    <div class="flex-grow overflow-y-auto pr-2 relative overflow-x-hidden">
+    <div class="flex-grow pr-2 relative overflow-hidden h-full">
       <Transition :name="transitionName" mode="out-in">
         <div v-if="activeTab === 'manage'" :key="'manage'" class="w-full h-full">
           <ManageTreeTab />
@@ -212,14 +212,12 @@ export default {
 .slide-next-leave-active,
 .slide-prev-enter-active,
 .slide-prev-leave-active {
-  transition: transform 0.3s ease-out, opacity 0.1s ease-out;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
   position: absolute; /* Allows smooth sliding over each other */
   top: 0; 
   left: 0;
-  right: 0;
-  /* bottom: 0; Ensure parent has height or content defines it */
   width: 100%;
-  /* height: 100%; /* If you want to force full height during transition */
+  height: 100%;
 }
 
 /* Slide Next: Old content slides left, New content slides in from right */
@@ -246,6 +244,10 @@ export default {
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease-out;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 .fade-enter-from,
 .fade-leave-to {
