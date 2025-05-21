@@ -1,25 +1,32 @@
 <template>
-  <div id="app" class="flex flex-col h-screen bg-gray-100 font-sans">
-    <header class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 shadow-md">
+  <div id="app" class="flex flex-col h-screen bg-gray-200 font-sans">
+    <header class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-white p-4 shadow-lg">
       <h1 class="text-2xl font-bold text-center">Family Tree Viewer</h1>
     </header>
 
-    <div class="flex flex-grow overflow-hidden">
-      <aside class="w-96 flex-shrink-0 bg-white p-4 shadow-lg rounded-r-lg overflow-y-auto">
+    <div class="flex flex-grow overflow-hidden p-4 space-x-4">
+      <aside class="w-96 flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl p-4 overflow-y-auto">
         <Sidebar />
       </aside>
 
-      <main class="flex-grow flex flex-col p-4 overflow-hidden">
-        <div class="flex-grow bg-white rounded-lg shadow-md overflow-hidden">
+      <main class="flex-grow flex flex-col overflow-hidden">
+        <div class="flex-grow bg-white/30 backdrop-blur-lg shadow-xl rounded-xl overflow-hidden">
           <GraphView />
         </div>
 
       </main>
     </div>
 
-    <footer class="bg-gray-200 p-2 text-sm text-gray-700 shadow-inner">
+    <footer class="bg-gradient-to-r from-purple-600/60 to-indigo-600/60 backdrop-blur-md p-2 text-sm text-gray-200 shadow-lg">
       <StatusDisplay />
     </footer>
+
+    <!-- Global Add Person Modal -->
+    <AddPersonModal
+      :isVisible="isAddPersonModalVisible"
+      @close="closeAddPersonModal"
+      @save="handlePersonAdded"
+    />
   </div>
 </template>
 
@@ -27,13 +34,15 @@
 import Sidebar from './components/Sidebar.vue';
 import GraphView from './components/GraphView.vue';
 import StatusDisplay from './components/StatusDisplay.vue';
+import AddPersonModal from './components/AddPersonModal.vue'; // Import the modal
 
 export default {
   name: 'App',
   components: {
     Sidebar,
     GraphView,
-    StatusDisplay
+    StatusDisplay,
+    AddPersonModal, // Register the modal
   },
   // You can add global data or methods here if needed
   data() {
@@ -52,6 +61,8 @@ export default {
       memberIdToEdit: null,
       // Example: Flag to trigger graph re-render
       triggerGraphRender: false,
+      // Controls visibility of AddPersonModal
+      isAddPersonModalVisible: false,
     };
   },
   provide() {
@@ -136,7 +147,16 @@ export default {
     // Placeholder methods for dialogs and context menu actions
     openAddPersonDialog() {
       console.log('Triggering Add New Person dialog');
-      // TODO: Implement modal/dialog for adding a person
+      this.isAddPersonModalVisible = true;
+    },
+    closeAddPersonModal() {
+      this.isAddPersonModalVisible = false;
+    },
+    handlePersonAdded(newPersonData) {
+      console.log('[App.vue] Person added from modal:', newPersonData);
+      this.closeAddPersonModal();
+      this.updateStatus('Person added successfully!', 5000);
+      this.triggerReRender();
     },
     openEditPersonDialog(memberId) {
       console.log('Triggering Edit Person dialog for ID:', memberId);

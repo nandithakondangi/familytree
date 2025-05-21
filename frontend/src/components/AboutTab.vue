@@ -1,7 +1,7 @@
 <template>
-  <div class="prose max-w-none p-2">
-    <h2 class="text-xl font-semibold mb-3">About This Software</h2>
-    <div v-html="aboutContent" class="text-gray-700">
+  <div class="prose prose-sm max-w-none p-2 text-gray-800">
+    <h2 class="text-xl font-semibold mb-3 text-gray-900">About This Software</h2>
+    <div v-html="aboutContent">
       </div>
   </div>
 </template>

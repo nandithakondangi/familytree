@@ -1,25 +1,25 @@
 <template>
-  <div class="flex flex-col h-64 bg-indigo-50 rounded-lg">
+  <div class="flex flex-col h-full bg-white/20 backdrop-blur-lg rounded-xl shadow-xl">
     <div class="flex-grow overflow-y-auto p-3 text-sm">
       <div v-for="(message, index) in messages" :key="index" :class="['mb-2', message.sender === 'user' ? 'text-right' : 'text-left']">
-        <span :class="['inline-block p-2 rounded-lg max-w-xs', message.sender === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-300 text-gray-800']">
+        <span :class="['inline-block p-2 rounded-lg max-w-xs shadow-md', message.sender === 'user' ? 'bg-blue-500/80 backdrop-blur-sm text-white' : 'bg-gray-400/70 backdrop-blur-sm text-gray-800']">
           {{ message.text }}
         </span>
       </div>
        <div ref="chatEnd"></div> </div>
 
-    <div class="flex p-3 border-t border-gray-200">
+    <div class="flex p-3 border-t border-white/30">
       <input
         type="text"
         v-model="currentMessage"
         @keyup.enter="sendMessage"
         placeholder="Ask about the family tree..."
-        class="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+        class="flex-grow px-3 py-2 bg-white/50 backdrop-blur-sm border border-gray-300/50 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm text-gray-800 placeholder-gray-500"
       />
       <button
         @click="sendMessage"
         :disabled="!currentMessage.trim()"
-        class="px-6 py-2 bg-indigo-600 text-white font-medium rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-6 py-2 bg-indigo-600/80 backdrop-blur-sm text-white font-medium rounded-r-lg hover:bg-indigo-700/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white/20 transition duration-150 ease-in-out shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
       >
         Send
       </button>

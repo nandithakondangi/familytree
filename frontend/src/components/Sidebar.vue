@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full">
-    <div class="relative flex items-center justify-around bg-gray-200 rounded-full p-1 mb-4 shadow-inner">
-      <div class="absolute top-1 left-0 bottom-1 bg-indigo-600/25 rounded-full transition-all duration-50 ease-in-out"
+    <div class="relative flex items-center justify-around bg-white/40 backdrop-blur-md shadow-lg rounded-full p-1 mb-4">
+      <div class="absolute top-1 left-0 bottom-1 bg-indigo-500/70 rounded-full transition-all duration-50 ease-in-out"
         :style="indicatorStyle"></div>
 
       <button ref="manageTabButton" @click="activeTab = 'manage'" :class="[
@@ -15,8 +15,8 @@
         ]">🌳</span> <span :class="[
           'ml-1',
           'overflow-hidden', // Add for text
-          'transition-all duration-50 ease-in-out', // Change to transition-all for text
-          activeTab === 'manage' ? 'opacity-100 max-w-xs font-bold text-green-800' : 'opacity-75 max-w-xs text-green-600 hover:text-green-600 hover:font-bold'
+          'transition-all duration-50 ease-in-out',
+          activeTab === 'manage' ? 'opacity-100 max-w-xs font-bold text-indigo-700' : 'opacity-90 max-w-xs text-gray-600 hover:text-indigo-700 hover:font-bold'
         ]">Manage</span>
       </button>
       <button ref="chatTabButton" @click="activeTab = 'chat'" :class="[
@@ -30,8 +30,8 @@
         ]">💬</span> <span :class="[
           'ml-1',
           'overflow-hidden', // Add for text
-          'transition-all duration-50 ease-in-out', // Change to transition-all for text
-          activeTab === 'chat' ? 'opacity-100 max-w-xs font-bold text-gray-700' : 'opacity-75 max-w-xs text-gray-500 hover:text-gray-500 hover:font-bold'
+          'transition-all duration-50 ease-in-out',
+          activeTab === 'chat' ? 'opacity-100 max-w-xs font-bold text-indigo-700' : 'opacity-90 max-w-xs text-gray-600 hover:text-indigo-700 hover:font-bold'
         ]">Chat</span>
       </button>
       <button ref="aboutTabButton" @click="activeTab = 'about'" :class="[
@@ -45,8 +45,8 @@
         ]">ℹ️</span> <span :class="[
           'ml-1',
           'overflow-hidden', // Add for text
-          'transition-all duration-50 ease-in-out', // Change to transition-all for text
-          activeTab === 'about' ? 'opacity-100 max-w-xs font-bold text-blue-700' : 'opacity-75 max-w-xs text-blue-500 hover:text-blue-500 hover:font-bold'
+          'transition-all duration-50 ease-in-out',
+          activeTab === 'about' ? 'opacity-100 max-w-xs font-bold text-indigo-700' : 'opacity-90 max-w-xs text-gray-600 hover:text-indigo-700 hover:font-bold'
         ]">About</span>
       </button>
     </div>
