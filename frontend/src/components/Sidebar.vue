@@ -198,6 +198,7 @@ export default {
       manageTabButton,
       chatTabButton,
       aboutTabButton,
+      transitionName, // Ensure transitionName is returned
     };
   },
 };
@@ -211,9 +212,9 @@ export default {
 .slide-next-leave-active,
 .slide-prev-enter-active,
 .slide-prev-leave-active {
-  transition: transform 0.3s ease-out, opacity 0.2s ease-out;
+  transition: transform 0.3s ease-out, opacity 0.1s ease-out;
   position: absolute; /* Allows smooth sliding over each other */
-  top: 0;
+  top: 0; 
   left: 0;
   right: 0;
   /* bottom: 0; Ensure parent has height or content defines it */
@@ -244,7 +245,7 @@ export default {
 /* Fade transition for initial load or fallback */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 1.2s ease-out;
+  transition: opacity 0.3s ease-out;
 }
 .fade-enter-from,
 .fade-leave-to {

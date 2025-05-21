@@ -1,15 +1,39 @@
 <template>
   <div id="app" class="flex flex-col h-screen bg-gray-200 font-sans font-light">
-    <header class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-white p-4 shadow-lg">
-      <h1 class="text-2xl font-medium text-center">Family Tree Viewer</h1>
+    <header class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-white p-4 shadow-lg flex items-center">
+      <button
+        @click="toggleSidebar"
+        class="p-2 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors mr-4"
+        aria-label="Toggle sidebar"
+      >
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <h1 class="text-2xl font-medium text-center flex-grow">Family Tree Viewer</h1>
+      <div class="w-14"></div> <!-- Spacer to balance the hamburger button for true title centering -->
     </header>
 
-    <div class="flex flex-grow overflow-hidden p-4 space-x-4">
-      <aside class="w-96 flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl p-4 overflow-y-auto">
-        <Sidebar />
+    <div class="flex flex-grow overflow-hidden p-1">
+      <aside
+        :class="{
+          'flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl': true,
+          'transform transition-all duration-1500 ease-in-out': true,
+          'w-96 p-4 overflow-y-auto': isSidebarOpen,
+          'w-0 p-0 -translate-x-full': !isSidebarOpen,
+        }"
+      >
+        <div :class="{'opacity-0 invisible': !isSidebarOpen, 'opacity-100 visible transition-opacity duration-300': isSidebarOpen }">
+          <Sidebar />
+        </div>
       </aside>
 
-      <main class="flex-grow flex flex-col overflow-hidden">
+      <main
+        :class="{
+          'flex-grow flex flex-col overflow-hidden p-2': true,
+          'transition-all duration-1500 ease-in-out': true,
+        }"
+      >
         <div class="flex-grow bg-white/30 backdrop-blur-lg shadow-xl rounded-xl overflow-hidden">
           <GraphView />
         </div>
@@ -63,6 +87,8 @@ export default {
       triggerGraphRender: false,
       // Controls visibility of AddPersonModal
       isAddPersonModalVisible: false,
+      // Controls visibility of the main sidebar
+      isSidebarOpen: true, // Sidebar starts open by default
     };
   },
   provide() {
@@ -142,6 +168,9 @@ export default {
       this.triggerGraphRender = !this.triggerGraphRender; // Toggle to trigger watch in GraphView
       console.log('Re-render triggered');
       // TODO: Call backend API to re-generate graph HTML
+    },
+    toggleSidebar() {
+      this.isSidebarOpen = !this.isSidebarOpen;
     },
 
     // Placeholder methods for dialogs and context menu actions
