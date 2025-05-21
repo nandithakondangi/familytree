@@ -1,7 +1,7 @@
 <template>
-  <div id="app" class="flex flex-col h-screen bg-gray-200 font-sans">
+  <div id="app" class="flex flex-col h-screen bg-gray-200 font-sans font-light">
     <header class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-white p-4 shadow-lg">
-      <h1 class="text-2xl font-bold text-center">Family Tree Viewer</h1>
+      <h1 class="text-2xl font-medium text-center">Family Tree Viewer</h1>
     </header>
 
     <div class="flex flex-grow overflow-hidden p-4 space-x-4">
@@ -193,8 +193,7 @@ export default {
 
 <style>
 /* Basic styling for the app */
-#app {
-  font-family: 'Inter', sans-serif;
-  /* Using Inter font */
+body { /* Ensure body also gets the base font if #app doesn't cover everything initially */
+  font-family: 'Quicksand', sans-serif;
 }
 </style>
