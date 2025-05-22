@@ -6,10 +6,10 @@
       class="w-full h-full border-none"
       @load="handleIframeLoad"
     ></iframe>
-     <div v-if="isLoading" class="absolute inset-0 bg-white/50 backdrop-blur-md flex items-center justify-center rounded-xl"> {/* Matched rounding and glassy style */}
+     <div v-if="isLoading" class="absolute inset-0 bg-white/50 dark:bg-slate-800/60 backdrop-blur-md flex items-center justify-center rounded-xl">
       <div class="flex flex-col items-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500/90"></div> {/* Slightly transparent spinner border */}
-        <p class="mt-4 text-gray-700">Loading graph...</p>
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500/90 dark:border-indigo-400/90"></div>
+        <p class="mt-4 text-gray-700 dark:text-gray-300">Loading graph...</p>
       </div>
     </div>
   </div>

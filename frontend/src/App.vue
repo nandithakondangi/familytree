@@ -1,23 +1,45 @@
 <template>
-  <div id="app" class="flex flex-col h-screen bg-gray-200 font-sans font-light">
-    <header class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md text-white p-4 shadow-lg flex items-center">
+  <div id="app" class="flex flex-col h-screen bg-gray-200 dark:bg-slate-900 font-sans font-light">
+    <header class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 dark:from-purple-700/80 dark:to-indigo-700/80 backdrop-blur-md text-white p-4 shadow-lg flex items-center">
       <button
         @click="toggleSidebar"
-        class="p-2 rounded-md hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors mr-4"
+        class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors mr-4"
         aria-label="Toggle sidebar"
+        :title="isSidebarOpen ? 'Collape Menu' : 'Expand Menu'"
       >
         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <h1 class="text-2xl font-medium text-center flex-grow">Family Tree Viewer</h1>
-      <div class="w-14"></div> <!-- Spacer to balance the hamburger button for true title centering -->
+      <h1 class="text-2xl font-medium text-center flex-grow ml-[-2.5rem] sm:ml-0">Family Tree Viewer</h1>
+      <button
+        @click="toggleTheme"
+        class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors ml-auto"
+        aria-label="Toggle theme"
+        :title="currentTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'"
+      >
+        <svg v-if="currentTheme === 'dark'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg v-else class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+      </button>
+      <!-- <div class="w-14"></div> Spacer to balance the hamburger button for true title centering -->
     </header>
 
     <div class="flex flex-grow overflow-hidden p-1">
       <aside
         :class="{
-          'w-96 flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl p-4': true, // Always has its width and padding, REMOVED overflow-y-auto
+          'w-96 flex-shrink-0 bg-white/30 dark:bg-slate-800/50 backdrop-blur-lg shadow-xl rounded-xl p-4': true,
           'transform transition-transform duration-300 ease-in-out': true, // Animate the slide
           '-translate-x-full': !isSidebarOpen, // Slide out when closed
           'translate-x-0': isSidebarOpen,      // Slide in when open
@@ -35,14 +57,14 @@
           'ml-[-24rem]': !isSidebarOpen, // Pull main content left to cover the space of the hidden sidebar (24rem = w-96)
         }"
       >
-        <div class="flex-grow bg-white/30 backdrop-blur-lg shadow-xl rounded-xl overflow-hidden">
+        <div class="flex-grow bg-white/30 dark:bg-slate-800/50 backdrop-blur-lg shadow-xl rounded-xl overflow-hidden">
           <GraphView />
         </div>
 
       </main>
     </div>
 
-    <footer class="bg-gradient-to-r from-purple-600/60 to-indigo-600/60 backdrop-blur-md p-2 text-sm text-gray-200 shadow-lg">
+    <footer class="bg-gradient-to-r from-purple-600/60 to-indigo-600/60 dark:from-purple-700/60 dark:to-indigo-700/60 backdrop-blur-md p-2 text-sm text-gray-200 shadow-lg">
       <StatusDisplay />
     </footer>
 
@@ -90,6 +112,8 @@ export default {
       isAddPersonModalVisible: false,
       // Controls visibility of the main sidebar
       isSidebarOpen: true, // Sidebar starts open by default
+      // Theme state
+      currentTheme: 'light', // 'light' or 'dark'
     };
   },
   provide() {
@@ -119,6 +143,19 @@ export default {
       handleDeleteMember: this.handleDeleteMember, // For delete action
       handleConnectToExisting: this.handleConnectToExisting, // For connect action
     };
+  },
+  created() {
+    // Load theme from localStorage or default to 'light'
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      this.currentTheme = savedTheme;
+    }
+    this.applyTheme();
+  },
+  watch: {
+    currentTheme() {
+      this.applyTheme();
+    }
   },
   methods: {
     // Method to update the status message
@@ -173,6 +210,18 @@ export default {
     toggleSidebar() {
       this.isSidebarOpen = !this.isSidebarOpen;
     },
+    toggleTheme() {
+      this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', this.currentTheme);
+    },
+    applyTheme() {
+      if (this.currentTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    },
+
 
     // Placeholder methods for dialogs and context menu actions
     openAddPersonDialog() {

@@ -8,11 +8,11 @@
     leave-to-class="opacity-0 translate-y-full scale-50"
   >
     <div v-if="isVisible" class="fixed inset-0 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-      <div class="relative bg-indigo-500/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+      <div class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
 
-        <div class="flex justify-between items-center border-b border-gray-300/70 pb-3 mb-4">
-          <h3 class="text-lg font-semibold text-gray-800">Add New Family Member</h3>
-          <button @click="closeModal" class="text-gray-500 hover:text-gray-700 transition-colors">
+        <div class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Add New Family Member</h3>
+          <button @click="closeModal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -22,34 +22,34 @@
         <form @submit.prevent="saveMember">
           <div class="space-y-4">
             <div>
-              <label for="name" class="block text-sm font-medium text-gray-700">Name: <span class="text-red-500">*</span></label>
+              <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name: <span class="text-red-500">*</span></label>
               <input
                 type="text"
                 id="name"
                 v-model="form.name"
                 required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                 placeholder="Name"
               />
             </div>
 
             <div>
-              <label for="nicknames" class="block text-sm font-medium text-gray-700">Nicknames:</label>
+              <label for="nicknames" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nicknames:</label>
               <input
                 type="text"
                 id="nicknames"
                 v-model="form.nicknames"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                 placeholder="e.g., Johnny, Beth (comma-separated)"
               />
             </div>
 
             <div>
-              <label for="gender" class="block text-sm font-medium text-gray-700">Gender:</label>
+              <label for="gender" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Gender:</label>
               <select
                 id="gender"
                 v-model="form.gender"
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
               >
                 <option value="UNKNOWN">GENDER UNKNOWN</option>
                 <option value="MALE">MALE</option>
@@ -58,22 +58,22 @@
             </div>
 
             <div class="flex items-center justify-between">
-              <label for="isDobKnown" class="block text-sm text-gray-700 cursor-pointer">Is Date of Birth Known?</label>
+              <label for="isDobKnown" class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Is Date of Birth Known?</label>
               <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                 <input
                   type="checkbox"
                   id="isDobKnown"
                   v-model="form.isDobKnown"
-                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
                 />
-                <label for="isDobKnown" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                <label for="isDobKnown" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"></label>
               </div>
             </div>
 
-            <div v-if="form.isDobKnown" class="space-y-3 p-4 bg-indigo-200/60 rounded-md shadow-inner">
-              <h4 class="text-md font-semibold text-gray-700">Date of Birth Details:</h4>
+            <div v-if="form.isDobKnown" class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner">
+              <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300">Date of Birth Details:</h4>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Gregorian DOB:</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gregorian DOB:</label>
                 <div class="flex space-x-3">
                    <input
                     type="number"
@@ -81,7 +81,7 @@
                     placeholder="DD"
                     min="1"
                     max="31"
-                    class="block w-1/3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                    class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                   />
                    <input
                     type="number"
@@ -89,7 +89,7 @@
                     placeholder="MM"
                     min="1"
                     max="12"
-                    class="block w-1/3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                    class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                   />
                    <input
                     type="number"
@@ -97,17 +97,17 @@
                     placeholder="YYYY"
                      min="0"
                     :max="new Date().getFullYear()"
-                    class="block w-1/3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                    class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                   />
                 </div>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Traditional DOB:</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traditional DOB:</label>
                  <div class="flex space-x-3">
                    <select
                      v-model="form.traditionalDob.tamilMonth"
-                     class="block w-1/2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                     class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                    >
                      <option value="">TAMIL MONTH</option>
                      <option value="chithirai">Chithirai</option>
@@ -115,7 +115,7 @@
                      </select>
                    <select
                      v-model="form.traditionalDob.tamilStar"
-                     class="block w-1/2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                     class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                    >
                      <option value="">TAMIL STAR</option>
                      <option value="ashwini">Ashwini</option>
@@ -126,37 +126,37 @@
             </div>
 
              <div class="flex items-center justify-between">
-              <label for="isPersonAlive" class="block text-sm text-gray-700 cursor-pointer">This person is alive</label>
+              <label for="isPersonAlive" class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">This person is alive</label>
                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                 <input
                   type="checkbox"
                   id="isPersonAlive"
                   v-model="form.isPersonAlive"
-                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
                 />
-                <label for="isPersonAlive" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                <label for="isPersonAlive" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"></label>
               </div>
             </div>
 
-            <div v-if="!form.isPersonAlive" class="space-y-3 p-4 bg-indigo-200/60 rounded-md shadow-inner">
-               <h4 class="text-md font-semibold text-gray-700">Date of Death Details:</h4>
+            <div v-if="!form.isPersonAlive" class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner">
+               <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300">Date of Death Details:</h4>
 
                <div class="flex items-center justify-between">
-                 <label for="isDodKnown" class="block text-sm text-gray-700 cursor-pointer">Is Date of Death Known?</label>
+                 <label for="isDodKnown" class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Is Date of Death Known?</label>
                   <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
                    <input
                      type="checkbox"
                      id="isDodKnown"
                      v-model="form.isDodKnown"
-                     class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                     class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
                    />
-                   <label for="isDodKnown" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                   <label for="isDodKnown" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"></label>
                  </div>
                </div>
 
                <div v-if="form.isDodKnown" class="space-y-3">
                  <div>
-                   <label class="block text-sm font-medium text-gray-700 mb-1">Gregorian DoD:</label>
+                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gregorian DoD:</label>
                    <div class="flex space-x-3">
                       <input
                        type="number"
@@ -164,7 +164,7 @@
                        placeholder="DD"
                        min="1"
                        max="31"
-                       class="block w-1/3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                       class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                      />
                       <input
                        type="number"
@@ -172,7 +172,7 @@
                        placeholder="MM"
                        min="1"
                        max="12"
-                       class="block w-1/3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                       class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                      />
                       <input
                        type="number"
@@ -180,17 +180,17 @@
                        placeholder="YYYY"
                        min="0"
                        :max="new Date().getFullYear()"
-                       class="block w-1/3 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                       class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                      />
                    </div>
                  </div>
 
                  <div>
-                   <label class="block text-sm font-medium text-gray-700 mb-1">Traditional DoD:</label>
+                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traditional DoD:</label>
                     <div class="grid grid-cols-3 gap-3">
                       <select
                         v-model="form.traditionalDod.tamilMonth"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                       >
                         <option value="">TAMIL MONTH</option>
                          <option value="chithirai">Chithirai</option>
@@ -198,7 +198,7 @@
                         </select>
                       <select
                         v-model="form.traditionalDod.paksham"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                       >
                         <option value="">PAKSHAM</option>
                          <option value="krishna">Krishna Paksham</option>
@@ -206,7 +206,7 @@
                       </select>
                        <select
                         v-model="form.traditionalDod.thithi"
-                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white/70"
+                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                       >
                         <option value="">THITHI</option>
                          <option value="prathama">Prathama</option>
@@ -223,13 +223,13 @@
             <button
               type="button"
               @click="closeModal"
-              class="px-4 py-2 bg-gray-300/70 text-gray-800 font-medium rounded-lg hover:bg-gray-400/80 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75 transition duration-150 ease-in-out"
+              class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
             >
               X Cancel
             </button>
             <button
               type="submit"
-              class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-white/50 transition duration-150 ease-in-out"
+              class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
             >
               💾 Save Member
             </button>
@@ -408,15 +408,15 @@ export default {
 }
 
 .toggle-checkbox:checked {
-  right: 0;
-  border-color: #6366f1; /* indigo-500 */
+  right: 0; /* This might need adjustment if the knob is not visually centered */
+  /* border-color: #6366f1; /* indigo-500 */ /* Color is handled by peer-checked on the label now */
 }
 
 .toggle-label {
   transition: background-color 0.2s ease-in-out;
 }
-
 .toggle-checkbox:checked + .toggle-label {
-  background-color: #4f46e5; /* indigo-600, to match save button */
+  background-color: #4f46e5; /* indigo-600 */
+  /* In dark mode, this will be overridden by dark:peer-checked:bg-indigo-500 on the toggle div itself */
 }
 </style>
