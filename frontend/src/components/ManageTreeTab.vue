@@ -1,89 +1,91 @@
 <template>
-  <div class="flex flex-col space-y-4 p-1">
-    <div class="flex items-center">
-      <label for="indian-culture-toggle" class="inline-flex items-center cursor-pointer">
-        <input 
-          id="indian-culture-toggle"
-          type="checkbox" 
-          v-model="isIndianCultureModel" 
-          @change="updateCulture" 
-          class="sr-only peer"
-        >
-        <div class="relative w-9 h-5 bg-white/50 backdrop-blur-sm rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-inset peer-focus:ring-indigo-500 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300/70 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-500/90 shadow"></div>
-        <span class="ml-3 text-sm font-medium text-gray-700">Culture: Indian</span>
-      </label>
-      <span class="tooltip-icon ml-2 text-gray-400 text-xs cursor-help" title="Enable to show fields for traditional Indian dates (Tamil Month/Star/Paksham/Thithi).">?</span>
-    </div>
-
-    <div class="flex items-center">
-      <label for="infer-relationships-toggle" class="inline-flex items-center cursor-pointer">
-        <input 
-          id="infer-relationships-toggle"
-          type="checkbox" 
-          v-model="inferRelationshipsEnabledModel" 
-          @change="updateInferRelationships" 
-          class="sr-only peer"
-        >
-        <div class="relative w-9 h-5 bg-white/50 backdrop-blur-sm rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-inset peer-focus:ring-indigo-500 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300/70 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-500/90 shadow"></div>
-        <span class="ml-3 text-sm font-medium text-gray-700">🔗 Infer Relationships</span>
-      </label>
-       <span class="tooltip-icon ml-2 text-gray-400 text-xs cursor-help" title="If checked, the system will try to automatically infer related spouses, parents, or children. Uncheck for manual control, especially in non-monogamous or complex family structures.">?</span>
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Data File:</label>
-      <div class="flex items-center space-x-2">
-        <input
-          type="file"
-          ref="fileInput"
-          @change="handleFileSelect"
-          class="hidden"
-          accept=".txtpb"
-        />
-        <button
-          @click="triggerFileInput"
-          class="px-4 py-2 bg-blue-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-blue-600/90 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
-        >
-          Choose File
-        </button>
-        <span class="text-sm text-gray-600 truncate">{{ selectedFileName || 'No file chosen' }}</span>
+  <div class="flex flex-col h-full p-1">
+    <div class="flex-grow space-y-4">
+      <div class="flex items-center">
+        <label for="indian-culture-toggle" class="inline-flex items-center cursor-pointer">
+          <input 
+            id="indian-culture-toggle"
+            type="checkbox" 
+            v-model="isIndianCultureModel" 
+            @change="updateCulture" 
+            class="sr-only peer"
+          >
+          <div class="relative w-9 h-5 bg-white/50 backdrop-blur-sm rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-inset peer-focus:ring-indigo-500 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300/70 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-500/90 shadow"></div>
+          <span class="ml-3 text-sm font-medium text-gray-700">Culture: Indian</span>
+        </label>
+        <span class="tooltip-icon ml-2 text-gray-400 text-xs cursor-help" title="Enable to show fields for traditional Indian dates (Tamil Month/Star/Paksham/Thithi).">?</span>
       </div>
+
+      <div class="flex items-center">
+        <label for="infer-relationships-toggle" class="inline-flex items-center cursor-pointer">
+          <input 
+            id="infer-relationships-toggle"
+            type="checkbox" 
+            v-model="inferRelationshipsEnabledModel" 
+            @change="updateInferRelationships" 
+            class="sr-only peer"
+          >
+          <div class="relative w-9 h-5 bg-white/50 backdrop-blur-sm rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-inset peer-focus:ring-indigo-500 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300/70 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-500/90 shadow"></div>
+          <span class="ml-3 text-sm font-medium text-gray-700">🔗 Infer Relationships</span>
+        </label>
+         <span class="tooltip-icon ml-2 text-gray-400 text-xs cursor-help" title="If checked, the system will try to automatically infer related spouses, parents, or children. Uncheck for manual control, especially in non-monogamous or complex family structures.">?</span>
+      </div>
+
       <button
-        @click="loadFile"
-        :disabled="!selectedFile"
-        class="mt-2 w-full px-4 py-2 bg-teal-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-teal-600/90 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+        @click="openAddPersonDialog"
+        :disabled="isDataLoaded()"
+        class="w-full px-4 py-2 bg-purple-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-purple-700/90 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+        :title="isDataLoaded() ? 'Add members via right-click on existing nodes once the tree has people.' : 'Create new family tree and add the first person to the family tree.'"
       >
-        ↑ LOAD SELECTED FILE
+        ➕ NEW FAMILY TREE
       </button>
-    </div>
 
-    <button
-      @click="openAddPersonDialog"
-      :disabled="isDataLoaded()"
-      class="w-full px-4 py-2 bg-purple-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-purple-700/90 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-      :title="isDataLoaded() ? 'Add members via right-click on existing nodes once the tree has people.' : 'Add the first person to the family tree.'"
-    >
-      ➕ ADD NEW PERSON
-    </button>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Load Existing Family Tree:</label>
+        <div class="flex items-center space-x-2">
+          <input
+            type="file"
+            ref="fileInput"
+            @change="handleFileSelect"
+            class="hidden"
+            accept=".txtpb"
+          />
+          <button
+            @click="triggerFileInput"
+            class="px-4 py-2 bg-blue-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-blue-600/90 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+          >
+            Choose File
+          </button>
+          <span class="text-sm text-gray-600 truncate">{{ selectedFileName || 'No file chosen' }}</span>
+        </div>
+        <button
+          @click="loadFile"
+          :disabled="!selectedFile"
+          class="mt-2 w-full px-4 py-2 bg-teal-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-teal-600/90 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          ↑ LOAD FAMILY TREE
+        </button>
+      </div>
 
-    <div class="p-3 bg-white/20 backdrop-blur-sm rounded-lg text-sm text-gray-700 shadow-lg">
-      ✏️ <b>Edit/Connect:</b> Double-click or Right-click a node in the graph.
-    </div>
+      <div class="p-3 bg-white/20 backdrop-blur-sm rounded-lg text-sm text-gray-700 shadow-lg">
+        ✏️ <b>Edit/Connect:</b> Double-click or Right-click a node in the graph.
+      </div>
 
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Export:</label>
-      <button
-        @click="exportData"
-        class="w-full px-4 py-2 bg-indigo-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
-      >
-        💾 EXPORT DATA (.TXTPB)
-      </button>
-       <button
-        @click="exportGraph"
-        class="w-full mt-2 px-4 py-2 bg-indigo-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
-      >
-        📊 EXPORT GRAPH (.HTML)
-      </button>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Export:</label>
+        <button
+          @click="exportData"
+          class="w-full px-4 py-2 bg-indigo-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+        >
+          💾 EXPORT DATA (.TXTPB)
+        </button>
+         <button
+          @click="exportGraph"
+          class="w-full mt-2 px-4 py-2 bg-indigo-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+        >
+          📊 EXPORT GRAPH (.HTML)
+        </button>
+      </div>
     </div>
 
      <button
