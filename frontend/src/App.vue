@@ -17,13 +17,13 @@
     <div class="flex flex-grow overflow-hidden p-1">
       <aside
         :class="{
-          'w-96 flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl p-4 overflow-y-auto': true, // Always has its width and padding
+          'w-96 flex-shrink-0 bg-white/30 backdrop-blur-lg shadow-xl rounded-xl p-4': true, // Always has its width and padding, REMOVED overflow-y-auto
           'transform transition-transform duration-300 ease-in-out': true, // Animate the slide
           '-translate-x-full': !isSidebarOpen, // Slide out when closed
           'translate-x-0': isSidebarOpen,      // Slide in when open
         }"
       >
-        <div :class="{'opacity-0': !isSidebarOpen, 'opacity-100': isSidebarOpen, 'transition-opacity duration-300 ease-in-out': true }">
+        <div :class="{'opacity-0': !isSidebarOpen, 'opacity-100': isSidebarOpen, 'transition-opacity duration-300 ease-in-out': true, 'h-full': true }">
           <Sidebar />
         </div>
       </aside>

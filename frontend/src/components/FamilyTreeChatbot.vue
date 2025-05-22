@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col h-full bg-white/20 backdrop-blur-lg rounded-xl shadow-xl">
-    <div class="flex-grow overflow-y-auto p-3 text-sm">
+  <div ref="chatbotRootEl" class="flex flex-col h-full bg-white/20 backdrop-blur-lg rounded-xl shadow-xl">
+    <div ref="messageAreaEl" class="flex-grow h-0 overflow-y-auto p-3 text-sm">
       <div v-for="(message, index) in messages" :key="index" :class="['mb-2', message.sender === 'user' ? 'text-right' : 'text-left']">
         <span :class="['inline-block p-2 rounded-lg max-w-xs shadow-md', message.sender === 'user' ? 'bg-blue-500/80 backdrop-blur-sm text-white' : 'bg-gray-400/70 backdrop-blur-sm text-gray-800']">
           {{ message.text }}
@@ -28,23 +28,43 @@
 </template>
 
 <script>
-import { nextTick } from 'vue';
+import { nextTick, ref, onMounted, onUpdated } from 'vue';
 
 export default {
   name: 'FamilyTreeChatbot', // Renamed to a multi-word name
-  data() {
-    return {
+  setup() {
+    const chatbotRootEl = ref(null);
+    const messageAreaEl = ref(null);
+    const chatEnd = ref(null);
+
+    const logHeights = (lifecycleHookName) => {
+      if (chatbotRootEl.value && messageAreaEl.value) {
+        console.log(`[Chatbot - ${lifecycleHookName}] Root height: ${chatbotRootEl.value.offsetHeight}px, Message Area height: ${messageAreaEl.value.offsetHeight}px`);
+      } else {
+        console.log(`[Chatbot - ${lifecycleHookName}] Elements not yet available for height logging.`);
+      }
+    };
+
+    onMounted(() => {
+      logHeights('Mounted');
+    });
+
+    onUpdated(() => {
+      logHeights('Updated');
+    });
+
+    const state = ref({
       messages: [], // Array to hold chat messages { sender: 'user' | 'bot', text: '...' }
       currentMessage: '',
-    };
-  },
-  methods: {
-    sendMessage() {
-      if (this.currentMessage.trim()) {
-        const userMessage = this.currentMessage.trim();
-        this.messages.push({ sender: 'user', text: userMessage });
-        this.currentMessage = '';
-        this.scrollToEnd(); // Scroll to the latest message
+    });
+  
+
+    const sendMessage = () => {
+      if (state.value.currentMessage.trim()) {
+        const userMessage = state.value.currentMessage.trim();
+        state.value.messages.push({ sender: 'user', text: userMessage });
+        state.value.currentMessage = '';
+        scrollToEnd(); // Scroll to the latest message
 
         // TODO: Send userMessage to backend chatbot API
         // Replace with your actual backend endpoint
@@ -63,28 +83,36 @@ export default {
         })
         .then(data => {
           const botReply = data.reply || 'Sorry, I could not process your request.';
-          this.messages.push({ sender: 'bot', text: botReply });
-          this.scrollToEnd(); // Scroll to the latest message
+          state.value.messages.push({ sender: 'bot', text: botReply });
+          scrollToEnd(); // Scroll to the latest message
         })
         .catch(error => {
           console.error('Error with chatbot API:', error);
-          this.messages.push({ sender: 'bot', text: `Error: ${error.message}` });
-           this.scrollToEnd(); // Scroll to the latest message
+          state.value.messages.push({ sender: 'bot', text: `Error: ${error.message}` });
+           scrollToEnd(); // Scroll to the latest message
         });
       }
-    },
-    scrollToEnd() {
+    };
+
+    const scrollToEnd = () => {
       nextTick(() => {
-        const chatEnd = this.$refs.chatEnd;
-        if (chatEnd) {
-          chatEnd.scrollIntoView({ behavior: 'smooth' });
+        if (chatEnd.value) {
+          chatEnd.value.scrollIntoView({ behavior: 'smooth' });
         }
       });
-    },
+    };
+
+    return {
+      chatbotRootEl,
+      messageAreaEl,
+      chatEnd,
+      messages: state.value.messages, // Expose for template v-for
+      currentMessage: state.value.currentMessage, // Expose for template v-model
+      sendMessage,
+    };
   },
 };
 </script>
 
 <style scoped>
-/* Scoped styles for the chatbot if needed */
 </style>

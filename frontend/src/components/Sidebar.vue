@@ -51,18 +51,16 @@
       </button>
     </div>
 
-    <div class="flex-grow pr-2 relative overflow-hidden h-full">
-      <Transition :name="transitionName" mode="out-in">
-        <div v-if="activeTab === 'manage'" :key="'manage'" class="w-full h-full">
-          <ManageTreeTab />
-        </div>
-        <div v-else-if="activeTab === 'chat'" :key="'chat'" class="w-full h-full">
-          <FamilyTreeChatbot class="h-full flex flex-col" />
-        </div>
-        <div v-else-if="activeTab === 'about'" :key="'about'" class="w-full h-full">
-          <AboutTab />
-        </div>
-      </Transition>
+    <div class="flex-1 pr-2 relative min-h-0 overflow-y-auto">
+      <div v-if="activeTab === 'manage'" class="w-full h-full">
+        <ManageTreeTab />
+      </div>
+      <div v-else-if="activeTab === 'chat'" class="w-full h-full">
+        <FamilyTreeChatbot />
+      </div>
+      <div v-else-if="activeTab === 'about'" class="w-full h-full">
+        <AboutTab />
+      </div>
     </div>
   </div>
 </template>
@@ -84,8 +82,6 @@ export default {
   setup() {
     const activeTab = ref('manage'); // 'manage', 'chat', or 'about'
     const indicatorStyle = ref({}); // Reactive style object for the indicator
-    const tabOrder = ['manage', 'chat', 'about'];
-    const transitionName = ref('fade'); // Default transition for initial load
 
     // Refs to the tab buttons to measure their positions
     const manageTabButton = ref(null);
@@ -110,19 +106,7 @@ export default {
     };
 
     // Watch for changes in the active tab to update indicator and set transition direction
-    watch(activeTab, (newTab, oldTab) => {
-      if (oldTab) { // Only apply sliding transitions if oldTab is defined (i.e., not initial load)
-        const newIndex = tabOrder.indexOf(newTab);
-        const oldIndex = tabOrder.indexOf(oldTab);
-        if (newIndex > oldIndex) {
-          transitionName.value = 'slide-next'; // New content slides from right
-        } else if (newIndex < oldIndex) {
-          transitionName.value = 'slide-prev'; // New content slides from left
-        } else {
-          transitionName.value = 'fade'; // Fallback if indices are same (should not happen for actual tab change)
-        }
-      }
-
+    watch(activeTab, (newTab) => {
       nextTick(() => { // Ensure DOM updates with new classes before scheduling timeout
         let targetButton = null;
         if (newTab === 'manage' && manageTabButton.value) {
@@ -191,14 +175,12 @@ export default {
       window.removeEventListener('resize', handleResize);
     });
 
-
     return {
       activeTab,
       indicatorStyle,
       manageTabButton,
       chatTabButton,
       aboutTabButton,
-      transitionName, // Ensure transitionName is returned
     };
   },
 };
@@ -206,51 +188,4 @@ export default {
 
 <style scoped>
 /* Scoped styles for the sidebar if needed */
-
-/* Base styles for transitioning elements */
-.slide-next-enter-active,
-.slide-next-leave-active,
-.slide-prev-enter-active,
-.slide-prev-leave-active {
-  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-  position: absolute; /* Allows smooth sliding over each other */
-  top: 0; 
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* Slide Next: Old content slides left, New content slides in from right */
-.slide-next-enter-from {
-  transform: translateX(100%);
-  opacity: 0;
-}
-.slide-next-leave-to {
-  transform: translateX(-100%);
-  opacity: 0;
-}
-
-/* Slide Prev: Old content slides right, New content slides in from left */
-.slide-prev-enter-from {
-  transform: translateX(-100%);
-  opacity: 0;
-}
-.slide-prev-leave-to {
-  transform: translateX(100%);
-  opacity: 0;
-}
-
-/* Fade transition for initial load or fallback */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease-out;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
 </style>
