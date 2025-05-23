@@ -179,6 +179,7 @@ export default {
       const file = event.target.files[0];
       if (file) {
         this.selectedFile = file;
+        console.log('Selected file:', file);
         this.selectedFileName = file.name;
         this.setLoadedFileName(file.name); // Update global state
         this.updateStatus(`File selected: ${file.name}`);
@@ -194,34 +195,44 @@ export default {
         this.updateStatus('Please select a file first.', 3000);
         return;
       }
-      this.updateStatus(`Loading file: ${this.selectedFileName}...`);
-      // TODO: Implement file upload and load logic
-      // You will need to send this.selectedFile to your FastAPI backend
-      // Example: using fetch or axios
-      const formData = new FormData();
-      formData.append('file', this.selectedFile);
+      this.updateStatus(`Reading file: ${this.selectedFileName}...`);
 
-      fetch('/api/load-file', { // Replace with your actual backend endpoint
-        method: 'POST',
-        body: formData,
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('File upload failed.');
-        }
-        return response.json(); // Or response.text() depending on backend response
-      })
-      .then(data => {
-        console.log('File loaded successfully:', data);
-        this.updateStatus('Data loaded successfully!', 5000);
-        this.setDataLoaded(true); // Update global state
-        this.triggerReRender(); // Re-render graph after loading
-      })
-      .catch(error => {
-        console.error('Error loading file:', error);
-        this.updateStatus(`Error loading file: ${error.message}`, 7000);
-        this.setDataLoaded(false); // Update global state
-      });
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const fileContent = e.target.result;
+        console.log('File content:', fileContent);
+        this.updateStatus(`Sending file content to server...`);
+
+        fetch('/api/load-txtpb-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ filename: this.selectedFileName, content: fileContent }),
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(text => { throw new Error(`Server error: ${response.status} ${text || response.statusText}`) });
+          }
+          return response.json(); 
+        })
+        .then(data => {
+          console.log('File processed successfully by backend:', data);
+          this.updateStatus('Data loaded successfully!', 5000);
+          this.setDataLoaded(true); 
+          this.triggerReRender(); 
+        })
+        .catch(error => {
+          console.error('Error loading file:', error);
+          this.updateStatus(`Error loading file: ${error.message}`, 7000);
+          this.setDataLoaded(false); 
+        });
+      };
+      reader.onerror = (e) => {
+        console.error('Error reading file:', e);
+        this.updateStatus('Error reading file from disk.', 5000);
+      };
+      reader.readAsText(this.selectedFile); // Read the file as a text string
     },
     exportData() {
       this.updateStatus('Exporting data...');
@@ -244,11 +255,11 @@ export default {
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url); // Clean up the URL object
-            this.updateStatus('Data exported successfully!', 5000);
+            this.updateStatus('Data exported successfully!', 7000);
         })
         .catch(error => {
             console.error('Error exporting data:', error);
-            this.updateStatus(`Error exporting data: ${error.message}`, 7000);
+            this.updateStatus(`Error exporting data: ${error.message}`, 10000);
         });
     },
      exportGraph() {
