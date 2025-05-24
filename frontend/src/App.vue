@@ -238,6 +238,7 @@ export default {
       this.closeAddPersonModal();
       this.updateStatus('Person added successfully!', 5000);
       this.triggerReRender();
+      this.setDataLoaded(true); // Set data loaded to true as a person has been added
     },
     openEditPersonDialog(memberId) {
       console.log('Triggering Edit Person dialog for ID:', memberId);
