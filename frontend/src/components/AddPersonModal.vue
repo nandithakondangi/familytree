@@ -51,9 +51,7 @@
                 v-model="form.gender"
                 class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
               >
-                <option value="UNKNOWN">GENDER UNKNOWN</option>
-                <option value="MALE">MALE</option>
-                <option value="FEMALE">FEMALE</option>
+                <option v-for="option in genderOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
               </select>
             </div>
 
@@ -74,32 +72,12 @@
               <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300">Date of Birth Details:</h4>
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gregorian DOB:</label>
-                <div class="flex space-x-3">
-                   <input
-                    type="number"
-                    v-model.number="form.gregorianDob.day"
-                    placeholder="DD"
-                    min="1"
-                    max="31"
-                    class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                  />
-                   <input
-                    type="number"
-                    v-model.number="form.gregorianDob.month"
-                    placeholder="MM"
-                    min="1"
-                    max="12"
-                    class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                  />
-                   <input
-                    type="number"
-                    v-model.number="form.gregorianDob.year"
-                    placeholder="YYYY"
-                     min="0"
-                    :max="new Date().getFullYear()"
-                    class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                  />
-                </div>
+                <input
+                  type="date"
+                  v-model="form.gregorianDobString"
+                  :max="todayDateString"
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+                />
               </div>
 
               <div>
@@ -109,17 +87,13 @@
                      v-model="form.traditionalDob.tamilMonth"
                      class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                    >
-                     <option value="">TAMIL MONTH</option>
-                     <option value="chithirai">Chithirai</option>
-                     <option value="vaikasi">Vaikasi</option>
+                     <option v-for="option in TamilMonthOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
                      </select>
                    <select
                      v-model="form.traditionalDob.tamilStar"
                      class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                    >
-                     <option value="">TAMIL STAR</option>
-                     <option value="ashwini">Ashwini</option>
-                     <option value="bharani">Bharani</option>
+                    <option v-for="option in TamilStarOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
                       </select>
                  </div>
                </div>
@@ -157,32 +131,12 @@
                <div v-if="form.isDodKnown" class="space-y-3">
                  <div>
                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gregorian DoD:</label>
-                   <div class="flex space-x-3">
-                      <input
-                       type="number"
-                       v-model.number="form.gregorianDod.day"
-                       placeholder="DD"
-                       min="1"
-                       max="31"
-                       class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                     />
-                      <input
-                       type="number"
-                       v-model.number="form.gregorianDod.month"
-                       placeholder="MM"
-                       min="1"
-                       max="12"
-                       class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                     />
-                      <input
-                       type="number"
-                       v-model.number="form.gregorianDod.year"
-                       placeholder="YYYY"
-                       min="0"
-                       :max="new Date().getFullYear()"
-                       class="block w-1/3 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                     />
-                   </div>
+                   <input
+                     type="date"
+                     v-model="form.gregorianDodString"
+                     :max="todayDateString"
+                     class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+                   />
                  </div>
 
                  <div>
@@ -192,25 +146,19 @@
                         v-model="form.traditionalDod.tamilMonth"
                         class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                       >
-                        <option value="">TAMIL MONTH</option>
-                         <option value="chithirai">Chithirai</option>
-                        <option value="vaikasi">Vaikasi</option>
+                        <option v-for="option in TamilMonthOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
                         </select>
                       <select
                         v-model="form.traditionalDod.paksham"
                         class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                       >
-                        <option value="">PAKSHAM</option>
-                         <option value="krishna">Krishna Paksham</option>
-                        <option value="shukla">Shukla Paksham</option>
+                        <option v-for="option in PakshamOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
                       </select>
                        <select
                         v-model="form.traditionalDod.thithi"
                         class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
                       >
-                        <option value="">THITHI</option>
-                         <option value="prathama">Prathama</option>
-                         <option value="dvitiya">Dvitiya</option>
+                        <option v-for="options in ThithiOptions" :key="options.value" :value="options.value">{{ options.text }}</option>
                          </select>
                     </div>
                   </div>
@@ -242,7 +190,8 @@
 </template>
 
 <script>
-import { reactive, watch } from 'vue';
+import { reactive, watch , computed} from 'vue';
+import { Gender as ProtoGender, TamilMonth as ProtoTamilMonth, TamilStar as ProtoTamilStar, Paksham as ProtoPaksham, Thithi as ProtoThithi } from '../proto/utils_pb';
 
 export default {
   name: 'AddPersonModal',
@@ -262,42 +211,118 @@ export default {
     const form = reactive({
       name: '',
       nicknames: '',
-      gender: 'UNKNOWN',
+      gender: 'GENDER_UNKNOWN',
       isDobKnown: false,
-      gregorianDob: { day: null, month: null, year: null },
-      traditionalDob: { tamilMonth: '', tamilStar: '' },
+      gregorianDobString: '',
+      traditionalDob: { tamilMonth: 'TAMIL_MONTH_UNKNOWN', tamilStar: 'TAMIL_STAR_UNKNOWN' },
       isPersonAlive: true,
       isDodKnown: false,
-      gregorianDod: { day: null, month: null, year: null },
-      traditionalDod: { tamilMonth: '', paksham: '', thithi: '' },
+      gregorianDodString: '',
+      traditionalDod: { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' },
     });
+
+    const getTodayDateStringLocal = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+      const day = today.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    const todayDateString = getTodayDateStringLocal();
+
+    const genderOptions = computed(() => {
+      return Object.keys(ProtoGender).map(key => {
+        // Create a more user-friendly text representation for each option
+        const text = key.replace('GENDER_', '').replace('_', '').toUpperCase();
+        return {
+          value: key,
+          text: text === 'UNKNOWN' ? 'GENDER UNKNOWN' : text,
+        };
+      });
+    });
+
+    const TamilMonthOptions = computed(() => {
+      return Object.keys(ProtoTamilMonth).map(key => {
+        // Create user friendly text representation for each option
+        const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
+        return {
+          value: key,
+          text: text,
+      };
+    });
+  });
+
+  const TamilStarOptions = computed(() => {
+    return Object.keys(ProtoTamilStar).map(key => {
+      // Create user friendly test representation for each option
+      const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
+      return {
+        value: key,
+        text: text,
+      };
+    });
+  });
+
+  const PakshamOptions = computed(() => {
+    return Object.keys(ProtoPaksham).map(key => {
+      // Create user friendly text representation for each option
+      const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
+      return {
+        value: key,
+        text: text,
+      };
+    });
+  });
+  const ThithiOptions = computed(() => {
+    return Object.keys(ProtoThithi).map(key => {
+      // Create user friendly text representation for each option
+      const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
+      return {
+        value: key,
+        text: text,
+    };
+  });
+});
+
 
     // Watch for changes in isPersonAlive to reset isDodKnown if person becomes alive
     watch(() => form.isPersonAlive, (newValue) => {
       if (newValue) {
         form.isDodKnown = false;
          // Optionally clear death date fields when person is marked alive
-         form.gregorianDod = { day: null, month: null, year: null };
-         form.traditionalDod = { tamilMonth: '', paksham: '', thithi: '' };
+         form.gregorianDodString = '';
+         form.traditionalDod = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' };
       }
     });
 
     // Watch for changes in isDobKnown to clear DOB fields if unknown
      watch(() => form.isDobKnown, (newValue) => {
        if (!newValue) {
-         form.gregorianDob = { day: null, month: null, year: null };
-         form.traditionalDob = { tamilMonth: '', tamilStar: '' };
+         form.gregorianDobString = '';
+         form.traditionalDob = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', tamilStar: 'TAMIL_STAR_UNKNOWN' };
        }
      });
 
      // Watch for changes in isDodKnown to clear DOD fields if unknown
       watch(() => form.isDodKnown, (newValue) => {
         if (!newValue) {
-          form.gregorianDod = { day: null, month: null, year: null };
-          form.traditionalDod = { tamilMonth: '', paksham: '', thithi: '' };
+          form.gregorianDodString = '';
+          form.traditionalDod = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' };
         }
       });
 
+    const parseDateString = (dateString) => {
+      if (!dateString) return null;
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        return {
+          day: parseInt(parts[2], 10),
+          month: parseInt(parts[1], 10),
+          year: parseInt(parts[0], 10),
+        };
+      }
+      return null;
+    };
 
     const closeModal = () => {
       emit('close'); // Emit close event to parent
@@ -311,17 +336,20 @@ export default {
         return;
       }
 
+      const gregorianDobObject = form.isDobKnown ? parseDateString(form.gregorianDobString) : null;
+      const gregorianDodObject = (!form.isPersonAlive && form.isDodKnown) ? parseDateString(form.gregorianDodString) : null;
+
       // Prepare data to send to backend
       const memberData = {
         name: form.name.trim(),
         nicknames: form.nicknames.split(',').map(name => name.trim()).filter(name => name), // Split and trim nicknames
         gender: form.gender,
         is_dob_known: form.isDobKnown,
-        gregorian_dob: form.isDobKnown ? form.gregorianDob : null,
+        gregorian_dob: gregorianDobObject,
         traditional_dob: (form.isDobKnown /* && props.isIndianCulture */) ? form.traditionalDob : null, // Conditionally include traditional DOB
         is_alive: form.isPersonAlive,
         is_dod_known: !form.isPersonAlive ? form.isDodKnown : false, // Only relevant if not alive
-        gregorian_dod: (!form.isPersonAlive && form.isDodKnown) ? form.gregorianDod : null,
+        gregorian_dod: gregorianDodObject,
         traditional_dod: (!form.isPersonAlive && form.isDodKnown /* && props.isIndianCulture */) ? form.traditionalDod : null, // Conditionally include traditional DOD
       };
 
@@ -362,37 +390,24 @@ export default {
     const resetForm = () => {
       form.name = '';
       form.nicknames = '';
-      form.gender = 'UNKNOWN';
+      form.gender = 'GENDER_UNKNOWN';
       form.isDobKnown = false;
-      form.gregorianDob = { day: null, month: null, year: null };
-      form.traditionalDob = { tamilMonth: '', tamilStar: '' };
+      form.gregorianDobString = '';
+      form.traditionalDob = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', tamilStar: 'TAMIL_STAR_UNKNOWN' };
       form.isPersonAlive = true;
       form.isDodKnown = false;
-      form.gregorianDod = { day: null, month: null, year: null };
-      form.traditionalDod = { tamilMonth: '', paksham: '', thithi: '' };
+      form.gregorianDodString = '';
+      form.traditionalDod = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' };
     };
-
-    // TODO: Fetch dropdown options (Gender, Tamil Months, Stars, Paksham, Thithi)
-    // You would typically do this on component mount or when the modal becomes visible
-    // Example:
-    // onMounted(() => {
-    //   fetchDropdownOptions();
-    // });
-    //
-    // const fetchDropdownOptions = () => {
-    //   fetch('/api/dropdown-options') // Replace with your backend endpoint
-    //     .then(response => response.json())
-    //     .then(data => {
-    //       // Populate dropdown options data properties
-    //       // e.g., this.genderOptions = data.genders;
-    //     })
-    //     .catch(error => console.error('Error fetching dropdown options:', error));
-    // };
-
 
     return {
       form,
-      // isVisible is a prop, no need to return it from setup
+      genderOptions,
+      TamilMonthOptions,
+      TamilStarOptions,
+      PakshamOptions,
+      ThithiOptions,
+      todayDateString,
       closeModal,
       saveMember,
       // isIndianCulture: props.isIndianCulture, // Expose prop if needed in template

@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "compile-protos": "mkdir -p ./src/proto && npx grpc_tools_node_protoc --plugin=protoc-gen-js=./node_modules/.bin/grpc_tools_node_protoc_js_plugin --js_out=import_style=typescript,binary:./src/proto -I=.. ../proto/utils.proto ../proto/family_tree.proto"
+    "compile-protos": "mkdir -p ./src/proto && npx grpc_tools_node_protoc --plugin=protoc-gen-js=./node_modules/.bin/grpc_tools_node_protoc_js_plugin --js_out=import_style=commonjs,binary:./src -I=.. ../proto/utils.proto ../proto/family_tree.proto"
   },
   "dependencies": {
     "core-js": "^3.8.3",
