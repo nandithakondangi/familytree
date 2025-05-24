@@ -71,6 +71,8 @@
     <!-- Global Add Person Modal -->
     <AddPersonModal
       :isVisible="isAddPersonModalVisible"
+      :isIndianCulture="isIndianCulture"
+      :inferRelationshipsEnabled="inferRelationshipsEnabled"
       @close="closeAddPersonModal"
       @save="handlePersonAdded"
     />

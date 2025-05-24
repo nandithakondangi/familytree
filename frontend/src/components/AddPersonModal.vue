@@ -80,7 +80,7 @@
                 />
               </div>
 
-              <div>
+              <div v-if="isIndianCulture">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traditional DOB:</label>
                  <div class="flex space-x-3">
                    <select
@@ -139,7 +139,7 @@
                    />
                  </div>
 
-                 <div>
+                 <div v-if="isIndianCulture">
                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traditional DoD:</label>
                     <div class="grid grid-cols-3 gap-3">
                       <select
@@ -200,11 +200,14 @@ export default {
       type: Boolean,
       required: true,
     },
-     // You might want to pass the culture setting as a prop
-     // isIndianCulture: {
-     //   type: Boolean,
-     //   default: true, // Default based on your App.vue setting
-     // }
+     isIndianCulture: {
+       type: Boolean,
+       required: true,
+     },
+     inferRelationshipsEnabled: {
+       type: Boolean,
+       required: true,
+     }
   },
   emits: ['close', 'save'], // Declare emitted events
   setup(props, { emit }) {
@@ -410,7 +413,6 @@ export default {
       todayDateString,
       closeModal,
       saveMember,
-      // isIndianCulture: props.isIndianCulture, // Expose prop if needed in template
     };
   },
 };
