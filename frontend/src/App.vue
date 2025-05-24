@@ -71,6 +71,8 @@
     <!-- Global Add Person Modal -->
     <AddPersonModal
       :isVisible="isAddPersonModalVisible"
+      :isIndianCulture="isIndianCulture"
+      :inferRelationshipsEnabled="inferRelationshipsEnabled"
       @close="closeAddPersonModal"
       @save="handlePersonAdded"
     />
@@ -236,6 +238,7 @@ export default {
       this.closeAddPersonModal();
       this.updateStatus('Person added successfully!', 5000);
       this.triggerReRender();
+      this.setDataLoaded(true); // Set data loaded to true as a person has been added
     },
     openEditPersonDialog(memberId) {
       console.log('Triggering Edit Person dialog for ID:', memberId);
@@ -274,5 +277,45 @@ export default {
 /* Basic styling for the app */
 body { /* Ensure body also gets the base font if #app doesn't cover everything initially */
   font-family: 'Quicksand', sans-serif;
+}
+
+/* Custom Scrollbar Styles for Webkit-based browsers */
+::-webkit-scrollbar {
+  width: 8px; /* Width of the vertical scrollbar */
+  height: 8px; /* Height of the horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Make the track invisible */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.5); /* Neutral semi-transparent color (slate-500 @ 50%) */
+  border-radius: 10px; /* Rounded corners for the thumb */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle light border for a glassy edge */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.7); /* Darken/intensify on hover */
+}
+
+/* Dark mode specific scrollbar thumb for Webkit */
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.4); /* Lighter semi-transparent color for dark mode (slate-400 @ 40%) */
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Subtle dark border */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.6); /* Lighten/intensify on hover */
+}
+
+/* Basic Firefox Scrollbar Styling (less customizable for "glassy" but improves consistency) */
+* {
+  scrollbar-width: thin; /* Makes scrollbar thinner */
+  scrollbar-color: rgba(100, 116, 139, 0.5) transparent; /* thumb color, track color (transparent) */
+}
+
+.dark * {
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent; /* thumb color for dark mode, track color (transparent) */
 }
 </style>
