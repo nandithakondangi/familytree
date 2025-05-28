@@ -169,17 +169,15 @@ export default {
         }, timeout);
       }
     },
-    // Method to update the culture setting (would likely call backend)
+    // Method to update the culture setting
     updateCultureSetting(isChecked) {
       this.isIndianCulture = isChecked;
       console.log('Culture setting updated:', this.isIndianCulture);
-      // TODO: Call backend API to update culture setting
     },
-    // Method to update the inference setting (would likely call backend)
+    // Method to update the inference setting
     updateInferRelationshipsSetting(isChecked) {
       this.inferRelationshipsEnabled = isChecked;
       console.log('Inference setting updated:', this.inferRelationshipsEnabled);
-      // TODO: Call backend API to update inference setting
     },
     // Method to set the loaded file name
     setLoadedFileName(fileName) {
@@ -188,7 +186,6 @@ export default {
     // Method to set the data loaded state
     setDataLoaded(isLoaded) {
       this.isDataLoaded = isLoaded;
-      // Update button states based on data loaded state if needed
     },
     // Method to set the member ID for editing (triggers dialog in a real app)
     setMemberIdToEdit(memberId) {
@@ -234,11 +231,10 @@ export default {
       this.isAddPersonModalVisible = false;
     },
     handlePersonAdded(newPersonData) {
-      console.log('[App.vue] Person added from modal:', newPersonData);
       this.closeAddPersonModal();
       this.updateStatus('Person added successfully!', 5000);
       this.triggerReRender();
-      this.setDataLoaded(true); // Set data loaded to true as a person has been added
+      this.setDataLoaded(true);
     },
     openEditPersonDialog(memberId) {
       console.log('Triggering Edit Person dialog for ID:', memberId);
