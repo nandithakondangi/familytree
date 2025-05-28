@@ -11,7 +11,7 @@ router = APIRouter(
 )
 
 
-@router.get("/render/")
+@router.get("/render")
 async def get_data_with_poi(poi: str | None = None, degree: int = 2):
     """
     Renders graph data for the family tree.
@@ -22,14 +22,14 @@ async def get_data_with_poi(poi: str | None = None, degree: int = 2):
         poi: Optional ID of the person to center the graph on.
         degree: The number of degrees of separation to display from the POI or root.
     """
-    placeholder = ""
-    message = f"Endpoint /graph/render{placeholder} is not implemented yet."
     if poi:
-        placeholder = f"?poi={poi}&degree={degree}"
+        message = (
+            f"Endpoint /graph/render?poi={poi}&degree={degree} is not implemented yet."
+        )
         logger.warning(message)
         return HTTPException(status_code=501, detail=message)
     else:
-        placeholder = f"?degree={degree}"
+        message = f"Endpoint /graph/render?degree={degree} is not implemented yet."
         logger.warning(message)
         return HTTPException(status_code=501, detail=message)
 
