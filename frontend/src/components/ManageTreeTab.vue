@@ -245,19 +245,18 @@ export default {
           console.log('User confirmed to clear existing tree and start a new one.');
 
           this.currentFileHandle = null;
-          this.setLoadedFileName(null); // Clear loaded file name from global state
-          this.selectedFile = null; // Clear local selected file
-          // selectedFileName will be updated by the watcher on loadedFileName
+          this.setLoadedFileName(null);
+          this.selectedFile = null;
           
-          this.setDataLoaded(false); // Set data loaded to false
+          this.setDataLoaded(false);
           this.updateStatus('Previous tree cleared. Starting a new family tree.', 5000);
-          this.triggerReRender(); // Re-render the graph (should be empty now)
-          this.openAddPersonDialog(); // Open modal to add the first person to the new tree
+          this.triggerReRender();
+          this.openAddPersonDialog();
         } else {
           this.updateStatus('Operation cancelled by user.', 3000);
         }
       } else {
-        this.openAddPersonDialog(); // No data loaded, directly open modal
+        this.openAddPersonDialog();
       }
     },
     async triggerFileInput() {
@@ -314,7 +313,7 @@ export default {
         console.log('File content:', fileContent);
         this.updateStatus(`Sending file content to server...`);
 
-        const response = await fetch('/api/load-txtpb-content', {
+        const response = await fetch('/api/v1/manage/load_family', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: this.selectedFileName, content: fileContent }),
@@ -342,7 +341,7 @@ export default {
     async saveData() {
       this.updateStatus('Saving data...');
       try {
-        const blob = await this._fetchBlobOrThrow('/api/export-data', 'Data export for save');
+        const blob = await this._fetchBlobOrThrow('/api/v1/manage/save_family', 'Data export for save');
         const baseSuggestedName = this.loadedFileName() || 'family_tree_data.txtpb';
         let suggestedName = this.currentFileHandle?.name || baseSuggestedName;
 
@@ -386,7 +385,7 @@ export default {
 
       this.updateStatus('Exporting data snapshot...');
       try {
-        const blob = await this._fetchBlobOrThrow('/api/export-data', 'Data snapshot export');
+        const blob = await this._fetchBlobOrThrow('/api/v1/manage/export_family_snapshot', 'Data snapshot export');
         await this._saveFileWithPickerOrFallback(blob, {
           suggestedName,
           types: [{ description: fileDescription, accept: { [acceptMimeType]: [acceptExtension] } }],
@@ -406,7 +405,7 @@ export default {
 
       this.updateStatus('Exporting graph...');
       try {
-        const blob = await this._fetchBlobOrThrow('/api/export-graph', 'Interactive graph export');
+        const blob = await this._fetchBlobOrThrow('/api/v1/manage/export_interactive_graph', 'Interactive graph export');
         await this._saveFileWithPickerOrFallback(blob, {
           suggestedName,
           types: [{ description: fileDescription, accept: { [acceptMimeType]: [acceptExtension] } }],
