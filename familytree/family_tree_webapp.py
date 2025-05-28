@@ -4,13 +4,13 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-# --- Configuration ---
+from familytree.routers import chat_router, graph_router, manage_router
+
 PYTHON_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_PROJECT_DIR = os.path.dirname(PYTHON_DIR)
 FRONTEND_DIST_DIR = os.path.join(BASE_PROJECT_DIR, "frontend", "dist")
 INDEX_HTML_FILE = os.path.join(FRONTEND_DIST_DIR, "index.html")
 
-# --- Logger Setup ---
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -18,8 +18,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# Initialize FastAPI app
 app = FastAPI(
     title="FamilyTree API",
     version="1.0.0",
@@ -27,7 +25,6 @@ app = FastAPI(
 )
 
 
-# --- API Endpoints ---
 @app.get("/api/v1", tags=["API Info"])
 async def api_root():
     """Provides basic information about the API."""
@@ -40,26 +37,9 @@ async def health_check():
     return {"status": "ok", "message": "API is healthy"}
 
 
-@app.get("/api/v1/manage", tags=["Family Data"])
-async def get_manage_data():
-    """Placeholder for an endpoint to manage family data."""
-    # Replace with your actual data fetching logic
-    return {"message": "Data from /api/v1/manage", "items": ["item1", "item2"]}
-
-
-@app.post("/api/v1/chat", tags=["Communication"])
-async def post_chat_message(payload: dict):  # Assuming a JSON payload
-    """Placeholder for a chat endpoint."""
-    # Replace with your actual chat logic
-    if not payload or "message" not in payload:
-        raise HTTPException(
-            status_code=400, detail="Payload must contain a 'message' field."
-        )
-    return {
-        "status": "success",
-        "received_message": payload.get("message"),
-        "reply": "Message processed.",
-    }
+app.include_router(chat_router.router, prefix="/api/v1")
+app.include_router(graph_router.router, prefix="/api/v1")
+app.include_router(manage_router.router, prefix="/api/v1")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
@@ -68,32 +48,37 @@ async def serve_vue_frontend(full_path: str):
     Serves static files from the Vue frontend build directory.
     If a file is not found, it serves the main index.html to allow
     client-side routing by the Vue application.
+
+    Args:
+        full_path: The path requested by the client.
+
+    Returns:
+        FileResponse: Either the requested static file or index.html.
+
+    Raises:
+        HTTPException: If an API path is mistakenly routed here or if index.html is not found.
     """
-    # Check if the path looks like an API call.
     if "api" in full_path.lower():
         logger.warning(
-            f"API call requested: {full_path}. Either this is an invalid API path or it is not implemented yet."
+            f"API call requested: {full_path}. Either this is an invalid API path."
         )
         raise HTTPException(
             status_code=404,
-            detail=f"API call requested: {full_path}. Either this is an invalid API path or it is not implemented yet.",
+            detail=f"API call requested: {full_path}. Either this is an invalid API path.",
         )
 
-    # Construct the potential path to a static file
     static_file_path = os.path.join(FRONTEND_DIST_DIR, full_path)
 
-    # Check if the requested path is a file and exists
     if os.path.isfile(static_file_path):
         return FileResponse(static_file_path)
 
-    # If it's not a direct file (e.g., it's "/", "/about", "/user/profile", etc.),
-    # or if the file doesn't exist, serve the main index.html for the SPA.
+    # If the requested path is not a direct file (e.g., for SPA routing like "/", "/about"),
+    # or if the specific file doesn't exist, serve the main index.html.
     if os.path.exists(INDEX_HTML_FILE):
         return FileResponse(INDEX_HTML_FILE)
 
-    # If index.html itself is not found (which means frontend isn't built or path is wrong)
     logger.error(
-        f"SPA index.html not found. Ensure frontend is built. Requested path: {full_path}"
+        f"SPA index.html not found at {INDEX_HTML_FILE}. Ensure frontend is built. Requested path: {full_path}"
     )
     raise HTTPException(
         status_code=404, detail="SPA index.html not found. Ensure frontend is built."
