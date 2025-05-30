@@ -2,6 +2,14 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
+from familytree import app_state
+from familytree.models.base_model import OK_STATUS
+from familytree.models.manage_model import (
+    CreateFamilyResponse,
+    LoadFamilyRequest,
+    LoadFamilyResponse,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -11,24 +19,34 @@ router = APIRouter(
 )
 
 
-@router.post("/create_family")
+@router.post("/create_family", response_model=CreateFamilyResponse)
 async def create_new_family():
     """
-    Creates a new, empty family tree structure and adds the first family member.
+    Creates a new, empty family tree structure
     """
-    message = "Endpoint /manage/create_family is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    try:
+        app_state.reset_current_family_tree_handler()
+        message = "New family tree created."
+        return CreateFamilyResponse(status=OK_STATUS, message=message)
+    except Exception as e:
+        error_message = "Unexpected error occured during create family operation."
+        logger.exception(error_message, e)
+        raise HTTPException(status_code=500, detail=error_message)
 
 
-@router.post("/load_family")
-async def load_family_data():
+@router.post("/load_family", response_model=LoadFamilyResponse)
+async def load_family_data(request: LoadFamilyRequest):
     """
     Loads existing family tree data from a specified source (e.g., a file).
     """
-    message = "Endpoint /manage/load_family_data is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    try:
+        app_state.reset_current_family_tree_handler()
+        family_handler = app_state.get_current_family_tree_handler()
+        return family_handler.load_family_tree(request)
+    except Exception as e:
+        error_message = "Unexpected error occured during load family operation."
+        logger.exception(error_message, e)
+        raise HTTPException(status_code=500, detail=error_message)
 
 
 @router.post("/add_family_member")

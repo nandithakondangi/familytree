@@ -5,7 +5,7 @@ from networkx import DiGraph
 
 from familytree.proto import (
     family_tree_pb2,
-    utils_pb2,  # Assuming utils.proto generates utils_pb2
+    utils_pb2,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class ProtoHandler:
         """
         Initializes the ProtoHandler with an empty FamilyTree protobuf message.
         """
-        self.family_tree = family_tree_pb2.FamilyTree()
+        self._family_tree = family_tree_pb2.FamilyTree()
 
     def get_family_tree(self) -> family_tree_pb2.FamilyTree:
         """
@@ -29,7 +29,7 @@ class ProtoHandler:
         Returns:
             family_tree_pb2.FamilyTree: The internal FamilyTree message instance.
         """
-        return self.family_tree
+        return self._family_tree
 
     def load_from_textproto(self, family_tree_textproto: str) -> None:
         """
@@ -45,7 +45,7 @@ class ProtoHandler:
         """
         logger.info("Loading FamilyTree from text proto")
         try:
-            text_format.Merge(family_tree_textproto, self.family_tree)
+            text_format.Merge(family_tree_textproto, self._family_tree)
             logger.info("Successfully loaded FamilyTree from text proto")
         except text_format.ParseError as e:
             logger.error(f"Error parsing text proto: {e}")
@@ -54,17 +54,6 @@ class ProtoHandler:
             logger.exception(
                 f"An unexpected error occured when loading FamilyTree from text proto: {e}"
             )
-
-    def create_nx_graph(self) -> DiGraph:
-        """
-        Creates a NetworkX DiGraph representation of the family tree.
-
-        Note: This method is not yet implemented.
-
-        Returns:
-            DiGraph: A NetworkX directed graph.
-        """
-        pass
 
     def update_from_nx_graph(self, nx_graph: DiGraph) -> None:
         """
@@ -100,7 +89,7 @@ class ProtoHandler:
         """
         self.update_from_nx_graph(nx_graph)
         self.load_from_textproto(other_family_tree_textproto)
-        self._deduplicate_family_members()
+        self._deduplicate_family_members()  # This method already uses underscore, so it's consistent
 
     def save_to_textproto(self) -> str:
         """
@@ -109,7 +98,7 @@ class ProtoHandler:
         Returns:
             str: The family tree data as a text protobuf string.
         """
-        return text_format.MessageToString(self.family_tree, indent=2)
+        return text_format.MessageToString(self._family_tree, indent=2)
 
     @staticmethod
     def create_family_member(

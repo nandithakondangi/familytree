@@ -1,15 +1,19 @@
 import logging
 import os
+import sys
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-
-from familytree.routers import chat_router, graph_router, manage_router
 
 PYTHON_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_PROJECT_DIR = os.path.dirname(PYTHON_DIR)
 FRONTEND_DIST_DIR = os.path.join(BASE_PROJECT_DIR, "frontend", "dist")
 INDEX_HTML_FILE = os.path.join(FRONTEND_DIST_DIR, "index.html")
+
+sys.path.append(BASE_PROJECT_DIR)
+sys.path.append(PYTHON_DIR)
+
+from familytree.routers import chat_router, graph_router, manage_router  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
