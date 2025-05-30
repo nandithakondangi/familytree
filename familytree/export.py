@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from utils import ResourceUtility
+from utils_legacy import ResourceUtility
 
 
 # --- ExportWidget ---

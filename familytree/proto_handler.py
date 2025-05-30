@@ -5,7 +5,7 @@ import string
 
 from google.protobuf import text_format
 from google.protobuf.json_format import MessageToDict
-from utils import DateUtility, ResourceUtility
+from utils_legacy import DateUtility, ResourceUtility
 
 import proto.family_tree_pb2 as family_tree_pb2
 import proto.utils_pb2 as utils_pb2
