@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full p-1">
     <div class="flex-grow space-y-4">
-      <div class="flex items-center">
+      <div class="flex items-center mt-1">
         <label for="indian-culture-toggle" class="inline-flex items-center cursor-pointer">
           <input 
             id="indian-culture-toggle"
@@ -32,10 +32,9 @@
       </div>
 
       <button
-        @click="openAddPersonDialog"
-        :disabled="isDataLoaded()"
+        @click="handleNewFamilyTreeRequest"
         class="w-full px-4 py-2 bg-purple-600/80 dark:bg-purple-700/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-purple-700/90 dark:hover:bg-purple-600/90 focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-        :title="isDataLoaded() ? 'Add members via right-click on existing nodes once the tree has people.' : 'Create new family tree and add the first person to the family tree.'"
+        :title="isDataLoaded() ? 'Clear current tree and start a new one. Unsaved changes will be lost.' : 'Create new family tree and add the first person to the family tree.'"
       >
         ➕ NEW FAMILY TREE
       </button>
@@ -74,16 +73,25 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Export:</label>
         <button
-          @click="exportData"
+          @click="saveData"
           class="w-full px-4 py-2 bg-indigo-500/80 dark:bg-indigo-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 dark:hover:bg-indigo-500/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+          title="Saves the current family tree data to a .txtpb file. If a file was previously loaded or saved using the file picker, it attempts to save to the same file."
         >
-          💾 EXPORT DATA (.TXTPB)
+          💾 SAVE DATA (.txtpb)
+        </button>
+        <button
+          @click="exportCurrentSnapshot"
+          class="w-full mt-2 px-4 py-2 bg-indigo-400/80 dark:bg-indigo-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-500/90 dark:hover:bg-indigo-400/90 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-300 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+          title="Exports the current state of the family tree data to a new .txtpb file. This always prompts for a new file location."
+        >
+          📸 EXPORT DATA SNAPSHOT (.txtpb)
         </button>
          <button
           @click="exportGraph"
-          class="w-full mt-2 px-4 py-2 bg-indigo-500/80 dark:bg-indigo-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 dark:hover:bg-indigo-500/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+          class="w-full mt-2 px-4 py-2 bg-green-500/80 dark:bg-green-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-green-600/90 dark:hover:bg-green-500/90 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+          title="Exports the family tree as an interactive HTML graph file. This always prompts for a new file location."
         >
-          📊 EXPORT GRAPH (.HTML)
+          📊 EXPORT INTERACTIVE GRAPH (.html)
         </button>
       </div>
     </div>
@@ -99,7 +107,7 @@
 </template>
 
 <script>
-import { inject } from 'vue';
+import { inject, ref } from 'vue';
 export default {
   name: 'ManageTreeTab',
   components: {
@@ -120,6 +128,8 @@ export default {
     const triggerReRender = inject('triggerReRender');
     // Inject other methods needed for actions like export, etc.
     const handleAddRelationship = inject('handleAddRelationship'); // Example usage for context menu actions
+    const currentFileHandle = ref(null); // To store the FileSystemFileHandle
+
     const handleDeleteMember = inject('handleDeleteMember'); // Example usage for context menu actions
     const handleConnectToExisting = inject('handleConnectToExisting'); // Example usage for context menu actions
 
@@ -136,6 +146,7 @@ export default {
       setDataLoaded,
       openAddPersonDialog,
       triggerReRender,
+      currentFileHandle,
       handleAddRelationship, // Expose if needed for child components or direct calls
       handleDeleteMember, // Expose if needed
       handleConnectToExisting, // Expose if needed
@@ -144,7 +155,7 @@ export default {
   data() {
     return {
       selectedFile: null,
-      selectedFileName: '',
+      selectedFileName: this.loadedFileName() || '', // Initialize with globally loaded file name if any
       // Use internal models for checkboxes bound to injected values
       isIndianCultureModel: this.isIndianCulture(),
       inferRelationshipsEnabledModel: this.inferRelationshipsEnabled(),
@@ -155,32 +166,134 @@ export default {
     isIndianCulture: {
       handler(newValue) {
         this.isIndianCultureModel = newValue();
-      },
-      deep: true
+      }
     },
      inferRelationshipsEnabled: {
       handler(newValue) {
         this.inferRelationshipsEnabledModel = newValue();
-      },
-      deep: true
+      }
     },
      loadedFileName: {
       handler(newValue) {
         this.selectedFileName = newValue();
-      },
-      deep: true
+      }
     },
   },
   methods: {
-    triggerFileInput() {
-      this.$refs.fileInput.click();
+    // --- Helper Methods ---
+    async _fetchBlobOrThrow(url, operationName = 'Data fetch') {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${operationName} failed: ${response.status} ${errorText || response.statusText}`);
+      }
+      return response.blob();
+    },
+
+    async _writeFileToHandle(fileHandle, blob) {
+      if (typeof fileHandle.queryPermission === 'function') {
+        if (await fileHandle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
+          if (await fileHandle.requestPermission({ mode: 'readwrite' }) !== 'granted') {
+            throw new Error('Permission to write to the file was not granted.');
+          }
+        }
+      } else if (typeof fileHandle.requestPermission === 'function') {
+         // Fallback for browsers that might not have queryPermission but have requestPermission
+        if (await fileHandle.requestPermission({ mode: 'readwrite' }) !== 'granted') {
+          throw new Error('Permission to write to the file was not granted.');
+        }
+      }
+      // If permissions are fine or not explicitly manageable this way, proceed.
+      const writableStream = await fileHandle.createWritable();
+      await writableStream.write(blob);
+      await writableStream.close();
+    },
+
+    async _saveFileWithPickerOrFallback(blob, { suggestedName, types, successMessageBase, isGraphExportForFallback }) {
+      if (window.showSaveFilePicker) {
+        try {
+          const fileHandle = await window.showSaveFilePicker({ suggestedName, types });
+          await this._writeFileToHandle(fileHandle, blob); // Use the helper here too
+          this.updateStatus(`${successMessageBase} as ${fileHandle.name} successfully!`, 7000);
+          return fileHandle;
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            this.updateStatus(`${successMessageBase} cancelled by user.`, 3000);
+          } else if (err.message.includes('Permission to write')) { // Specific error from _writeFileToHandle
+            this.updateStatus(`Save cancelled: ${err.message}. Falling back to download.`, 7000);
+            this.fallbackDownload(blob, suggestedName, isGraphExportForFallback);
+          } 
+          else {
+            console.error(`Error using File System Access API for ${successMessageBase.toLowerCase()}:`, err);
+            this.updateStatus(`Error saving ${successMessageBase.toLowerCase()}: ${err.message}. Falling back to download.`, 7000);
+            this.fallbackDownload(blob, suggestedName, isGraphExportForFallback);
+          }
+        }
+      } else {
+        this.updateStatus(`Using standard download method for ${successMessageBase.toLowerCase()}.`, 3000);
+        this.fallbackDownload(blob, suggestedName, isGraphExportForFallback);
+      }
+      return null; // No handle if fallback or error not leading to a handle
+    },
+
+    // --- Main Functionality Methods ---
+    handleNewFamilyTreeRequest() {
+      if (this.isDataLoaded()) {
+        if (confirm('This operation will clear the existing family tree and unsaved changes will be lost. Are you sure you want to proceed?')) {
+          // TODO: Call backend API to clear the current tree session if necessary.
+          // For example: fetch('/api/clear-tree', { method: 'POST' });
+          console.log('User confirmed to clear existing tree and start a new one.');
+
+          this.currentFileHandle = null;
+          this.setLoadedFileName(null); // Clear loaded file name from global state
+          this.selectedFile = null; // Clear local selected file
+          // selectedFileName will be updated by the watcher on loadedFileName
+          
+          this.setDataLoaded(false); // Set data loaded to false
+          this.updateStatus('Previous tree cleared. Starting a new family tree.', 5000);
+          this.triggerReRender(); // Re-render the graph (should be empty now)
+          this.openAddPersonDialog(); // Open modal to add the first person to the new tree
+        } else {
+          this.updateStatus('Operation cancelled by user.', 3000);
+        }
+      } else {
+        this.openAddPersonDialog(); // No data loaded, directly open modal
+      }
+    },
+    async triggerFileInput() {
+      if (window.showOpenFilePicker) {
+        try {
+          const [fileHandle] = await window.showOpenFilePicker({
+            types: [{
+              description: 'Family Tree Data',
+              accept: { 'text/plain': ['.txtpb'] },
+            }],
+            multiple: false,
+          });
+          this.selectedFile = await fileHandle.getFile(); // Get the File object
+          this.selectedFileName = this.selectedFile.name;
+          this.currentFileHandle = fileHandle; // Store the handle
+          this.setLoadedFileName(this.selectedFileName);
+          this.updateStatus(`File selected: ${this.selectedFileName}`);
+          // Optionally, you could automatically call this.loadFile() here
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            console.error('Error using showOpenFilePicker:', err);
+            this.updateStatus('Error selecting file. Using fallback.', 3000);
+          } // User cancelled is fine, no message needed or a subtle one.
+        }
+      } else {
+        this.$refs.fileInput.click(); // Fallback to traditional input
+      }
     },
     handleFileSelect(event) {
       const file = event.target.files[0];
       if (file) {
         this.selectedFile = file;
+        console.log('Selected file:', file);
         this.selectedFileName = file.name;
         this.setLoadedFileName(file.name); // Update global state
+        this.currentFileHandle = null; // Clear any previous handle if using input type=file
         this.updateStatus(`File selected: ${file.name}`);
       } else {
         this.selectedFile = null;
@@ -189,103 +302,140 @@ export default {
         this.updateStatus('No file selected.');
       }
     },
-    loadFile() {
+    async loadFile() {
       if (!this.selectedFile) {
         this.updateStatus('Please select a file first.', 3000);
         return;
       }
-      this.updateStatus(`Loading file: ${this.selectedFileName}...`);
-      // TODO: Implement file upload and load logic
-      // You will need to send this.selectedFile to your FastAPI backend
-      // Example: using fetch or axios
-      const formData = new FormData();
-      formData.append('file', this.selectedFile);
+      this.updateStatus(`Reading file: ${this.selectedFileName}...`);
 
-      fetch('/api/load-file', { // Replace with your actual backend endpoint
-        method: 'POST',
-        body: formData,
-      })
-      .then(response => {
+      try {
+        const fileContent = await this.selectedFile.text(); // Modern way to read File as text
+        console.log('File content:', fileContent);
+        this.updateStatus(`Sending file content to server...`);
+
+        const response = await fetch('/api/load-txtpb-content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: this.selectedFileName, content: fileContent }),
+        });
+
         if (!response.ok) {
-          throw new Error('File upload failed.');
+          const text = await response.text();
+          throw new Error(`Server error: ${response.status} ${text || response.statusText}`);
         }
-        return response.json(); // Or response.text() depending on backend response
-      })
-      .then(data => {
-        console.log('File loaded successfully:', data);
+        
+        const data = await response.json();
+        console.log('File processed successfully by backend:', data);
         this.updateStatus('Data loaded successfully!', 5000);
-        this.setDataLoaded(true); // Update global state
-        this.triggerReRender(); // Re-render graph after loading
-      })
-      .catch(error => {
+        this.setDataLoaded(true);
+        // If loaded via <input type="file">, currentFileHandle would be null.
+        // If loaded via showOpenFilePicker, currentFileHandle is already set.
+        this.triggerReRender();
+      } catch (error) {
         console.error('Error loading file:', error);
         this.updateStatus(`Error loading file: ${error.message}`, 7000);
-        this.setDataLoaded(false); // Update global state
-      });
+        this.setDataLoaded(false);
+        if (this.currentFileHandle) this.currentFileHandle = null; // Clear handle on load error
+      }
     },
-    exportData() {
-      this.updateStatus('Exporting data...');
-      // TODO: Call backend API to export data (.txtpb)
-      // The backend should return the file or a link to download it
-       fetch('/api/export-data') // Replace with your actual backend endpoint
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Data export failed.');
-            }
-            return response.blob(); // Get the response as a Blob
-        })
-        .then(blob => {
-            // Create a temporary link to download the file
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = 'family_tree_data.txtpb'; // Suggested download file name
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url); // Clean up the URL object
-            this.updateStatus('Data exported successfully!', 5000);
-        })
-        .catch(error => {
-            console.error('Error exporting data:', error);
-            this.updateStatus(`Error exporting data: ${error.message}`, 7000);
+    async saveData() {
+      this.updateStatus('Saving data...');
+      try {
+        const blob = await this._fetchBlobOrThrow('/api/export-data', 'Data export for save');
+        const baseSuggestedName = this.loadedFileName() || 'family_tree_data.txtpb';
+        let suggestedName = this.currentFileHandle?.name || baseSuggestedName;
+
+        if (this.currentFileHandle && typeof this.currentFileHandle.createWritable === 'function') {
+          try {
+            await this._writeFileToHandle(this.currentFileHandle, blob);
+            this.updateStatus(`Data saved to ${this.currentFileHandle.name} successfully!`, 7000);
+            this.setLoadedFileName(this.currentFileHandle.name); // Ensure global state is updated
+            return; // Save successful
+          } catch (err) {
+            console.warn(`Could not save directly to file handle (name: ${this.currentFileHandle?.name}, error: ${err.name}, message: ${err.message}). Falling back to "Save As".`);
+            suggestedName = baseSuggestedName; // Reset suggestedName for "Save As"
+          }
+        }
+
+        // If no handle, or direct save failed, use showSaveFilePicker (Save As behavior)
+        const fileHandle = await this._saveFileWithPickerOrFallback(blob, {
+          suggestedName,
+          types: [{ description: 'Family Tree Data', accept: { 'text/plain': ['.txtpb'] } }],
+          successMessageBase: 'Data saved',
+          isGraphExportForFallback: false,
         });
+
+        if (fileHandle) {
+          this.currentFileHandle = fileHandle;
+          this.selectedFileName = fileHandle.name;
+          this.setLoadedFileName(fileHandle.name);
+        }
+      } catch (error) {
+        console.error('Error preparing data for save:', error);
+        this.updateStatus(`Error saving data: ${error.message}`, 10000);
+      }
     },
-     exportGraph() {
+
+    async exportCurrentSnapshot() {
+      // This function will now export the current data state as a .txtpb file, always prompting for a new file.
+      const suggestedName = 'family_tree_snapshot.txtpb';
+      const fileDescription = 'Family Tree Data Snapshot';
+      const acceptMimeType = 'text/plain';
+      const acceptExtension = '.txtpb';
+
+      this.updateStatus('Exporting data snapshot...');
+      try {
+        const blob = await this._fetchBlobOrThrow('/api/export-data', 'Data snapshot export');
+        await this._saveFileWithPickerOrFallback(blob, {
+          suggestedName,
+          types: [{ description: fileDescription, accept: { [acceptMimeType]: [acceptExtension] } }],
+          successMessageBase: 'Data snapshot exported',
+          isGraphExportForFallback: false,
+        });
+      } catch (error) {
+        console.error('Error exporting data snapshot:', error);
+        this.updateStatus(`Error exporting data snapshot: ${error.message}`, 10000);
+      }
+    },
+    async exportGraph() {
+      const suggestedName = 'family_tree_graph.html';
+      const fileDescription = 'HTML Graph File';
+      const acceptMimeType = 'text/html';
+      const acceptExtension = '.html';
+
       this.updateStatus('Exporting graph...');
-      // TODO: Call backend API to export graph (.html)
-      // The backend should return the file or a link to download it
-       fetch('/api/export-graph') // Replace with your actual backend endpoint
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Graph export failed.');
-            }
-            return response.blob(); // Get the response as a Blob
-        })
-        .then(blob => {
-            // Create a temporary link to download the file
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = 'family_tree_graph.html'; // Suggested download file name
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url); // Clean up the URL object
-            this.updateStatus('Graph exported successfully!', 5000);
-        })
-        .catch(error => {
-            console.error('Error exporting graph:', error);
-            this.updateStatus(`Error exporting graph: ${error.message}`, 7000);
+      try {
+        const blob = await this._fetchBlobOrThrow('/api/export-graph', 'Interactive graph export');
+        await this._saveFileWithPickerOrFallback(blob, {
+          suggestedName,
+          types: [{ description: fileDescription, accept: { [acceptMimeType]: [acceptExtension] } }],
+          successMessageBase: 'Interactive graph exported',
+          isGraphExportForFallback: true,
         });
+      } catch (error) {
+        console.error('Error exporting interactive graph:', error);
+        this.updateStatus(`Error exporting interactive graph: ${error.message}`, 10000);
+      }
     },
+
+    // Helper method for the traditional download
+    fallbackDownload(blob, fileName, isGraphExport) {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a); // Clean up the anchor element
+      this.updateStatus(`${isGraphExport ? 'Graph' : 'Data'} downloaded successfully!`, isGraphExport ? 5000 : 7000);
+    },
+
     reRenderGraph() {
       this.updateStatus('Re-rendering graph...');
-      // This will trigger the watch in GraphView.vue
       this.triggerReRender();
-      // The actual re-rendering logic (calling backend to generate HTML)
-      // is handled by the triggerReRender method provided by App.vue,
-      // which is watched by GraphView.vue
     },
     updateCulture(event) {
         this.updateCultureSetting(event.target.checked); // Call injected method
