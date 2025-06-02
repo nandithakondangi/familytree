@@ -132,5 +132,22 @@ def test_merge_family_trees(
     mock_deduplicate.assert_called_once()
 
 
-# update_from_nx_graph and _deduplicate_family_members are not implemented,
-# so no direct tests for their internal logic.
+def test_update_from_nx_graph_not_implemented(proto_handler_instance):
+    """
+    Tests that update_from_nx_graph (pass) does not raise an error.
+    """
+    mock_graph = MagicMock()
+    try:
+        proto_handler_instance.update_from_nx_graph(mock_graph)
+    except Exception as e:
+        pytest.fail(f"update_from_nx_graph raised an exception: {e}")
+
+
+def test_deduplicate_family_members_not_implemented(proto_handler_instance):
+    """
+    Tests that _deduplicate_family_members (pass) does not raise an error.
+    """
+    try:
+        proto_handler_instance._deduplicate_family_members()
+    except Exception as e:
+        pytest.fail(f"_deduplicate_family_members raised an exception: {e}")

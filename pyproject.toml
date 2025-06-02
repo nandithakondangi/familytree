@@ -7,11 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.115.12",
     "google-genai>=1.11.0",
-    "grpcio-tools>=1.71.0",
     "networkx>=3.4.2",
     "protobuf>=4.21.5",
     "pyside6>=6.9.0",
-    "pytest>=8.3.5",
     "pyvis>=0.3.2",
     "setuptools>=78.1.0",
 ]
@@ -22,3 +20,19 @@ pythonpath = [".", "./familytree"]
 
 # Specify where pytest should look for tests (improves discovery speed)
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "grpcio-tools>=1.71.0",
+    "mypy>=1.16.0",
+    "mypy-protobuf>=3.6.0",
+    "pyrefly>=0.17.1",
+    "pytest>=8.3.5",
+    "types-networkx>=3.5.0.20250531",
+]
+[tool.pyrefly]
+project_includes = ["**/*"]
+project_excludes = [
+    "**/.[!/.]*",
+    "**/*venv/**/*",
+]

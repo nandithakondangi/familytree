@@ -1,7 +1,7 @@
 import logging
 from enum import Enum, auto
+from typing import Optional
 
-import networkx as nx
 from networkx import DiGraph
 
 from familytree.proto import family_tree_pb2
@@ -15,8 +15,8 @@ class EdgeType(Enum):
     """
 
     SPOUSE = auto()
-    PARENT = auto()
-    CHILD = auto()
+    PARENT_TO_CHILD = auto()
+    CHILD_TO_PARENT = auto()
 
 
 class GraphHandler:
@@ -29,31 +29,38 @@ class GraphHandler:
         Represents a node in the graph with its properties.
         """
 
-        attributes: family_tree_pb2.FamilyMember
-        is_poi: bool
-        is_visible: bool
-        has_visible_spouse: bool | None
-        has_visible_parents: bool | None
-        has_visible_children: bool | None
-        has_visible_siblings: bool | None
-        has_visible_inlaws: bool | None
+        def __init__(self, attributes: family_tree_pb2.FamilyMember):
+            self.attributes: family_tree_pb2.FamilyMember = attributes
+            self.is_poi: bool = False
+            self.is_visible: bool = False  # Default as per current add_member
+            self.has_visible_spouse: Optional[bool] = None
+            self.has_visible_parents: Optional[bool] = None
+            self.has_visible_children: Optional[bool] = None
+            self.has_visible_siblings: Optional[bool] = None
+            self.has_visible_inlaws: Optional[bool] = None
 
     class GraphEdge:
         """
         Represents an edge in the graph with properties.
         """
 
-        edge_type: EdgeType
-        is_visible: bool
-        attributes: dict
+        def __init__(
+            self,
+            edge_type: EdgeType,
+            is_visible: bool = True,
+            attributes: Optional[dict] = None,
+        ):
+            self.edge_type: EdgeType = edge_type
+            self.is_visible: bool = is_visible
+            self.attributes: dict = attributes if attributes is not None else {}
 
     def __init__(self):
         """
         Initializes the GraphHandler with an empty directed graph.
         """
-        self._graph = nx.DiGraph()
+        self._graph: DiGraph = DiGraph()
 
-    def get_family_graph(self) -> nx.DiGraph:
+    def get_family_graph(self) -> DiGraph:
         """
         Returns the internal NetworkX DiGraph instance.
 
@@ -61,6 +68,46 @@ class GraphHandler:
             nx.DiGraph: The family graph.
         """
         return self._graph
+
+    def has_parent(self, member_id: str) -> bool:
+        node_data: GraphHandler.GraphNode = self._graph.nodes[member_id]["data"]
+        return node_data.has_visible_parents is not None
+
+    def has_child(self, member_id: str) -> bool:
+        node_data: GraphHandler.GraphNode = self._graph.nodes[member_id]["data"]
+        return node_data.has_visible_children is not None
+
+    def has_spouse(self, member_id: str) -> bool:
+        node_data: GraphHandler.GraphNode = self._graph.nodes[member_id]["data"]
+        return node_data.has_visible_spouse is not None
+
+    def get_spouse(self, member_id: str) -> Optional[str]:
+        for neighbor in self._graph.neighbors(member_id):
+            edge_obj: GraphHandler.GraphEdge = self._graph.get_edge_data(
+                member_id, neighbor
+            )["data"]
+            if edge_obj.edge_type == EdgeType.SPOUSE:
+                return neighbor
+        return None
+
+    def get_children(self, member_id: str) -> list[str]:
+        children: list[str] = []
+        for neighbor in self._graph.neighbors(member_id):
+            edge_obj: GraphHandler.GraphEdge = self._graph.get_edge_data(
+                member_id, neighbor
+            )["data"]
+            if edge_obj.edge_type == EdgeType.PARENT_TO_CHILD:
+                children.append(neighbor)
+        return children
+
+    def get_parent(self, member_id: str) -> Optional[str]:
+        for neighbor in self._graph.neighbors(member_id):
+            edge_obj: GraphHandler.GraphEdge = self._graph.get_edge_data(
+                member_id, neighbor
+            )["data"]
+            if edge_obj.edge_type == EdgeType.CHILD_TO_PARENT:
+                return neighbor
+        return None
 
     def create_from_proto(self, family_tree: family_tree_pb2.FamilyTree) -> None:
         """
@@ -121,31 +168,21 @@ class GraphHandler:
             member_id: The unique identifier for the family member.
             member_data: The FamilyMember protobuf message containing member details.
         """
-        node_obj = GraphHandler.GraphNode()
-        node_obj.attributes = member_data
-        node_obj.is_poi = False  # Default
-        node_obj.is_visible = False  # Default
-        # Initialize other boolean flags to None since relationships are not added yet.
-        # This will be updated as we add edges to the graph.
-        node_obj.has_visible_spouse = None
-        node_obj.has_visible_parents = None
-        node_obj.has_visible_children = None
-        node_obj.has_visible_siblings = None
-        node_obj.has_visible_inlaws = None
+        node_obj = GraphHandler.GraphNode(attributes=member_data)
 
         self._graph.add_node(member_id, data=node_obj)
         logger.debug(f"Added node: {member_id}")
 
     def add_child_relation(self, source_member_id: str, child_id: str) -> None:
         """
-        Adds a directed edge from `source_member_id` to `child_id` of type CHILD.
+        Adds a directed edge from `source_member_id` to `child_id` of type PARENT_TO_CHILD.
 
-        This edge `source_member_id -> child_id` with `EdgeType.CHILD` implies
-        that `source_member_id` is a child of `child_id`.
+        This edge `source_member_id -> child_id` with `EdgeType.PARENT_TO_CHILD` implies
+        that `source_member_id` is a parent of `child_id`.
 
         The edge is created with `is_visible = True` by default.
         It also updates the `has_visible_children` flag on the `source_member_id`
-        node's data to `False`.
+        node's data to `False` which implies existence of children but not visible yet.
 
         Args:
             source_member_id: The ID of the member who is the source of the edge.
@@ -158,10 +195,9 @@ class GraphHandler:
             return
 
         # Edge: source_member_id -> child_id (CHILD)
-        edge_data_child = GraphHandler.GraphEdge()
-        edge_data_child.edge_type = EdgeType.CHILD
-        edge_data_child.is_visible = True  # Default
-        edge_data_child.attributes = {}  # Default
+        edge_data_child = GraphHandler.GraphEdge(
+            edge_type=EdgeType.PARENT_TO_CHILD, is_visible=True
+        )
         self._graph.add_edge(source_member_id, child_id, data=edge_data_child)
         self._graph.nodes[source_member_id]["data"].has_visible_children = False
         logger.debug(f"Added CHILD edge: {source_member_id} -> {child_id}")
@@ -191,22 +227,22 @@ class GraphHandler:
             return
 
         # Edge: source_member_id -> spouse_id (SPOUSE)
-        edge_data_spouse = GraphHandler.GraphEdge()
-        edge_data_spouse.edge_type = EdgeType.SPOUSE
-        edge_data_spouse.is_visible = (
+        is_edge_visible = (
             False if self._graph.has_edge(spouse_id, source_member_id) else True
         )
-        edge_data_spouse.attributes = {}  # Default
-        self._graph.add_edge(source_member_id, spouse_id, data=edge_data_spouse)
+        edge_data = GraphHandler.GraphEdge(
+            edge_type=EdgeType.SPOUSE, is_visible=is_edge_visible
+        )
+        self._graph.add_edge(source_member_id, spouse_id, data=edge_data)
         self._graph.nodes[source_member_id]["data"].has_visible_spouse = False
         logger.debug(f"Added SPOUSE edge: {source_member_id} -> {spouse_id}")
 
     def add_parent_relation(self, source_member_id: str, parent_id: str) -> None:
         """
-        Adds a directed edge from `source_member_id` to `parent_id` of type PARENT.
+        Adds a directed edge from `source_member_id` to `parent_id` of type CHILD_TO_PARENT.
 
-        This edge `source_member_id -> parent_id` with `EdgeType.PARENT` implies
-        that `source_member_id` is a parent of `parent_id`.
+        This edge `source_member_id -> parent_id` with `EdgeType.CHILD_TO_PARENT` implies
+        that `source_member_id` is a child of `parent_id`.
 
         The edge is created with `is_visible = False` by default.
         It also updates the `has_visible_parents` flag on the `source_member_id`
@@ -224,10 +260,9 @@ class GraphHandler:
             return
 
         # Edge: source_member_id -> parent_id (PARENT)
-        edge_data_parent = GraphHandler.GraphEdge()
-        edge_data_parent.edge_type = EdgeType.PARENT
-        edge_data_parent.is_visible = False
-        edge_data_parent.attributes = {}
+        edge_data_parent = GraphHandler.GraphEdge(
+            edge_type=EdgeType.CHILD_TO_PARENT, is_visible=False
+        )
         self._graph.add_edge(source_member_id, parent_id, data=edge_data_parent)
         self._graph.nodes[source_member_id]["data"].has_visible_parents = False
         logger.debug(f"Added PARENT edge: {source_member_id} -> {parent_id}")

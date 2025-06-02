@@ -1,10 +1,13 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
+from google.protobuf.json_format import ParseError
 
 from familytree import app_state
 from familytree.models.base_model import OK_STATUS
 from familytree.models.manage_model import (
+    AddFamilyMemberRequest,
+    AddFamilyMemberResponse,
     CreateFamilyResponse,
     LoadFamilyRequest,
     LoadFamilyResponse,
@@ -27,7 +30,9 @@ async def create_new_family():
     try:
         app_state.reset_current_family_tree_handler()
         message = "New family tree created."
-        return CreateFamilyResponse(status=OK_STATUS, message=message)
+        # pyrefly: ignore
+        response = CreateFamilyResponse(status=OK_STATUS, message=message)
+        return response
     except Exception as e:
         error_message = "Unexpected error occured during create family operation."
         logger.exception(error_message, e)
@@ -43,20 +48,28 @@ async def load_family_data(request: LoadFamilyRequest):
         app_state.reset_current_family_tree_handler()
         family_handler = app_state.get_current_family_tree_handler()
         return family_handler.load_family_tree(request)
-    except Exception as e:
+    except Exception:
         error_message = "Unexpected error occured during load family operation."
-        logger.exception(error_message, e)
+        logger.exception(error_message)
         raise HTTPException(status_code=500, detail=error_message)
 
 
-@router.post("/add_family_member")
-async def add_family_member():
+@router.post("/add_family_member", response_model=AddFamilyMemberResponse)
+async def add_family_member(request: AddFamilyMemberRequest):
     """
     Adds a new individual to the currently active family tree.
     """
-    message = "Endpoint /manage/add_family_member is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    try:
+        family_handler = app_state.get_current_family_tree_handler()
+        return family_handler.add_family_member(request)
+    except ParseError:
+        error_message = "Failed to parse the new member data."
+        logger.exception(error_message)
+        raise HTTPException(status_code=400, detail=error_message)
+    except Exception:
+        error_message = "Unexpected error occured during add family member operation"
+        logger.exception(error_message)
+        raise HTTPException(status_code=500, detail=error_message)
 
 
 @router.post("/update_family_member")
