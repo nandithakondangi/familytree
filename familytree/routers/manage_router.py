@@ -72,6 +72,16 @@ async def add_family_member(request: AddFamilyMemberRequest):
         raise HTTPException(status_code=500, detail=error_message)
 
 
+@router.post("/add_relationship")
+async def add_relationship():
+    """
+    Adds a relationship between two individuals in the family tree.
+    """
+    message = "Endpoint /manage/add_relationship is not yet implemented."
+    logger.warning(message)
+    raise HTTPException(status_code=501, detail=message)
+
+
 @router.post("/update_family_member")
 async def update_family_member():
     """
@@ -88,6 +98,16 @@ async def delete_family_member():
     Removes a member from the family tree.
     """
     message = "Endpoint /manage/delete_family_member is not yet implemented."
+    logger.warning(message)
+    raise HTTPException(status_code=501, detail=message)
+
+
+@router.post("/delete_relationship")
+async def delete_relationship():
+    """
+    Removes a relationship between two individuals from the family tree.
+    """
+    message = "Endpoint /manage/delete_relationship is not yet implemented."
     logger.warning(message)
     raise HTTPException(status_code=501, detail=message)
 

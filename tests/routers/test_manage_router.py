@@ -61,7 +61,8 @@ def test_load_family_data_success(
 ):
     """E2E test for loading family data."""
     request_data = LoadFamilyRequest(
-        filename="test.textpb", content=weasley_family_tree_textproto
+        filename="test.textpb",  # pyrefly: ignore
+        content=weasley_family_tree_textproto,
     )
     response = client.post("/api/v1/manage/load_family", json=request_data.model_dump())
 
@@ -91,6 +92,7 @@ def test_load_family_data_exception(mock_logger, mock_app_state_in_router, clien
     mock_app_state_in_router.reset_current_family_tree_handler.side_effect = Exception(
         "Simulated reset error before load"
     )
+    # pyrefly: ignore
     request_data = LoadFamilyRequest(filename="test.textpb", content="any_content")
     response = client.post("/api/v1/manage/load_family", json=request_data.model_dump())
     assert response.status_code == 500
@@ -115,9 +117,9 @@ def test_add_family_member_e2e_no_inference(client):
 
     new_member_id = "new001"
     request_payload = AddFamilyMemberRequest(
-        new_member_data={"id": new_member_id, "name": "New Member"},
+        new_member_data={"id": new_member_id, "name": "New Member"},  # pyrefly: ignore
         source_family_member_id=source_member_id,
-        relationship_type=EdgeType.PARENT_TO_CHILD,
+        relationship_type=EdgeType.PARENT_TO_CHILD,  # pyrefly: ignore
         infer_relationships=False,
     )
     response = client.post(
@@ -166,9 +168,9 @@ def test_add_family_member_e2e_with_inference(client):
 
     child_id = "child1"
     request_payload = AddFamilyMemberRequest(
-        new_member_data={"id": child_id, "name": "New Child"},
+        new_member_data={"id": child_id, "name": "New Child"},  # pyrefly: ignore
         source_family_member_id=parent1_id,
-        relationship_type=EdgeType.PARENT_TO_CHILD,
+        relationship_type=EdgeType.PARENT_TO_CHILD,  # pyrefly: ignore
         infer_relationships=True,
     )
     response = client.post(
@@ -219,9 +221,9 @@ def test_add_family_member_exception(mock_logger, mock_app_state_in_router, clie
         "Simulated add member error"
     )
     request_payload = AddFamilyMemberRequest(
-        new_member_data={"id": "test_id", "name": "Test Name"},
+        new_member_data={"id": "test_id", "name": "Test Name"},  # pyrefly: ignore
         source_family_member_id="source_id",
-        relationship_type=EdgeType.PARENT_TO_CHILD,
+        relationship_type=EdgeType.PARENT_TO_CHILD,  # pyrefly: ignore
         infer_relationships=False,
     )
     response = client.post(
@@ -240,6 +242,11 @@ def test_add_family_member_exception(mock_logger, mock_app_state_in_router, clie
     [
         (
             "POST",
+            "/api/v1/manage/add_relationship",
+            "Endpoint /manage/add_relationship is not yet implemented.",
+        ),
+        (
+            "POST",
             "/api/v1/manage/update_family_member",
             "Endpoint /manage/update_family_member is not yet implemented.",
         ),
@@ -247,6 +254,11 @@ def test_add_family_member_exception(mock_logger, mock_app_state_in_router, clie
             "POST",
             "/api/v1/manage/delete_family_member",
             "Endpoint /manage/delete_family_member is not yet implemented.",
+        ),
+        (
+            "POST",
+            "/api/v1/manage/delete_relationship",
+            "Endpoint /manage/delete_relationship is not yet implemented.",
         ),
         (
             "GET",
