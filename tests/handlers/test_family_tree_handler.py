@@ -1,6 +1,11 @@
+from unittest.mock import MagicMock
+
+import pytest
+from pydantic import ValidationError
+
 from familytree.handlers.chat_handler import ChatHandler
 from familytree.handlers.family_tree_handler import FamilyTreeHandler
-from familytree.handlers.graph_handler import EdgeType, GraphHandler
+from familytree.handlers.graph_handler import GraphHandler
 from familytree.handlers.proto_handler import ProtoHandler
 from familytree.models.base_model import OK_STATUS
 from familytree.models.manage_model import (
@@ -10,6 +15,7 @@ from familytree.models.manage_model import (
     LoadFamilyResponse,
 )
 from familytree.proto import family_tree_pb2
+from familytree.utils.graph_types import EdgeType, GraphNode
 
 
 def test_family_tree_handler_init():
@@ -73,10 +79,10 @@ def test_load_family_tree(
 
     # Check node data
     arthur_node_data = graph.nodes["ARTHW"]["data"]
-    assert isinstance(arthur_node_data, GraphHandler.GraphNode)
+    assert isinstance(arthur_node_data, GraphNode)
     assert arthur_node_data.attributes.name == "Arthur Weasley"
     molly_node_data = graph.nodes["MOLLW"]["data"]
-    assert isinstance(molly_node_data, GraphHandler.GraphNode)
+    assert isinstance(molly_node_data, GraphNode)
     assert molly_node_data.attributes.name == "Molly Weasley"
 
     assert graph.edges["ARTHW", "MOLLW"]["data"].edge_type == EdgeType.SPOUSE
@@ -87,12 +93,12 @@ def test_load_family_tree(
         assert (
             graph.edges["ARTHW", child_id]["data"].edge_type == EdgeType.PARENT_TO_CHILD
         )
-        assert graph.edges["ARTHW", child_id]["data"].is_visible
+        assert graph.edges["ARTHW", child_id]["data"].is_rendered
         # child_id is child of Arthur
         assert (
             graph.edges[child_id, "ARTHW"]["data"].edge_type == EdgeType.CHILD_TO_PARENT
         )
-        assert not graph.edges[child_id, "ARTHW"]["data"].is_visible
+        assert not graph.edges[child_id, "ARTHW"]["data"].is_rendered
         # Molly is parent of child_id
         assert (
             graph.edges["MOLLW", child_id]["data"].edge_type == EdgeType.PARENT_TO_CHILD
@@ -376,3 +382,37 @@ def test_add_family_member_with_inference_adds_child_to_both_parents():
 
     # Total edges: 2 for parent1-child1, 2 for parent2-child1, 2 for parent1-parent2 spouse = 6
     assert handler.graph_handler._graph.number_of_edges() == 6
+
+
+def test_add_family_member_invalid_relationship_type(caplog):
+    handler = FamilyTreeHandler()
+    source_member_id = "source_id"
+    handler.graph_handler.add_member(
+        source_member_id,
+        family_tree_pb2.FamilyMember(id=source_member_id, name="Source"),
+    )
+
+    new_member_dict = {"id": "new_id", "name": "New Member"}
+    with pytest.raises(ValidationError):
+        handler.add_family_member(
+            AddFamilyMemberRequest(
+                new_member_data=new_member_dict,
+                source_family_member_id=source_member_id,
+                relationship_type=10,  # Not an EdgeType enum
+                infer_relationships=False,
+            )
+        )
+
+
+def test_render_family_tree():
+    """Tests the render_family_tree method."""
+    handler = FamilyTreeHandler()
+    expected_html = "<html>Mocked Tree</html>"
+
+    # Mock the graph_handler's render_graph_to_html method
+    handler.graph_handler.render_graph_to_html = MagicMock(return_value=expected_html)
+
+    html_output = handler.render_family_tree()
+
+    handler.graph_handler.render_graph_to_html.assert_called_once_with()
+    assert html_output == expected_html

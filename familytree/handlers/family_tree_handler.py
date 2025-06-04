@@ -120,6 +120,9 @@ class FamilyTreeHandler:
 
         return inferred_relationships
 
+    def render_family_tree(self) -> str:
+        return self.graph_handler.render_graph_to_html()
+
     def _add_reverse_relationship(
         self, relationship: dict[str, str | EdgeType]
     ) -> dict[str, str | EdgeType]:
