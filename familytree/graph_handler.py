@@ -6,7 +6,7 @@ import pathlib
 import networkx as nx
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pyvis.network import Network
-from utils import ResourceUtility
+from utils_legacy import ResourceUtility
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)

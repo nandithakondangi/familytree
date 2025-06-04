@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from utils import ResourceUtility
+from utils_legacy import ResourceUtility
 
 # Get a logger instance for this module
 logger = logging.getLogger(__name__)
