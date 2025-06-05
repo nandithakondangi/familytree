@@ -28,7 +28,7 @@ def test_get_resource_without_name():
     expected_resource_dir = project_root / "resources"
 
     actual_dir = get_resource()
-    assert actual_dir == str(expected_resource_dir)
+    assert actual_dir == expected_resource_dir
 
 
 @patch("familytree.utils.resource_utils.get_resource")
