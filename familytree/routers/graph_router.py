@@ -1,9 +1,12 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import HTMLResponse
 
 from familytree import app_state
+from familytree.models.graph_model import (
+    CustomGraphRenderResponse,
+    PyvisGraphRenderResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,9 @@ router = APIRouter(
 )
 
 
-@router.get("/render")
+@router.get(
+    "/render", response_model=PyvisGraphRenderResponse | CustomGraphRenderResponse
+)
 async def get_data_with_poi(poi: str | None = None, degree: int = 2):
     """
     Renders graph data for the family tree.
@@ -35,7 +40,11 @@ async def get_data_with_poi(poi: str | None = None, degree: int = 2):
         try:
             handler = app_state.get_current_family_tree_handler()
             html_content = handler.render_family_tree()
-            return HTMLResponse(content=html_content, status_code=200)
+            return PyvisGraphRenderResponse(
+                status="OK",
+                message="Family tree rendered successfully",
+                graph_html=html_content,
+            )
         except Exception as e:
             error_message = "Unexpected error occured while rendering family tree"
             logger.exception(f"{error_message}: {e}")

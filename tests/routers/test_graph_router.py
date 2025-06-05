@@ -48,8 +48,8 @@ def test_get_data_without_poi_success(mock_app_state, mock_family_tree_handler, 
     response = client.get("/api/v1/graph/render")
 
     assert response.status_code == 200
-    assert response.headers["content-type"] == "text/html; charset=utf-8"
-    assert response.text == "<html><body>Graph HTML</body></html>"
+    assert response.json()["message"] == "Family tree rendered successfully"
+    assert response.json()["graph_html"] == "<html><body>Graph HTML</body></html>"
 
     # Ensure the handler and its render method were called
     mock_app_state.get_current_family_tree_handler.assert_called_once()
