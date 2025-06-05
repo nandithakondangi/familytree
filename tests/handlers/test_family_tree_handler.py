@@ -416,3 +416,40 @@ def test_render_family_tree():
 
     handler.graph_handler.render_graph_to_html.assert_called_once_with()
     assert html_output == expected_html
+
+
+def test_add_first_family_member_no_relationship():
+    """
+    Test adding the very first family member without providing
+    source_family_member_id or relationship_type.
+    """
+    handler = FamilyTreeHandler()
+
+    new_member_data = {
+        "id": "member1",
+        "name": "Alice",
+    }
+    request = AddFamilyMemberRequest(
+        infer_relationships=False,
+        new_member_data=new_member_data,
+    )
+
+    response = handler.add_family_member(request)
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_node(new_member_data["id"])
+
+    # 2. Verify node attributes (optional, but good for completeness)
+    node_data = graph.nodes[new_member_data["id"]]["data"]
+    assert isinstance(node_data, GraphNode)
+    assert node_data.attributes.name == new_member_data["name"]
+
+    # 3. Verify that NO relationships (edges) were created
+    assert graph.number_of_edges() == 0
+
+    assert isinstance(response, AddFamilyMemberResponse)
+    assert response.status == OK_STATUS
+    assert (
+        response.message
+        == f"{new_member_data['name']} added successfully to the family."
+    )

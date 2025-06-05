@@ -150,6 +150,40 @@ def test_add_family_member_e2e_no_inference(client):
     assert graph.number_of_edges() == 2  # Only primary and its reverse
 
 
+def test_add_first_family_member_e2e(client):
+    """E2E test for adding the very first family member to a new tree."""
+    handler = app_state.get_current_family_tree_handler()
+
+    new_member_id = "first_member_001"
+    new_member_name = "Adam"
+    request_payload = AddFamilyMemberRequest(
+        new_member_data={
+            "id": new_member_id,
+            "name": new_member_name,
+        },
+        infer_relationships=False,  # Inference is not applicable here
+    )
+    response = client.post(
+        "/api/v1/manage/add_family_member",
+        json=request_payload.model_dump(exclude_none=True),
+    )
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["status"] == OK_STATUS
+    assert (
+        json_response["message"]
+        == f"{new_member_name} added successfully to the family."
+    )
+
+    # Verify graph state in the handler
+    graph = handler.graph_handler.get_family_graph()
+
+    assert graph.has_node(new_member_id)
+    assert graph.nodes[new_member_id]["data"].attributes.name == new_member_name
+    assert graph.number_of_edges() == 0
+
+
 def test_add_family_member_e2e_with_inference(client):
     """E2E test for adding a family member with relationship inference (child to spouses)."""
     handler = app_state.get_current_family_tree_handler()
