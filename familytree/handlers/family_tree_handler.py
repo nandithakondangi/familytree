@@ -59,7 +59,7 @@ class FamilyTreeHandler:
     ) -> AddFamilyMemberResponse:
         new_member_to_add_dict = add_family_member_request.new_member_data
         new_member_to_add = ParseDict(
-            new_member_to_add_dict, family_tree_pb2.FamilyMember
+            new_member_to_add_dict, family_tree_pb2.FamilyMember()
         )
 
         self.graph_handler.add_member(new_member_to_add.id, new_member_to_add)
@@ -96,7 +96,7 @@ class FamilyTreeHandler:
 
         response = AddFamilyMemberResponse(
             status=OK_STATUS,  # pyrefly: ignore
-            message="Family member added successfully.",  # pyrefly: ignore
+            message=f"{new_member_to_add.name} added successfully to the family.",  # pyrefly: ignore
         )
         return response
 

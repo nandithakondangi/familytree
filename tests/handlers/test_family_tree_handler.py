@@ -314,7 +314,7 @@ def test_add_family_member_no_inference():
 
     assert isinstance(response, AddFamilyMemberResponse)
     assert response.status == OK_STATUS
-    assert response.message == "Family member added successfully."
+    assert response.message == "New Member added successfully to the family."
 
 
 def test_add_family_member_with_inference_adds_child_to_both_parents():

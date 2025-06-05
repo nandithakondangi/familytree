@@ -129,7 +129,7 @@ def test_add_family_member_e2e_no_inference(client):
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["status"] == OK_STATUS
-    assert json_response["message"] == "Family member added successfully."
+    assert json_response["message"] == "New Member added successfully to the family."
 
     # Verify graph state in the handler
     graph = handler.graph_handler.get_family_graph()
@@ -180,7 +180,7 @@ def test_add_family_member_e2e_with_inference(client):
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["status"] == OK_STATUS
-    assert json_response["message"] == "Family member added successfully."
+    assert json_response["message"] == "New Child added successfully to the family."
 
     graph = handler.graph_handler.get_family_graph()
 
