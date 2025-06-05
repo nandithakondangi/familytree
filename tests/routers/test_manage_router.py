@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 
 import pytest
@@ -12,6 +13,8 @@ from familytree.handlers.graph_handler import EdgeType
 from familytree.models.base_model import OK_STATUS
 from familytree.models.manage_model import AddFamilyMemberRequest, LoadFamilyRequest
 from familytree.proto import family_tree_pb2
+
+MEMBER_ID_PATTERN = r"^F[A-Z0-9]{3}-M[A-Z0-9]{3}-B[A-Z0-9]{3}-R[A-Z0-9]{3}$"
 
 
 @pytest.fixture
@@ -115,58 +118,22 @@ def test_add_family_member_e2e_no_inference(client):
     # Manually add to handler's graph for setup, as if it was loaded/created previously
     handler.graph_handler.add_member(source_member_id, source_member_pb2)
 
-    new_member_id = "new001"
+    new_member_name = "New Member"
     request_payload = AddFamilyMemberRequest(
-        new_member_data={"id": new_member_id, "name": "New Member"},  # pyrefly: ignore
+        new_member_data={"name": new_member_name},  # ID is no longer provided
         source_family_member_id=source_member_id,
-        relationship_type=EdgeType.PARENT_TO_CHILD,  # pyrefly: ignore
+        relationship_type=EdgeType.PARENT_TO_CHILD,
         infer_relationships=False,
     )
+
+    initial_nodes = set(handler.graph_handler.get_family_graph().nodes())
     response = client.post(
         "/api/v1/manage/add_family_member", json=request_payload.model_dump()
     )
-
-    assert response.status_code == 200
-    json_response = response.json()
-    assert json_response["status"] == OK_STATUS
-    assert json_response["message"] == "New Member added successfully to the family."
-
-    # Verify graph state in the handler
-    graph = handler.graph_handler.get_family_graph()
-
-    assert graph.has_node(new_member_id)
-    assert graph.nodes[new_member_id]["data"].attributes.name == "New Member"
-
-    # Check primary relationship: source_member_id -> new_member_id (PARENT_TO_CHILD)
-    assert graph.has_edge(source_member_id, new_member_id)
-    edge_primary = graph.get_edge_data(source_member_id, new_member_id)["data"]
-    assert edge_primary.edge_type == EdgeType.PARENT_TO_CHILD
-
-    # Check reverse relationship: new_member_id -> source_member_id (CHILD_TO_PARENT)
-    assert graph.has_edge(new_member_id, source_member_id)
-    edge_reverse = graph.get_edge_data(new_member_id, source_member_id)["data"]
-    assert edge_reverse.edge_type == EdgeType.CHILD_TO_PARENT
-
-    assert graph.number_of_edges() == 2  # Only primary and its reverse
-
-
-def test_add_first_family_member_e2e(client):
-    """E2E test for adding the very first family member to a new tree."""
-    handler = app_state.get_current_family_tree_handler()
-
-    new_member_id = "first_member_001"
-    new_member_name = "Adam"
-    request_payload = AddFamilyMemberRequest(
-        new_member_data={
-            "id": new_member_id,
-            "name": new_member_name,
-        },
-        infer_relationships=False,  # Inference is not applicable here
-    )
-    response = client.post(
-        "/api/v1/manage/add_family_member",
-        json=request_payload.model_dump(exclude_none=True),
-    )
+    current_nodes = set(handler.graph_handler.get_family_graph().nodes())
+    new_member_ids = current_nodes - initial_nodes
+    assert len(new_member_ids) == 1
+    generated_id = new_member_ids.pop()
 
     assert response.status_code == 200
     json_response = response.json()
@@ -179,8 +146,61 @@ def test_add_first_family_member_e2e(client):
     # Verify graph state in the handler
     graph = handler.graph_handler.get_family_graph()
 
-    assert graph.has_node(new_member_id)
-    assert graph.nodes[new_member_id]["data"].attributes.name == new_member_name
+    assert re.match(MEMBER_ID_PATTERN, generated_id) is not None
+    assert graph.has_node(generated_id)
+    assert graph.nodes[generated_id]["data"].attributes.name == new_member_name
+
+    # Check primary relationship: source_member_id -> new_member_id (PARENT_TO_CHILD)
+    assert graph.has_edge(source_member_id, generated_id)
+    edge_primary = graph.get_edge_data(source_member_id, generated_id)["data"]
+    assert edge_primary.edge_type == EdgeType.PARENT_TO_CHILD
+
+    # Check reverse relationship: new_member_id -> source_member_id (CHILD_TO_PARENT)
+    assert graph.has_edge(generated_id, source_member_id)
+    edge_reverse = graph.get_edge_data(generated_id, source_member_id)["data"]
+    assert edge_reverse.edge_type == EdgeType.CHILD_TO_PARENT
+
+    assert graph.number_of_edges() == 2  # Only primary and its reverse
+
+
+def test_add_first_family_member_e2e(client):
+    """E2E test for adding the very first family member to a new tree."""
+    handler = app_state.get_current_family_tree_handler()
+
+    new_member_name = "Adam"
+    request_payload = AddFamilyMemberRequest(
+        new_member_data={
+            "name": new_member_name,
+        },
+        # source_family_member_id is None by default
+        # relationship_type is None by default
+        infer_relationships=False,  # Inference is not applicable here
+    )
+
+    initial_nodes = set(handler.graph_handler.get_family_graph().nodes())
+    response = client.post(
+        "/api/v1/manage/add_family_member",
+        json=request_payload.model_dump(exclude_none=True),
+    )
+    current_nodes = set(handler.graph_handler.get_family_graph().nodes())
+    new_member_ids = current_nodes - initial_nodes
+    assert len(new_member_ids) == 1
+    generated_id = new_member_ids.pop()
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["status"] == OK_STATUS
+    assert (
+        json_response["message"]
+        == f"{new_member_name} added successfully to the family."
+    )
+
+    # Verify graph state in the handler
+    graph = handler.graph_handler.get_family_graph()
+
+    assert re.match(MEMBER_ID_PATTERN, generated_id) is not None
+    assert graph.has_node(generated_id)
+    assert graph.nodes[generated_id]["data"].attributes.name == new_member_name
     assert graph.number_of_edges() == 0
 
 
@@ -200,46 +220,58 @@ def test_add_family_member_e2e_with_inference(client):
         parent2_id, parent1_id
     )  # Ensure bidirectional for inference
 
-    child_id = "child1"
+    new_child_name = "New Child"
     request_payload = AddFamilyMemberRequest(
-        new_member_data={"id": child_id, "name": "New Child"},  # pyrefly: ignore
+        new_member_data={"name": new_child_name},  # ID is no longer provided
         source_family_member_id=parent1_id,
-        relationship_type=EdgeType.PARENT_TO_CHILD,  # pyrefly: ignore
+        relationship_type=EdgeType.PARENT_TO_CHILD,
         infer_relationships=True,
     )
+
+    initial_nodes = set(handler.graph_handler.get_family_graph().nodes())
     response = client.post(
         "/api/v1/manage/add_family_member", json=request_payload.model_dump()
     )
+    current_nodes = set(handler.graph_handler.get_family_graph().nodes())
+    new_member_ids = current_nodes - initial_nodes
+    assert len(new_member_ids) == 1
+    generated_child_id = new_member_ids.pop()
 
     assert response.status_code == 200
     json_response = response.json()
     assert json_response["status"] == OK_STATUS
-    assert json_response["message"] == "New Child added successfully to the family."
+    assert (
+        json_response["message"]
+        == f"{new_child_name} added successfully to the family."
+    )
 
     graph = handler.graph_handler.get_family_graph()
 
-    assert graph.has_node(child_id)
+    assert re.match(MEMBER_ID_PATTERN, generated_child_id) is not None
+    assert graph.has_node(generated_child_id)
+    assert graph.nodes[generated_child_id]["data"].attributes.name == new_child_name
+
     # Primary: parent1 -> child1 (PARENT_TO_CHILD) & reverse
-    assert graph.has_edge(parent1_id, child_id)
+    assert graph.has_edge(parent1_id, generated_child_id)
     assert (
-        graph.get_edge_data(parent1_id, child_id)["data"].edge_type
+        graph.get_edge_data(parent1_id, generated_child_id)["data"].edge_type
         == EdgeType.PARENT_TO_CHILD
     )
-    assert graph.has_edge(child_id, parent1_id)
+    assert graph.has_edge(generated_child_id, parent1_id)
     assert (
-        graph.get_edge_data(child_id, parent1_id)["data"].edge_type
+        graph.get_edge_data(generated_child_id, parent1_id)["data"].edge_type
         == EdgeType.CHILD_TO_PARENT
     )
 
     # Inferred: parent2 -> child1 (PARENT_TO_CHILD) & reverse
-    assert graph.has_edge(parent2_id, child_id)
+    assert graph.has_edge(parent2_id, generated_child_id)
     assert (
-        graph.get_edge_data(parent2_id, child_id)["data"].edge_type
+        graph.get_edge_data(parent2_id, generated_child_id)["data"].edge_type
         == EdgeType.PARENT_TO_CHILD
     )
-    assert graph.has_edge(child_id, parent2_id)
+    assert graph.has_edge(generated_child_id, parent2_id)
     assert (
-        graph.get_edge_data(child_id, parent2_id)["data"].edge_type
+        graph.get_edge_data(generated_child_id, parent2_id)["data"].edge_type
         == EdgeType.CHILD_TO_PARENT
     )
 
@@ -255,9 +287,9 @@ def test_add_family_member_exception(mock_logger, mock_app_state_in_router, clie
         "Simulated add member error"
     )
     request_payload = AddFamilyMemberRequest(
-        new_member_data={"id": "test_id", "name": "Test Name"},  # pyrefly: ignore
+        new_member_data={"name": "Test Name"},  # ID is no longer provided
         source_family_member_id="source_id",
-        relationship_type=EdgeType.PARENT_TO_CHILD,  # pyrefly: ignore
+        relationship_type=EdgeType.PARENT_TO_CHILD,
         infer_relationships=False,
     )
     response = client.post(

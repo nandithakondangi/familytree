@@ -1,3 +1,4 @@
+import re
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,6 +17,8 @@ from familytree.models.manage_model import (
 )
 from familytree.proto import family_tree_pb2
 from familytree.utils.graph_types import EdgeType, GraphNode
+
+MEMBER_ID_PATTERN = r"^F[A-Z0-9]{3}-M[A-Z0-9]{3}-B[A-Z0-9]{3}-R[A-Z0-9]{3}$"
 
 
 def test_family_tree_handler_init():
@@ -170,7 +173,7 @@ def test_infer_relationships_integration():
         "target_id": "child1",
         "relationship_type": EdgeType.PARENT_TO_CHILD,
     }
-    inferred_ptc = handler_ptc.infer_relationships(main_rel_parent_to_child)
+    inferred_ptc = handler_ptc._infer_relationships(main_rel_parent_to_child)
     assert len(inferred_ptc) == 2
     assert {
         "source_id": "parent2",
@@ -205,7 +208,7 @@ def test_infer_relationships_integration():
         "target_id": "new_parent",
         "relationship_type": EdgeType.CHILD_TO_PARENT,
     }
-    inferred_ctp = handler_ctp.infer_relationships(main_rel_child_to_parent)
+    inferred_ctp = handler_ctp._infer_relationships(main_rel_child_to_parent)
     assert len(inferred_ctp) == 2
     assert {
         "source_id": "existing_parent",
@@ -245,7 +248,7 @@ def test_infer_relationships_integration():
         "target_id": "spouse2",
         "relationship_type": EdgeType.SPOUSE,
     }
-    inferred_s = handler_s.infer_relationships(main_rel_spouse)
+    inferred_s = handler_s._infer_relationships(main_rel_spouse)
     assert len(inferred_s) == 4
     assert {
         "source_id": "childA",
@@ -278,34 +281,40 @@ def test_add_family_member_no_inference():
         family_tree_pb2.FamilyMember(id=source_member_id, name="Source"),
     )
 
-    new_member_dict = {"id": "new_id", "name": "New Member"}
+    new_member_name = "New Member"
+    new_member_dict = {"name": new_member_name}  # ID is no longer provided
     request = AddFamilyMemberRequest(
         new_member_data=new_member_dict,
         source_family_member_id=source_member_id,
         relationship_type=EdgeType.PARENT_TO_CHILD,
         infer_relationships=False,
     )
-
+    initial_nodes = set(handler.graph_handler._graph.nodes())
     response = handler.add_family_member(request)
+    current_nodes = set(handler.graph_handler._graph.nodes())
+    new_member_ids = current_nodes - initial_nodes
+    assert len(new_member_ids) == 1
+    generated_id = new_member_ids.pop()
 
     # Assert new member was added to graph
-    assert handler.graph_handler._graph.has_node("new_id")
+    assert re.match(MEMBER_ID_PATTERN, generated_id) is not None
+    assert handler.graph_handler._graph.has_node(generated_id)
     assert (
-        handler.graph_handler._graph.nodes["new_id"]["data"].attributes.name
-        == "New Member"
+        handler.graph_handler._graph.nodes[generated_id]["data"].attributes.name
+        == new_member_name
     )
 
     # Assert primary relationship (PARENT_TO_CHILD: source_id -> new_id)
-    assert handler.graph_handler._graph.has_edge(source_member_id, "new_id")
+    assert handler.graph_handler._graph.has_edge(source_member_id, generated_id)
     edge_data_primary = handler.graph_handler._graph.get_edge_data(
-        source_member_id, "new_id"
+        source_member_id, generated_id
     )["data"]
     assert edge_data_primary.edge_type == EdgeType.PARENT_TO_CHILD
 
     # Assert reverse relationship (CHILD_TO_PARENT: new_id -> source_id)
-    assert handler.graph_handler._graph.has_edge("new_id", source_member_id)
+    assert handler.graph_handler._graph.has_edge(generated_id, source_member_id)
     edge_data_reverse = handler.graph_handler._graph.get_edge_data(
-        "new_id", source_member_id
+        generated_id, source_member_id
     )["data"]
     assert edge_data_reverse.edge_type == EdgeType.CHILD_TO_PARENT
 
@@ -314,7 +323,7 @@ def test_add_family_member_no_inference():
 
     assert isinstance(response, AddFamilyMemberResponse)
     assert response.status == OK_STATUS
-    assert response.message == "New Member added successfully to the family."
+    assert response.message == f"{new_member_name} added successfully to the family."
 
 
 def test_add_family_member_with_inference_adds_child_to_both_parents():
@@ -333,48 +342,60 @@ def test_add_family_member_with_inference_adds_child_to_both_parents():
         parent2_id, parent1_id
     )  # Bidirectional for get_spouse
 
-    new_member_dict = {"id": "child_id", "name": "New Child"}
+    new_member_name = "New Child"
+    new_member_dict = {"name": new_member_name}  # ID is no longer provided
     request = AddFamilyMemberRequest(
         new_member_data=new_member_dict,
         source_family_member_id=parent1_id,
         relationship_type=EdgeType.PARENT_TO_CHILD,  # parent1 -> child_id
         infer_relationships=True,
     )
-
+    initial_nodes = set(handler.graph_handler._graph.nodes())
     handler.add_family_member(request)
+    current_nodes = set(handler.graph_handler._graph.nodes())
+    new_member_ids = (
+        current_nodes - initial_nodes - {parent1_id, parent2_id}
+    )  # Exclude existing nodes
+    assert len(new_member_ids) == 1
+    generated_child_id = new_member_ids.pop()
 
     # Assert new member "child_id" is added
-    assert handler.graph_handler._graph.has_node("child_id")
+    assert re.match(MEMBER_ID_PATTERN, generated_child_id) is not None
+    assert handler.graph_handler._graph.has_node(generated_child_id)
+    assert (
+        handler.graph_handler._graph.nodes[generated_child_id]["data"].attributes.name
+        == new_member_name
+    )
 
     # Primary relationship: parent1_id -> child_id (PARENT_TO_CHILD)
-    assert handler.graph_handler._graph.has_edge(parent1_id, "child_id")
+    assert handler.graph_handler._graph.has_edge(parent1_id, generated_child_id)
     assert (
-        handler.graph_handler._graph.get_edge_data(parent1_id, "child_id")[
+        handler.graph_handler._graph.get_edge_data(parent1_id, generated_child_id)[
             "data"
         ].edge_type
         == EdgeType.PARENT_TO_CHILD
     )
     # Reverse of primary: child_id -> parent1_id (CHILD_TO_PARENT)
-    assert handler.graph_handler._graph.has_edge("child_id", parent1_id)
+    assert handler.graph_handler._graph.has_edge(generated_child_id, parent1_id)
     assert (
-        handler.graph_handler._graph.get_edge_data("child_id", parent1_id)[
+        handler.graph_handler._graph.get_edge_data(generated_child_id, parent1_id)[
             "data"
         ].edge_type
         == EdgeType.CHILD_TO_PARENT
     )
 
     # Inferred relationship: parent2_id -> child_id (PARENT_TO_CHILD)
-    assert handler.graph_handler._graph.has_edge(parent2_id, "child_id")
+    assert handler.graph_handler._graph.has_edge(parent2_id, generated_child_id)
     assert (
-        handler.graph_handler._graph.get_edge_data(parent2_id, "child_id")[
+        handler.graph_handler._graph.get_edge_data(parent2_id, generated_child_id)[
             "data"
         ].edge_type
         == EdgeType.PARENT_TO_CHILD
     )
     # Reverse of inferred: child_id -> parent2_id (CHILD_TO_PARENT)
-    assert handler.graph_handler._graph.has_edge("child_id", parent2_id)
+    assert handler.graph_handler._graph.has_edge(generated_child_id, parent2_id)
     assert (
-        handler.graph_handler._graph.get_edge_data("child_id", parent2_id)[
+        handler.graph_handler._graph.get_edge_data(generated_child_id, parent2_id)[
             "data"
         ].edge_type
         == EdgeType.CHILD_TO_PARENT
@@ -425,22 +446,28 @@ def test_add_first_family_member_no_relationship():
     """
     handler = FamilyTreeHandler()
 
+    new_member_name = "Alice"
     new_member_data = {
-        "id": "member1",
-        "name": "Alice",
+        "name": new_member_name,
     }
+
     request = AddFamilyMemberRequest(
         infer_relationships=False,
         new_member_data=new_member_data,
     )
-
+    initial_nodes = set(handler.graph_handler.get_family_graph().nodes())
     response = handler.add_family_member(request)
+    current_nodes = set(handler.graph_handler.get_family_graph().nodes())
+    new_member_ids = current_nodes - initial_nodes
+    assert len(new_member_ids) == 1
+    generated_id = new_member_ids.pop()
 
     graph = handler.graph_handler.get_family_graph()
-    assert graph.has_node(new_member_data["id"])
+    assert re.match(MEMBER_ID_PATTERN, generated_id) is not None
+    assert graph.has_node(generated_id)
 
     # 2. Verify node attributes (optional, but good for completeness)
-    node_data = graph.nodes[new_member_data["id"]]["data"]
+    node_data = graph.nodes[generated_id]["data"]
     assert isinstance(node_data, GraphNode)
     assert node_data.attributes.name == new_member_data["name"]
 

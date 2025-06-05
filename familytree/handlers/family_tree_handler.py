@@ -13,6 +13,7 @@ from familytree.models.manage_model import (
     LoadFamilyResponse,
 )
 from familytree.proto import family_tree_pb2
+from familytree.utils import id_utils
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class FamilyTreeHandler:
         new_member_to_add = ParseDict(
             new_member_to_add_dict, family_tree_pb2.FamilyMember()
         )
+        new_member_to_add.id = id_utils.generate_member_id()
 
         self.graph_handler.add_member(new_member_to_add.id, new_member_to_add)
 
@@ -80,7 +82,7 @@ class FamilyTreeHandler:
             )
 
             if add_family_member_request.infer_relationships:
-                relations_to_add.extend(self.infer_relationships(primary_relationship))
+                relations_to_add.extend(self._infer_relationships(primary_relationship))
 
             for relationship in relations_to_add:
                 # The relationship_type in this loop is guaranteed to be an EdgeType instance
@@ -107,7 +109,10 @@ class FamilyTreeHandler:
         )
         return response
 
-    def infer_relationships(
+    def render_family_tree(self) -> str:
+        return self.graph_handler.render_graph_to_html()
+
+    def _infer_relationships(
         self, main_relationship: dict[str, str | EdgeType]
     ) -> list[dict[str, str | EdgeType]]:
         inferred_relationships: list[dict[str, str | EdgeType]] = []
@@ -126,9 +131,6 @@ class FamilyTreeHandler:
             )
 
         return inferred_relationships
-
-    def render_family_tree(self) -> str:
-        return self.graph_handler.render_graph_to_html()
 
     def _add_reverse_relationship(
         self, relationship: dict[str, str | EdgeType]
