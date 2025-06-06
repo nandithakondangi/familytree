@@ -132,6 +132,15 @@
 			@close="closeAddPersonModal"
 			@save="handlePersonAdded"
 		/>
+
+		<!-- Global Confirmation Modal -->
+		<ConfirmationModal
+			:isVisible="isConfirmModalVisible"
+			:message="confirmModalMessage"
+			:title="confirmModalTitle"
+			@confirm="handleConfirm"
+			@cancel="handleCancelConfirm"
+		/>
 	</div>
 </template>
 
@@ -140,12 +149,14 @@
 	import GraphView from "./components/GraphView.vue";
 	import StatusDisplay from "./components/StatusDisplay.vue";
 	import AddPersonModal from "./components/AddPersonModal.vue"; // Import the modal
+	import ConfirmationModal from "./components/ConfirmationModal.vue"; // Import the confirmation modal
 
 	export default {
 		name: "App",
 		components: {
 			Sidebar,
 			GraphView,
+			ConfirmationModal, // Register the confirmation modal
 			StatusDisplay,
 			AddPersonModal, // Register the modal
 		},
@@ -172,6 +183,12 @@
 				isSidebarOpen: true, // Sidebar starts open by default
 				// Theme state
 				currentTheme: "light", // 'light' or 'dark'
+				// Confirmation Modal State
+				isConfirmModalVisible: false,
+				confirmModalMessage: "",
+				confirmModalTitle: "Confirm Action", // Default title
+				confirmModalOnConfirm: null,
+				confirmModalOnCancel: null,
 			};
 		},
 		provide() {
@@ -200,6 +217,7 @@
 				showNodeContextMenu: this.showNodeContextMenu, // For right-click
 				handleDeleteMember: this.handleDeleteMember, // For delete action
 				handleConnectToExisting: this.handleConnectToExisting, // For connect action
+				openConfirmModal: this.openConfirmModal, // Provide confirmation modal opener
 			};
 		},
 		created() {
@@ -326,6 +344,25 @@
 				// If confirmed, call backend API to delete member
 				// After successful backend call, trigger re-render
 				// this.triggerReRender();
+			},
+
+			// Confirmation Modal Methods
+			openConfirmModal(message, title = "Confirm Action") {
+				return new Promise((resolve) => {
+					this.confirmModalMessage = message;
+					this.isConfirmModalVisible = true;
+					this.confirmModalTitle = title;
+					this.confirmModalOnConfirm = () => resolve(true);
+					this.confirmModalOnCancel = () => resolve(false);
+				});
+			},
+			handleConfirm() {
+				this.isConfirmModalVisible = false;
+				if (this.confirmModalOnConfirm) this.confirmModalOnConfirm();
+			},
+			handleCancelConfirm() {
+				this.isConfirmModalVisible = false;
+				if (this.confirmModalOnCancel) this.confirmModalOnCancel();
 			},
 		},
 	};
