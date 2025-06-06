@@ -199,28 +199,6 @@ class PyvisRenderer:
             }
         )
 
-    def _get_js_injection_code(self) -> str:
-        """Prepares JavaScript code for injection, including qwebchannel setup."""
-        if not self.jinja_env:
-            logger.error(
-                "Jinja2 environment not initialized. Cannot prepare JS injection code."
-            )
-            return "<script>console.error('JS injection setup failed: Jinja2 not available.');</script>"
-
-        try:
-            pyvis_template_rpath = (
-                "pyvis_browser_interaction.js.template"  # Relative to resource dir
-            )
-            template = self.jinja_env.get_template(pyvis_template_rpath)
-            rendered_js = template.render()
-            return f'<script type="text/javascript">\n{rendered_js}\n</script>'
-
-        except Exception as e:
-            logger.exception(
-                f"Error preparing JS injection code from template '{pyvis_template_rpath}': {e}"
-            )
-            return "<script>console.error('Error setting up JS injection from template.');</script>"
-
     def _create_dir_if_not_exists(self, file_path: str) -> None:
         """Ensures the directory for the given file_path exists."""
         output_dir = os.path.dirname(file_path)
@@ -305,15 +283,6 @@ class PyvisRenderer:
             logger.error(f"Error serializing pyvis options to JSON: {e}")
 
         html_content = pyvis_network.generate_html(notebook=False)
-
-        js_code_to_inject = self._get_js_injection_code()
-        if "</body>" in html_content:
-            html_content = html_content.replace(
-                "</body>", js_code_to_inject + "\n</body>", 1
-            )
-        else:
-            html_content += js_code_to_inject
-            logger.warning("</body> tag not found. Appending JS code.")
 
         if output_html_file_path:
             self._write_html_to_file(html_content, output_html_file_path)
