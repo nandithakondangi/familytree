@@ -359,6 +359,7 @@
 					paksham: "PAKSHAM_UNKNOWN",
 					thithi: "THITHI_UNKNOWN",
 				},
+				additionalInfo: {},
 			});
 
 			const getTodayDateStringLocal = () => {
@@ -601,14 +602,41 @@
 				}
 
 				const memberProtoJson = familyMemberMessage.toObject();
-				console.log("Saving member (Protobuf JSON):", memberProtoJson);
+				console.log(
+					"Saving member (Protobuf JSON before adjustment):",
+					memberProtoJson
+				);
+
+				// Adjust for Python's ParseDict expectation for repeated fields.
+				// JavaScript's toObject() often appends 'List' to repeated field names (e.g. nicknames -> nicknamesList).
+				// Python's ParseDict expects the original proto field name.
+				if (
+					Object.prototype.hasOwnProperty.call(memberProtoJson, "nicknamesList")
+				) {
+					memberProtoJson.nicknames = memberProtoJson.nicknamesList;
+					delete memberProtoJson.nicknamesList;
+				}
+				memberProtoJson.additionalInfo = form.additionalInfo || {};
+				if (
+					Object.prototype.hasOwnProperty.call(
+						memberProtoJson,
+						"additionalInfoMap"
+					)
+				) {
+					delete memberProtoJson.additionalInfoMap;
+				}
+
+				const request_data = {
+					infer_relationships: props.inferRelationshipsEnabled,
+					new_member_data: memberProtoJson,
+				};
 
 				fetch("/api/v1/manage/add_family_member", {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 					},
-					body: JSON.stringify(memberProtoJson),
+					body: JSON.stringify(request_data),
 				})
 					.then((response) => {
 						if (!response.ok) {
@@ -658,6 +686,7 @@
 					paksham: "PAKSHAM_UNKNOWN",
 					thithi: "THITHI_UNKNOWN",
 				};
+				form.additionalInfo = {};
 			};
 
 			return {
