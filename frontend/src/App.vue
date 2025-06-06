@@ -210,6 +210,7 @@
 				isDataLoaded: () => this.isDataLoaded,
 				memberIdToEdit: () => this.memberIdToEdit,
 				triggerGraphRender: () => this.triggerGraphRender,
+				currentTheme: () => this.currentTheme, // Add this line
 
 				// Methods to update state (these would often trigger backend calls)
 				updateStatus: this.updateStatus,
@@ -224,6 +225,7 @@
 				openEditPersonDialog: this.openEditPersonDialog,
 				showNodeContextMenu: this.showNodeContextMenu, // For right-click
 				handleDeleteMember: this.handleDeleteMember, // For delete action
+				handleNodeSingleClick: this.handleNodeSingleClick, // For single-click action
 				handleConnectToExisting: this.handleConnectToExisting, // For connect action
 				openConfirmModal: this.openConfirmModal, // Provide confirmation modal opener
 			};
@@ -325,6 +327,10 @@
 				// TODO: Implement modal/dialog for editing a person
 			},
 			showNodeContextMenu(nodeId, x, y) {
+				// Placeholder: Log the action.
+				// In a real app, you would display a custom context menu component
+				// positioned at (x, y) offering actions like "Edit", "Delete", "Add Relationship".
+				// These actions would then call other methods like openEditPersonDialog, handleDeleteMember, etc.
 				console.log(`Showing context menu for node ${nodeId} at (${x}, ${y})`);
 				// TODO: Implement context menu display (e.g., using a custom component or library)
 				// The menu options would then call handleAddRelationship or handleDeleteMember
@@ -352,6 +358,18 @@
 				// If confirmed, call backend API to delete member
 				// After successful backend call, trigger re-render
 				// this.triggerReRender();
+			},
+			handleNodeSingleClick(nodeId) {
+				// Placeholder: Log the action.
+				// In a real app, this might select the node, show an information panel,
+				// or highlight related nodes.
+				console.log(
+					`Node single-clicked: ${nodeId}. Implement action here (e.g., show info).`
+				);
+				this.updateStatus(
+					`Node ${nodeId} selected. (Placeholder action)`,
+					3000
+				);
 			},
 
 			// Confirmation Modal Methods
