@@ -9,7 +9,7 @@
 	>
 		<div
 			v-if="isVisible"
-			class="fixed inset-0 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex justify-center items-center"
+			class="fixed inset-0 overflow-y-auto h-full w-full z-50 flex justify-center items-center"
 			@click.self="handleCancel"
 		>
 			<div

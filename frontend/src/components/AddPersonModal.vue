@@ -9,7 +9,7 @@
 	>
 		<div
 			v-if="isVisible"
-			class="fixed inset-0 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex justify-center items-center"
+			class="fixed inset-0 overflow-y-auto h-full w-full z-50 flex justify-center items-center"
 		>
 			<div
 				class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-md w-full mx-4"
