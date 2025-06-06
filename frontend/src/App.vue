@@ -82,7 +82,15 @@
 			<!-- <div class="w-14"></div> Spacer to balance the hamburger button for true title centering -->
 		</header>
 
-		<div class="flex flex-grow overflow-hidden p-1">
+		<div
+			class="flex flex-grow overflow-hidden p-1"
+			:class="{
+				'blur-sm transition-filter duration-300 ease-in-out':
+					isAddPersonModalVisible || isConfirmModalVisible,
+				'filter-none transition-filter duration-300 ease-in-out':
+					!isAddPersonModalVisible && !isConfirmModalVisible,
+			}"
+		>
 			<aside
 				:class="{
 					'w-96 flex-shrink-0 bg-white/30 dark:bg-slate-800/50 backdrop-blur-lg shadow-xl rounded-xl p-4': true,
