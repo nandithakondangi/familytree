@@ -65,7 +65,6 @@
 						);
 					}
 					interactionScriptContent.value = await response.text();
-					console.log("[GraphView] Interaction script fetched successfully.");
 				} catch (error) {
 					console.error(
 						"[GraphView] Error fetching interaction script:",
@@ -99,10 +98,9 @@
 						return response.json();
 					})
 					.then((data) => {
-						graphHtml.value = // Directly set graphHtml
+						graphHtml.value =
 							data.graph_html ||
 							'<p style="text-align:center; padding-top: 20px;">No graph data received.</p>';
-						// isLoading will be set to false in handleIframeLoad after iframe processes srcdoc
 					})
 					.catch((error) => {
 						console.error("Error fetching graph HTML:", error);
@@ -132,14 +130,12 @@
 							iframe.contentWindow.document.createElement("script");
 						scriptElement.textContent = interactionScriptContent.value;
 						iframe.contentWindow.document.body.appendChild(scriptElement);
-						// console.log("[GraphView] Interaction script injected successfully into iframe."); // Optional: Can be kept if needed
 					} catch (e) {
 						console.error(
 							"[GraphView] CRITICAL: Failed to inject script into iframe:",
-							e // Keep: Essential error log
+							e
 						);
 						updateStatus(
-							// Keep: User-facing status update
 							"CRITICAL: Error injecting script into graph view.",
 							10000
 						);
@@ -147,14 +143,13 @@
 				} else {
 					if (!iframe || !iframe.contentWindow)
 						console.error(
-							"[GraphView] Iframe or contentWindow not available for script injection." // Keep: Essential error log
+							"[GraphView] Iframe or contentWindow not available for script injection."
 						);
 					if (
 						!interactionScriptContent.value ||
 						interactionScriptContent.value.startsWith("// Failed to load")
 					)
 						console.error(
-							// Keep: Essential error log
 							"[GraphView] Interaction script content not loaded or failed to load, cannot inject."
 						);
 				}
