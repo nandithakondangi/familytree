@@ -65,7 +65,18 @@
 						return response.json();
 					})
 					.then((data) => {
-						graphHtml.value = data.graphHtml;
+						const newHtml = data.graph_html;
+						if (graphHtml.value === newHtml) {
+							console.log(
+								"Graph HTML is unchanged. Setting isLoading to false."
+							);
+							isLoading.value = false;
+						} else {
+							console.log(
+								"Graph HTML has changed. Updating srcdoc. isLoading remains true until iframe loads."
+							);
+							graphHtml.value = newHtml;
+						}
 					})
 					.catch((error) => {
 						console.error("Error fetching graph HTML:", error);
