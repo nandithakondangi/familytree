@@ -164,6 +164,7 @@
 			const setDataLoaded = inject("setDataLoaded");
 			const openAddPersonDialog = inject("openAddPersonDialog");
 			const triggerReRender = inject("triggerReRender");
+			const openConfirmModal = inject("openConfirmModal");
 			// Inject other methods needed for actions like export, etc.
 			const handleAddRelationship = inject("handleAddRelationship"); // Example usage for context menu actions
 			const currentFileHandle = ref(null); // To store the FileSystemFileHandle
@@ -185,6 +186,7 @@
 				openAddPersonDialog,
 				triggerReRender,
 				currentFileHandle,
+				openConfirmModal,
 				handleAddRelationship, // Expose if needed for child components or direct calls
 				handleDeleteMember, // Expose if needed
 				handleConnectToExisting, // Expose if needed
@@ -341,36 +343,36 @@
 
 			// --- Main Functionality Methods ---
 			handleNewFamilyTreeRequest() {
-				if (this.isDataLoaded()) {
-					if (
-						confirm(
+				this.$nextTick(async () => {
+					// Ensure DOM is updated if called rapidly
+					if (this.isDataLoaded()) {
+						const confirmed = await this.openConfirmModal(
 							"This operation will clear the existing family tree and unsaved changes will be lost. Are you sure you want to proceed?"
-						)
-					) {
-						console.log(
-							"User confirmed to clear existing tree and start a new one."
 						);
-						this._callApiToCreateNewFamilyTree();
-
-						this.currentFileHandle = null;
-						this.setLoadedFileName(null);
-						this.selectedFile = null;
-
-						this.setDataLoaded(false);
-						this.updateStatus(
-							"Previous tree cleared. Starting a new family tree.",
-							5000
-						);
-						this.triggerReRender();
-						this.openAddPersonDialog();
+						if (confirmed) {
+							console.log(
+								"User confirmed to clear existing tree and start a new one."
+							);
+							this._callApiToCreateNewFamilyTree();
+							this.currentFileHandle = null;
+							this.setLoadedFileName(null);
+							this.selectedFile = null;
+							this.setDataLoaded(false);
+							this.updateStatus(
+								"Previous tree cleared. Starting a new family tree.",
+								5000
+							);
+							this.triggerReRender();
+							this.openAddPersonDialog();
+						} else {
+							this.updateStatus("Operation cancelled by user.", 3000);
+						}
 					} else {
-						this.updateStatus("Operation cancelled by user.", 3000);
+						this._callApiToCreateNewFamilyTree();
+						this.updateStatus("Successfully created new family tree", 5000);
+						this.openAddPersonDialog();
 					}
-				} else {
-					this._callApiToCreateNewFamilyTree();
-					this.updateStatus("Successfully created new family tree", 5000);
-					this.openAddPersonDialog();
-				}
+				});
 			},
 			async triggerFileInput() {
 				if (window.showOpenFilePicker) {
@@ -417,62 +419,64 @@
 				}
 			},
 			async loadFile() {
-				if (!this.selectedFile) {
-					this.updateStatus("Please select a file first.", 3000);
-					return;
-				}
-
-				if (this.isDataLoaded()) {
-					if (
-						confirm(
-							"This operation will clear the existing family tree and unsaved changes will be lost. Are you sure you want to proceed?"
-						)
-					) {
-						console.log(
-							"User confirmed to clear existing tree and start a new one."
-						);
-					} else {
-						this.updateStatus("Operation cancelled by user.", 3000);
+				this.$nextTick(async () => {
+					if (!this.selectedFile) {
+						this.updateStatus("Please select a file first.", 3000);
 						return;
 					}
-				}
 
-				this.updateStatus(`Reading file: ${this.selectedFileName}...`);
-
-				try {
-					const fileContent = await this.selectedFile.text(); // Modern way to read File as text
-					console.log("File content:", fileContent);
-					this.updateStatus(`Sending file content to server...`);
-
-					const response = await fetch("/api/v1/manage/load_family", {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							filename: this.selectedFileName,
-							content: fileContent,
-						}),
-					});
-
-					if (!response.ok) {
-						const text = await response.text();
-						throw new Error(
-							`Server error: ${response.status} ${text || response.statusText}`
+					if (this.isDataLoaded()) {
+						// Check if data is already loaded
+						const confirmed = await this.openConfirmModal(
+							"This operation will clear the existing family tree and unsaved changes will be lost. Are you sure you want to proceed?"
 						);
+						if (!confirmed) {
+							this.updateStatus("Load operation cancelled by user.", 3000);
+							return;
+						}
+						// If confirmed, proceed with loading.
+						// No 'else' needed here as the 'return' handles the cancellation.
 					}
 
-					const data = await response.json();
-					console.log("File processed successfully by backend:", data);
-					this.updateStatus("Data loaded successfully!", 5000);
-					this.setDataLoaded(true);
-					// If loaded via <input type="file">, currentFileHandle would be null.
-					// If loaded via showOpenFilePicker, currentFileHandle is already set.
-					this.triggerReRender();
-				} catch (error) {
-					console.error("Error loading file:", error);
-					this.updateStatus(`Error loading file: ${error.message}`, 7000);
-					this.setDataLoaded(false);
-					if (this.currentFileHandle) this.currentFileHandle = null; // Clear handle on load error
-				}
+					this.updateStatus(`Reading file: ${this.selectedFileName}...`);
+
+					try {
+						const fileContent = await this.selectedFile.text(); // Modern way to read File as text
+						console.log("File content:", fileContent);
+						this.updateStatus(`Sending file content to server...`);
+
+						const response = await fetch("/api/v1/manage/load_family", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								filename: this.selectedFileName,
+								content: fileContent,
+							}),
+						});
+
+						if (!response.ok) {
+							const text = await response.text();
+							throw new Error(
+								`Server error: ${response.status} ${
+									text || response.statusText
+								}`
+							);
+						}
+
+						const data = await response.json();
+						console.log("File processed successfully by backend:", data);
+						this.updateStatus("Data loaded successfully!", 5000);
+						this.setDataLoaded(true);
+						// If loaded via <input type="file">, currentFileHandle would be null.
+						// If loaded via showOpenFilePicker, currentFileHandle is already set.
+						this.triggerReRender();
+					} catch (error) {
+						console.error("Error loading file:", error);
+						this.updateStatus(`Error loading file: ${error.message}`, 7000);
+						this.setDataLoaded(false);
+						if (this.currentFileHandle) this.currentFileHandle = null; // Clear handle on load error
+					}
+				});
 			},
 			async saveData() {
 				this.updateStatus("Saving data...");
