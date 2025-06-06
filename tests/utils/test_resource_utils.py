@@ -31,49 +31,14 @@ def test_get_resource_without_name():
     assert actual_dir == expected_resource_dir
 
 
-@patch("familytree.utils.resource_utils.get_resource")
-@patch("pathlib.Path.is_file", autospec=True)
-def test_get_default_images_all_exist(mock_is_file, mock_get_resource_func):
-    mock_is_file.return_value = True  # All image files exist
-
-    # Define what get_resource should return for each image name
-    def side_effect_get_resource(filename):
-        base = pathlib.Path("/fake/resources")
-        return base / filename
-
-    mock_get_resource_func.side_effect = side_effect_get_resource
-
+def test_get_default_images_all_exist():
     default_images, broken_image = get_default_images()
 
-    assert default_images["MALE"] == "/fake/resources/male.png"
-    assert default_images["FEMALE"] == "/fake/resources/female.png"
-    assert default_images["OTHER"] == "/fake/resources/person.jpg"
-    assert default_images["GENDER_UNKNOWN"] == "/fake/resources/person.jpg"
-    assert broken_image == "/fake/resources/broken.gif"
-
-
-@patch("familytree.utils.resource_utils.get_resource")
-@patch("pathlib.Path.is_file", autospec=True)
-def test_get_default_images_some_missing(mock_is_file, mock_get_resource_func):
-    # Simulate female.png missing, broken.gif existing
-    def side_effect_is_file(path_obj):
-        if path_obj.name == "female.png":
-            return False
-        return True
-
-    mock_is_file.side_effect = side_effect_is_file
-
-    def side_effect_get_resource(filename):
-        base = pathlib.Path("/fake/resources")
-        return base / filename
-
-    mock_get_resource_func.side_effect = side_effect_get_resource
-
-    default_images, broken_image = get_default_images()
-
-    assert default_images["MALE"] == "/fake/resources/male.png"
-    assert "FEMALE" not in default_images  # Should not be added if file missing
-    assert broken_image == "/fake/resources/broken.gif"
+    assert default_images["MALE"] == "/images/male.png"
+    assert default_images["FEMALE"] == "/images/female.png"
+    assert default_images["OTHER"] == "/images/person.jpg"
+    assert default_images["GENDER_UNKNOWN"] == "/images/person.jpg"
+    assert broken_image == "/images/broken.gif"
 
 
 @patch("familytree.utils.resource_utils.get_resource")

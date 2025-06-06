@@ -1,4 +1,3 @@
-# /home/aadithya93/projects/familytree/familytree/handlers/pyvis_renderer.py
 import json
 import logging
 import os
