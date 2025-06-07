@@ -12,7 +12,7 @@
 			class="fixed inset-0 overflow-y-auto h-full w-full z-50 flex justify-center items-center"
 		>
 			<div
-				class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4"
+				class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 flex flex-col h-[65vh]"
 			>
 				<div
 					class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4"
@@ -40,8 +40,8 @@
 					</button>
 				</div>
 
-				<form @submit.prevent="saveMember">
-					<div class="flex flex-col md:flex-row md:space-x-6">
+				<form @submit.prevent="saveMember" class="flex-1 flex flex-col min-h-0">
+					<div class="flex-1 flex flex-col md:flex-row md:space-x-6 min-h-0">
 						<!-- Left Pane: Image Upload -->
 						<div
 							class="w-full md:w-1/3 flex flex-col items-center space-y-3 py-4"
@@ -91,7 +91,9 @@
 						</div>
 
 						<!-- Right Pane: Form Fields -->
-						<div class="w-full md:w-2/3 space-y-4">
+						<div
+							class="w-full md:w-2/3 flex-1 space-y-4 overflow-y-auto md:h-full min-h-0 py-4 pr-2"
+						>
 							<div>
 								<label
 									for="name"
@@ -181,11 +183,21 @@
 										class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 										>Gregorian DOB:</label
 									>
-									<input
+									<date-picker
+										:value="form.gregorianDobString"
+										@update:value="
+											(value) => handleDateUpdate('gregorianDobString', value)
+										"
 										type="date"
-										v-model="form.gregorianDobString"
-										:max="todayDateString"
-										class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										format="YYYY-MM-DD"
+										value-type="format"
+										placeholder="YYYY-MM-DD"
+										:editable="true"
+										:disabled-date="disableFutureDates"
+										input-class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										popup-class="dark:bg-slate-700"
+										class="w-full"
+										:clearable="true"
 									/>
 								</div>
 								<div v-if="isIndianCulture">
@@ -283,11 +295,21 @@
 											class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 											>Gregorian DoD:</label
 										>
-										<input
+										<date-picker
+											:value="form.gregorianDodString"
+											@update:value="
+												(value) => handleDateUpdate('gregorianDodString', value)
+											"
 											type="date"
-											v-model="form.gregorianDodString"
-											:max="todayDateString"
-											class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											format="YYYY-MM-DD"
+											value-type="format"
+											placeholder="YYYY-MM-DD"
+											:editable="true"
+											:disabled-date="disableFutureDates"
+											input-class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											popup-class="dark:bg-slate-700"
+											class="w-full"
+											:clearable="true"
 										/>
 									</div>
 									<div v-if="isIndianCulture">
@@ -403,7 +425,7 @@
 					</div>
 
 					<div
-						class="flex justify-end space-x-4 mt-8 pt-4 border-t border-gray-300/70 dark:border-gray-600/70"
+						class="flex justify-end space-x-4 mt-auto pt-4 border-t border-gray-300/70 dark:border-gray-600/70"
 					>
 						<button
 							type="button"
@@ -427,6 +449,8 @@
 
 <script>
 	import { reactive, watch, computed, inject, ref } from "vue";
+	import DatePicker from "vue-datepicker-next";
+	import "vue-datepicker-next/index.css";
 	import { FamilyMember } from "../proto/family_tree_pb";
 	import {
 		GregorianDate as ProtoGregorianDate,
@@ -440,6 +464,9 @@
 
 	export default {
 		name: "AddPersonModal",
+		components: {
+			DatePicker,
+		},
 		props: {
 			isVisible: {
 				type: Boolean,
@@ -478,17 +505,17 @@
 				dynamicFields: [], // For key-value additional info
 			});
 
+			const handleDateUpdate = (field, newValue) => {
+				form[field] = newValue;
+			};
+
 			const profileImagePreview = ref(null);
 			const imageInputRef = ref(null);
 
-			const getTodayDateStringLocal = () => {
-				const today = new Date();
-				const year = today.getFullYear();
-				const month = (today.getMonth() + 1).toString().padStart(2, "0");
-				const day = today.getDate().toString().padStart(2, "0");
-				return `${year}-${month}-${day}`;
+			// Function to disable future dates for the date picker
+			const disableFutureDates = (date) => {
+				return date > new Date(new Date().setHours(23, 59, 59, 999)); // Allow today
 			};
-			const todayDateString = getTodayDateStringLocal();
 
 			const genderOptions = computed(() => {
 				return Object.keys(ProtoGender).map((key) => {
@@ -729,7 +756,6 @@
 						"additionalInfoMap"
 					)
 				) {
-					memberProtoJson.additionalInfo = memberProtoJson.additionalInfoMap;
 					delete memberProtoJson.additionalInfoMap; // Clean up if toObject() created this
 				}
 
@@ -842,7 +868,7 @@
 				TamilStarOptions,
 				PakshamOptions,
 				ThithiOptions,
-				todayDateString,
+				disableFutureDates,
 				closeModal,
 				saveMember,
 				updateStatus,
@@ -850,6 +876,7 @@
 				imageInputRef,
 				handleImageUpload,
 				triggerImageUpload,
+				handleDateUpdate,
 				removeImage,
 				addDynamicField,
 				removeDynamicField,
