@@ -36,3 +36,4 @@ project_excludes = [
     "**/.[!/.]*",
     "**/*venv/**/*",
 ]
+python-interpreter = ".venv/bin/python"

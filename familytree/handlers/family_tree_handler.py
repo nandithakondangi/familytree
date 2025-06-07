@@ -13,6 +13,7 @@ from familytree.models.manage_model import (
     LoadFamilyResponse,
 )
 from familytree.proto import family_tree_pb2
+from familytree.utils import id_utils
 
 logger = logging.getLogger(__name__)
 
@@ -59,48 +60,59 @@ class FamilyTreeHandler:
     ) -> AddFamilyMemberResponse:
         new_member_to_add_dict = add_family_member_request.new_member_data
         new_member_to_add = ParseDict(
-            new_member_to_add_dict, family_tree_pb2.FamilyMember
+            new_member_to_add_dict, family_tree_pb2.FamilyMember()
         )
+        new_member_to_add.id = id_utils.generate_member_id()
 
         self.graph_handler.add_member(new_member_to_add.id, new_member_to_add)
-        # Add the primary relationship and its reverse
-        relations_to_add = [
-            {
+
+        if (
+            add_family_member_request.source_family_member_id is not None
+            and add_family_member_request.relationship_type is not None
+        ):
+            # Add the primary relationship and its reverse
+            primary_relationship: dict[str, str | EdgeType] = {
                 "source_id": add_family_member_request.source_family_member_id,
                 "target_id": new_member_to_add.id,
                 "relationship_type": add_family_member_request.relationship_type,
             }
-        ]
-        relations_to_add.append(self._add_reverse_relationship(relations_to_add[0]))
+            relations_to_add: list[dict[str, str | EdgeType]] = [primary_relationship]
+            relations_to_add.append(
+                self._add_reverse_relationship(primary_relationship)
+            )
 
-        if add_family_member_request.infer_relationships:
-            relations_to_add.extend(self.infer_relationships(relations_to_add[0]))
+            if add_family_member_request.infer_relationships:
+                relations_to_add.extend(self._infer_relationships(primary_relationship))
 
-        for relationship in relations_to_add:
-            if relationship["relationship_type"] == EdgeType.PARENT_TO_CHILD:
-                self.graph_handler.add_child_relation(
-                    str(relationship["source_id"]), str(relationship["target_id"])
-                )
-            elif relationship["relationship_type"] == EdgeType.CHILD_TO_PARENT:
-                self.graph_handler.add_parent_relation(
-                    str(relationship["source_id"]), str(relationship["target_id"])
-                )
-            elif relationship["relationship_type"] == EdgeType.SPOUSE:
-                self.graph_handler.add_spouse_relation(
-                    str(relationship["source_id"]), str(relationship["target_id"])
-                )
-            else:
-                logger.error(
-                    f"Invalid relationship type: {relationship['relationship_type']}"
-                )
+            for relationship in relations_to_add:
+                # The relationship_type in this loop is guaranteed to be an EdgeType instance
+                if relationship["relationship_type"] == EdgeType.PARENT_TO_CHILD:
+                    self.graph_handler.add_child_relation(
+                        str(relationship["source_id"]), str(relationship["target_id"])
+                    )
+                elif relationship["relationship_type"] == EdgeType.CHILD_TO_PARENT:
+                    self.graph_handler.add_parent_relation(
+                        str(relationship["source_id"]), str(relationship["target_id"])
+                    )
+                elif relationship["relationship_type"] == EdgeType.SPOUSE:
+                    self.graph_handler.add_spouse_relation(
+                        str(relationship["source_id"]), str(relationship["target_id"])
+                    )
+                else:
+                    logger.error(
+                        f"Invalid or unexpected relationship type: {relationship['relationship_type']}"
+                    )
 
         response = AddFamilyMemberResponse(
             status=OK_STATUS,  # pyrefly: ignore
-            message="Family member added successfully.",  # pyrefly: ignore
+            message=f"{new_member_to_add.name} added successfully to the family.",
         )
         return response
 
-    def infer_relationships(
+    def render_family_tree(self) -> str:
+        return self.graph_handler.render_graph_to_html()
+
+    def _infer_relationships(
         self, main_relationship: dict[str, str | EdgeType]
     ) -> list[dict[str, str | EdgeType]]:
         inferred_relationships: list[dict[str, str | EdgeType]] = []

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, field_serializer
 
@@ -21,13 +21,15 @@ class LoadFamilyResponse(FamilyTreeBaseResponse):
 
 class AddFamilyMemberRequest(BaseModel):
     infer_relationships: bool
-    new_member_data: dict[str, Any]
-    source_family_member_id: str
-    relationship_type: EdgeType
+    new_member_data: dict[str, Any]  # Dictionary representing FamilyMember proto
+    source_family_member_id: Optional[str] = None
+    relationship_type: Optional[EdgeType] = None
 
     @field_serializer("relationship_type")
-    def serialize_relationship_type(self, v: EdgeType):
-        return v.value
+    def serialize_relationship_type(self, v: Optional[EdgeType]):
+        if v is None:
+            return None
+        return v.value  # pragma: no cover
 
 
 class AddFamilyMemberResponse(FamilyTreeBaseResponse):
