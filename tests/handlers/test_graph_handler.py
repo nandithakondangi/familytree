@@ -1,8 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import networkx as nx
 import pytest
 
-from familytree.handlers.graph_handler import EdgeType, GraphHandler
+from familytree.handlers.graph_handler import GraphHandler
 from familytree.proto import family_tree_pb2
+from familytree.utils.graph_types import EdgeType, GraphEdge, GraphNode
 
 
 @pytest.fixture
@@ -30,10 +33,8 @@ def test_add_member(graph_handler_instance):
     graph_handler_instance.add_member(member_id, member_data)
 
     assert member_id in graph_handler_instance._graph.nodes
-    node_obj: GraphHandler.GraphNode = graph_handler_instance._graph.nodes[member_id][
-        "data"
-    ]
-    assert isinstance(node_obj, GraphHandler.GraphNode)
+    node_obj: GraphNode = graph_handler_instance._graph.nodes[member_id]["data"]
+    assert isinstance(node_obj, GraphNode)
     assert node_obj.attributes == member_data
     assert node_obj.is_poi is False
     assert node_obj.is_visible is False  # Default as per implementation
@@ -58,12 +59,12 @@ def test_add_child_relation(graph_handler_instance):
     graph_handler_instance.add_child_relation(parent_id, child_id)
 
     assert graph_handler_instance._graph.has_edge(parent_id, child_id)
-    edge_data: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
-        parent_id, child_id
-    ]["data"]
-    assert isinstance(edge_data, GraphHandler.GraphEdge)
+    edge_data: GraphEdge = graph_handler_instance._graph.edges[parent_id, child_id][
+        "data"
+    ]
+    assert isinstance(edge_data, GraphEdge)
     assert edge_data.edge_type == EdgeType.PARENT_TO_CHILD
-    assert edge_data.is_visible is True
+    assert edge_data.is_rendered is True
     assert (
         graph_handler_instance._graph.nodes[parent_id]["data"].has_visible_children
         is False
@@ -95,11 +96,9 @@ def test_add_spouse_relation(graph_handler_instance):
 
     graph_handler_instance.add_spouse_relation(s1_id, s2_id)
     assert graph_handler_instance._graph.has_edge(s1_id, s2_id)
-    edge1_data: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
-        s1_id, s2_id
-    ]["data"]
+    edge1_data: GraphEdge = graph_handler_instance._graph.edges[s1_id, s2_id]["data"]
     assert edge1_data.edge_type == EdgeType.SPOUSE
-    assert edge1_data.is_visible is True  # First edge is visible
+    assert edge1_data.is_rendered is True  # First edge is visible
     assert (
         graph_handler_instance._graph.nodes[s1_id]["data"].has_visible_spouse is False
     )
@@ -107,11 +106,9 @@ def test_add_spouse_relation(graph_handler_instance):
     # Add reverse relationship
     graph_handler_instance.add_spouse_relation(s2_id, s1_id)
     assert graph_handler_instance._graph.has_edge(s2_id, s1_id)
-    edge2_data: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
-        s2_id, s1_id
-    ]["data"]
+    edge2_data: GraphEdge = graph_handler_instance._graph.edges[s2_id, s1_id]["data"]
     assert edge2_data.edge_type == EdgeType.SPOUSE
-    assert edge2_data.is_visible is False  # Reverse edge should be hidden
+    assert edge2_data.is_rendered is False  # Reverse edge should be hidden
     assert (
         graph_handler_instance._graph.nodes[s2_id]["data"].has_visible_spouse is False
     )
@@ -133,12 +130,12 @@ def test_add_parent_relation(graph_handler_instance):
     graph_handler_instance.add_parent_relation(child_id, parent_id)
 
     assert graph_handler_instance._graph.has_edge(child_id, parent_id)
-    edge_data: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
-        child_id, parent_id
-    ]["data"]
-    assert isinstance(edge_data, GraphHandler.GraphEdge)
+    edge_data: GraphEdge = graph_handler_instance._graph.edges[child_id, parent_id][
+        "data"
+    ]
+    assert isinstance(edge_data, GraphEdge)
     assert edge_data.edge_type == EdgeType.CHILD_TO_PARENT
-    assert edge_data.is_visible is False  # Default for parent relation
+    assert edge_data.is_rendered is False  # Default for parent relation
     assert (
         graph_handler_instance._graph.nodes[child_id]["data"].has_visible_parents
         is False
@@ -162,28 +159,28 @@ def test_create_from_proto_with_data(graph_handler_instance, weasley_family_tree
         weasley_family_tree_pb.members
     )
     assert "ARTHW" in graph_handler_instance._graph.nodes
-    arthur_node_data: GraphHandler.GraphNode = graph_handler_instance._graph.nodes[
-        "ARTHW"
-    ]["data"]
+    arthur_node_data: GraphNode = graph_handler_instance._graph.nodes["ARTHW"]["data"]
     assert arthur_node_data.attributes.name == "Arthur Weasley"
 
     # Arthur (ARTHW) is parent of Bill (BILLW)
     # Proto: relationships["ARTHW"].children_ids contains "BILLW"
     # create_from_proto calls: add_child_relation("ARTHW", "BILLW") -> edge ARTHW -> BILLW (PARENT_TO_CHILD)
     assert graph_handler_instance._graph.has_edge("ARTHW", "BILLW")
-    edge_arthur_bill: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
-        "ARTHW", "BILLW"
-    ]["data"]
+    edge_arthur_bill: GraphEdge = graph_handler_instance._graph.edges["ARTHW", "BILLW"][
+        "data"
+    ]
     assert edge_arthur_bill.edge_type == EdgeType.PARENT_TO_CHILD
+    assert edge_arthur_bill.is_rendered is True
 
     # Molly (MOLLW) is spouse of Arthur (ARTHW)
     # Proto: relationships["MOLLW"].spouse_ids contains "ARTHW"
     # create_from_proto calls: add_spouse_relation("MOLLW", "ARTHW") -> edge MOLLW -> ARTHW (SPOUSE)
     assert graph_handler_instance._graph.has_edge("MOLLW", "ARTHW")
-    edge_molly_arthur: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
+    edge_molly_arthur: GraphEdge = graph_handler_instance._graph.edges[
         "MOLLW", "ARTHW"
     ]["data"]
     assert edge_molly_arthur.edge_type == EdgeType.SPOUSE
+    assert edge_molly_arthur.is_rendered is False
 
     # Ron (RONAW) has parent Arthur (ARTHW)
     # Proto: relationships["RONAW"].parent_ids contains "ARTHW"
@@ -193,7 +190,7 @@ def test_create_from_proto_with_data(graph_handler_instance, weasley_family_tree
         and "ARTHW" in weasley_family_tree_pb.relationships["RONAW"].parent_ids
     ):
         assert graph_handler_instance._graph.has_edge("RONAW", "ARTHW")
-        edge_ron_arthur: GraphHandler.GraphEdge = graph_handler_instance._graph.edges[
+        edge_ron_arthur: GraphEdge = graph_handler_instance._graph.edges[
             "RONAW", "ARTHW"
         ]["data"]
         assert edge_ron_arthur.edge_type == EdgeType.CHILD_TO_PARENT
@@ -246,7 +243,7 @@ def _setup_node_with_visibility_flags(
 ):
     member_data = family_tree_pb2.FamilyMember(id=node_id)
     handler.add_member(node_id, member_data)
-    node: GraphHandler.GraphNode = handler._graph.nodes[node_id]["data"]
+    node: GraphNode = handler._graph.nodes[node_id]["data"]
     node.has_visible_parents = has_visible_parents
     node.has_visible_children = has_visible_children
     node.has_visible_spouse = has_visible_spouse
@@ -343,3 +340,38 @@ def test_get_parent(graph_handler_instance):
     assert graph_handler_instance.get_parent("parent1") is None
     with pytest.raises(nx.NetworkXError):  # Accessing non-existent node
         graph_handler_instance.get_parent("non_existent_node")
+
+
+def test_render_graph_to_html(graph_handler_instance):
+    """Tests rendering the graph to HTML."""
+    with patch(
+        "familytree.handlers.graph_handler.PyvisRenderer"
+    ) as mock_pyvis_renderer_cls:
+        mock_renderer_instance = MagicMock()
+        mock_pyvis_renderer_cls.return_value = mock_renderer_instance
+        mock_renderer_instance.render_graph_to_html.return_value = (
+            "<html><body>Mocked Graph</body></html>"
+        )
+
+        # Add a dummy node to ensure graph is not empty for renderer
+        graph_handler_instance.add_member(
+            "M001", family_tree_pb2.FamilyMember(id="M001")
+        )
+
+        html_output = graph_handler_instance.render_graph_to_html(
+            output_html_file_path="dummy.html"
+        )
+
+        mock_pyvis_renderer_cls.assert_called_once()
+        mock_renderer_instance.render_graph_to_html.assert_called_once_with(
+            graph_handler_instance._graph, "dummy.html"
+        )
+        assert html_output == "<html><body>Mocked Graph</body></html>"
+
+        # Test without output_html_file_path
+        mock_renderer_instance.render_graph_to_html.reset_mock()  # Reset mock for second call
+        html_output_no_path = graph_handler_instance.render_graph_to_html()
+        mock_renderer_instance.render_graph_to_html.assert_called_once_with(
+            graph_handler_instance._graph, None
+        )
+        assert html_output_no_path == "<html><body>Mocked Graph</body></html>"

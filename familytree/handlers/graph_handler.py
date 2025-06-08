@@ -1,58 +1,20 @@
 import logging
-from enum import Enum, auto
-from typing import Optional
+from typing import Any, Optional
 
+from google.protobuf.json_format import MessageToDict
 from networkx import DiGraph
 
 from familytree.proto import family_tree_pb2
+from familytree.rendering.pyvis_renderer import PyvisRenderer
+from familytree.utils.graph_types import EdgeType, GraphEdge, GraphNode
 
 logger = logging.getLogger(__name__)
-
-
-class EdgeType(Enum):
-    """
-    Defines the types of relationships (edges) in the family graph.
-    """
-
-    SPOUSE = auto()
-    PARENT_TO_CHILD = auto()
-    CHILD_TO_PARENT = auto()
 
 
 class GraphHandler:
     """
     Handler class to perform graph operations.
     """
-
-    class GraphNode:
-        """
-        Represents a node in the graph with its properties.
-        """
-
-        def __init__(self, attributes: family_tree_pb2.FamilyMember):
-            self.attributes: family_tree_pb2.FamilyMember = attributes
-            self.is_poi: bool = False
-            self.is_visible: bool = False  # Default as per current add_member
-            self.has_visible_spouse: Optional[bool] = None
-            self.has_visible_parents: Optional[bool] = None
-            self.has_visible_children: Optional[bool] = None
-            self.has_visible_siblings: Optional[bool] = None
-            self.has_visible_inlaws: Optional[bool] = None
-
-    class GraphEdge:
-        """
-        Represents an edge in the graph with properties.
-        """
-
-        def __init__(
-            self,
-            edge_type: EdgeType,
-            is_visible: bool = True,
-            attributes: Optional[dict] = None,
-        ):
-            self.edge_type: EdgeType = edge_type
-            self.is_visible: bool = is_visible
-            self.attributes: dict = attributes if attributes is not None else {}
 
     def __init__(self):
         """
@@ -69,23 +31,28 @@ class GraphHandler:
         """
         return self._graph
 
+    def get_member_info(self, member_id: str) -> dict[str, Any]:
+        """
+        Retrieves information about a family member.
+        """
+        node_data: GraphNode = self._graph.nodes[member_id]["data"]
+        return MessageToDict(node_data.attributes, preserving_proto_field_name=True)
+
     def has_parent(self, member_id: str) -> bool:
-        node_data: GraphHandler.GraphNode = self._graph.nodes[member_id]["data"]
+        node_data: GraphNode = self._graph.nodes[member_id]["data"]
         return node_data.has_visible_parents is not None
 
     def has_child(self, member_id: str) -> bool:
-        node_data: GraphHandler.GraphNode = self._graph.nodes[member_id]["data"]
+        node_data: GraphNode = self._graph.nodes[member_id]["data"]
         return node_data.has_visible_children is not None
 
     def has_spouse(self, member_id: str) -> bool:
-        node_data: GraphHandler.GraphNode = self._graph.nodes[member_id]["data"]
+        node_data: GraphNode = self._graph.nodes[member_id]["data"]
         return node_data.has_visible_spouse is not None
 
     def get_spouse(self, member_id: str) -> Optional[str]:
         for neighbor in self._graph.neighbors(member_id):
-            edge_obj: GraphHandler.GraphEdge = self._graph.get_edge_data(
-                member_id, neighbor
-            )["data"]
+            edge_obj: GraphEdge = self._graph.get_edge_data(member_id, neighbor)["data"]
             if edge_obj.edge_type == EdgeType.SPOUSE:
                 return neighbor
         return None
@@ -93,18 +60,14 @@ class GraphHandler:
     def get_children(self, member_id: str) -> list[str]:
         children: list[str] = []
         for neighbor in self._graph.neighbors(member_id):
-            edge_obj: GraphHandler.GraphEdge = self._graph.get_edge_data(
-                member_id, neighbor
-            )["data"]
+            edge_obj: GraphEdge = self._graph.get_edge_data(member_id, neighbor)["data"]
             if edge_obj.edge_type == EdgeType.PARENT_TO_CHILD:
                 children.append(neighbor)
         return children
 
     def get_parent(self, member_id: str) -> Optional[str]:
         for neighbor in self._graph.neighbors(member_id):
-            edge_obj: GraphHandler.GraphEdge = self._graph.get_edge_data(
-                member_id, neighbor
-            )["data"]
+            edge_obj: GraphEdge = self._graph.get_edge_data(member_id, neighbor)["data"]
             if edge_obj.edge_type == EdgeType.CHILD_TO_PARENT:
                 return neighbor
         return None
@@ -168,7 +131,7 @@ class GraphHandler:
             member_id: The unique identifier for the family member.
             member_data: The FamilyMember protobuf message containing member details.
         """
-        node_obj = GraphHandler.GraphNode(attributes=member_data)
+        node_obj = GraphNode(attributes=member_data)
 
         self._graph.add_node(member_id, data=node_obj)
         logger.debug(f"Added node: {member_id}")
@@ -195,8 +158,8 @@ class GraphHandler:
             return
 
         # Edge: source_member_id -> child_id (CHILD)
-        edge_data_child = GraphHandler.GraphEdge(
-            edge_type=EdgeType.PARENT_TO_CHILD, is_visible=True
+        edge_data_child = GraphEdge(
+            edge_type=EdgeType.PARENT_TO_CHILD, is_rendered=True
         )
         self._graph.add_edge(source_member_id, child_id, data=edge_data_child)
         self._graph.nodes[source_member_id]["data"].has_visible_children = False
@@ -230,9 +193,7 @@ class GraphHandler:
         is_edge_visible = (
             False if self._graph.has_edge(spouse_id, source_member_id) else True
         )
-        edge_data = GraphHandler.GraphEdge(
-            edge_type=EdgeType.SPOUSE, is_visible=is_edge_visible
-        )
+        edge_data = GraphEdge(edge_type=EdgeType.SPOUSE, is_rendered=is_edge_visible)
         self._graph.add_edge(source_member_id, spouse_id, data=edge_data)
         self._graph.nodes[source_member_id]["data"].has_visible_spouse = False
         logger.debug(f"Added SPOUSE edge: {source_member_id} -> {spouse_id}")
@@ -260,9 +221,31 @@ class GraphHandler:
             return
 
         # Edge: source_member_id -> parent_id (PARENT)
-        edge_data_parent = GraphHandler.GraphEdge(
-            edge_type=EdgeType.CHILD_TO_PARENT, is_visible=False
+        edge_data_parent = GraphEdge(
+            edge_type=EdgeType.CHILD_TO_PARENT, is_rendered=False
         )
         self._graph.add_edge(source_member_id, parent_id, data=edge_data_parent)
         self._graph.nodes[source_member_id]["data"].has_visible_parents = False
         logger.debug(f"Added PARENT edge: {source_member_id} -> {parent_id}")
+
+    def render_graph_to_html(
+        self,
+        output_html_file_path: Optional[str] = None,
+    ) -> str:
+        """
+        Renders the current family tree graph to an HTML string using PyvisRenderer
+        and optionally saves it to a file.
+
+        The visibility of nodes and edges is determined by the 'is_visible'
+        attribute on GraphNode and GraphEdge objects within self._graph.
+        The 'is_poi' attribute on GraphNode objects can be used to highlight
+        a person of interest.
+
+        Args:
+            output_html_file_path: Optional. If provided, the HTML will be saved
+                                   to this path.
+        Returns:
+            str: The HTML content of the rendered graph.
+        """
+        renderer = PyvisRenderer()
+        return renderer.render_graph_to_html(self._graph, output_html_file_path)
