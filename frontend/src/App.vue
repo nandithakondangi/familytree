@@ -85,10 +85,14 @@
 		<div
 			class="flex flex-grow overflow-hidden p-1"
 			:class="{
-				'blur-sm transition-filter duration-300 ease-in-out':
-					isAddPersonModalVisible || isConfirmModalVisible,
+				'blur-sm filter transition-filter duration-300 ease-in-out':
+					isAddPersonModalVisible ||
+					isConfirmModalVisible ||
+					isMemberDetailsModalVisible,
 				'filter-none transition-filter duration-300 ease-in-out':
-					!isAddPersonModalVisible && !isConfirmModalVisible,
+					!isAddPersonModalVisible &&
+					!isConfirmModalVisible &&
+					!isMemberDetailsModalVisible,
 			}"
 		>
 			<aside
@@ -149,6 +153,14 @@
 			@confirm="handleConfirm"
 			@cancel="handleCancelConfirm"
 		/>
+		<!-- Global Member Details Modal -->
+		<MemberDetailsModal
+			:isVisible="isMemberDetailsModalVisible"
+			:member="currentMemberDetails"
+			:clickPosition="clickPositionForModal"
+			@close="closeMemberDetailsModal"
+			@update-member="handleMemberUpdate"
+		/>
 	</div>
 </template>
 
@@ -158,6 +170,7 @@
 	import StatusDisplay from "./components/StatusDisplay.vue";
 	import AddPersonModal from "./components/AddPersonModal.vue"; // Import the modal
 	import ConfirmationModal from "./components/ConfirmationModal.vue"; // Import the confirmation modal
+	import MemberDetailsModal from "./components/MemberDetailsModal.vue";
 
 	export default {
 		name: "App",
@@ -167,6 +180,7 @@
 			ConfirmationModal, // Register the confirmation modal
 			StatusDisplay,
 			AddPersonModal, // Register the modal
+			MemberDetailsModal,
 		},
 		// You can add global data or methods here if needed
 		data() {
@@ -197,6 +211,10 @@
 				confirmModalTitle: "Confirm Action", // Default title
 				confirmModalOnConfirm: null,
 				confirmModalOnCancel: null,
+				// Member Details Modal State
+				isMemberDetailsModalVisible: false,
+				currentMemberDetails: null,
+				clickPositionForModal: { x: 0, y: 0 },
 			};
 		},
 		provide() {
@@ -228,6 +246,7 @@
 				handleNodeSingleClick: this.handleNodeSingleClick, // For single-click action
 				handleConnectToExisting: this.handleConnectToExisting, // For connect action
 				openConfirmModal: this.openConfirmModal, // Provide confirmation modal opener
+				handleAddRelationship: this.handleAddRelationship, // Add this line
 			};
 		},
 		created() {
@@ -359,17 +378,46 @@
 				// After successful backend call, trigger re-render
 				// this.triggerReRender();
 			},
-			handleNodeSingleClick(nodeId) {
-				// Placeholder: Log the action.
-				// In a real app, this might select the node, show an information panel,
-				// or highlight related nodes.
-				console.log(
-					`Node single-clicked: ${nodeId}. Implement action here (e.g., show info).`
-				);
-				this.updateStatus(
-					`Node ${nodeId} selected. (Placeholder action)`,
-					3000
-				);
+			async handleNodeSingleClick(nodeId, clickX, clickY) {
+				this.updateStatus(`Fetching details for member ${nodeId}...`);
+				this.clickPositionForModal = { x: clickX, y: clickY };
+				try {
+					const response = await fetch(`/api/v1/graph/member_info/${nodeId}`);
+					if (!response.ok) {
+						const errText = await response.text();
+						throw new Error(
+							errText || `Failed to fetch member details: ${response.status}`
+						);
+					}
+					const memberResponse = await response.json();
+					const memberData = memberResponse.member_info;
+					console.log(`Fetched member details for ${nodeId}:`, memberData);
+
+					// The backend sends protobuf JSON, ensure it's in a good state for the modal
+					// e.g., nicknamesList to nicknames
+					if (memberData.nicknamesList) {
+						memberData.nicknames = memberData.nicknamesList;
+						delete memberData.nicknamesList;
+					}
+					// additionalInfoMap to additionalInfo
+					if (memberData.additionalInfoMap) {
+						memberData.additionalInfo = Object.fromEntries(
+							memberData.additionalInfoMap
+						);
+						delete memberData.additionalInfoMap;
+					}
+
+					this.currentMemberDetails = memberData;
+					this.isMemberDetailsModalVisible = true;
+					this.updateStatus(
+						`Details loaded for ${memberData.name || nodeId}.`,
+						3000
+					);
+				} catch (error) {
+					console.error("Error fetching member details:", error);
+					this.updateStatus(`Error fetching details: ${error.message}`, 7000);
+					this.currentMemberDetails = null;
+				}
 			},
 
 			// Confirmation Modal Methods
@@ -389,6 +437,45 @@
 			handleCancelConfirm() {
 				this.isConfirmModalVisible = false;
 				if (this.confirmModalOnCancel) this.confirmModalOnCancel();
+			},
+
+			// Member Details Modal Methods
+			closeMemberDetailsModal() {
+				this.isMemberDetailsModalVisible = false;
+				this.currentMemberDetails = null;
+			},
+			async handleMemberUpdate(updatedMemberData) {
+				this.updateStatus(`Updating ${updatedMemberData.name}...`);
+				try {
+					// TODO: Implement backend API call to update member
+					// Ensure updatedMemberData is in the format your backend expects (protobuf JSON)
+					const response = await fetch(
+						`/api/v1/member/${updatedMemberData.id}`,
+						{
+							// Assuming ID is present
+							method: "PUT", // or PATCH
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify(updatedMemberData),
+						}
+					);
+
+					if (!response.ok) {
+						const errText = await response.text();
+						throw new Error(
+							errText || `Failed to update member: ${response.status}`
+						);
+					}
+					this.updateStatus(
+						`${updatedMemberData.name} updated successfully!`,
+						5000
+					);
+					this.closeMemberDetailsModal();
+					this.triggerReRender(); // Re-render graph if needed
+				} catch (error) {
+					console.error("Error updating member:", error);
+					this.updateStatus(`Error updating member: ${error.message}`, 7000);
+					// Optionally, keep modal open or handle error state
+				}
 			},
 		},
 	};

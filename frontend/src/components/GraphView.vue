@@ -158,13 +158,24 @@
 			const handleMessageFromIframe = (event) => {
 				const data = event.data;
 				if (data && data.type) {
+					const iframeRect = graphIframeRef.value?.getBoundingClientRect();
+					let screenX = data.clientX;
+					let screenY = data.clientY;
+
+					if (iframeRect) {
+						screenX = iframeRect.left + data.clientX;
+						screenY = iframeRect.top + data.clientY;
+					}
+
 					switch (data.type) {
 						case "nodeSingleClick":
 							console.log(
 								"[GraphView] Received nodeSingleClick from iframe:",
-								data.nodeId
+								data.nodeId,
+								`iframeCoords: (${data.clientX}, ${data.clientY})`,
+								`screenCoords: (${screenX}, ${screenY})`
 							);
-							handleNodeSingleClickFromApp(data.nodeId);
+							handleNodeSingleClickFromApp(data.nodeId, screenX, screenY);
 							break;
 						case "nodeDoubleClick":
 							console.log(
@@ -177,10 +188,11 @@
 							console.log(
 								"[GraphView] Received nodeRightClick from iframe:",
 								data.nodeId,
-								data.x,
-								data.y
+								`iframeCoords: (${data.x}, ${data.y})`,
+								`screenCoords: (${screenX}, ${screenY})` // Assuming data.x and data.y are also clientX/Y like
 							);
-							showNodeContextMenu(data.nodeId, data.x, data.y);
+							// For context menu, it might also need screen-relative X/Y if the menu is positioned globally.
+							showNodeContextMenu(data.nodeId, screenX, screenY);
 							break;
 						default:
 							break;

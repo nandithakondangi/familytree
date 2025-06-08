@@ -14,10 +14,16 @@ let checkNetworkInterval = setInterval(() => {
 				const nodeId = params.nodes[0];
 				clearTimeout(clickTimeout);
 				lastClickedNodeId = nodeId;
+				const clickEvent = params.event.srcEvent;
 
 				clickTimeout = setTimeout(() => {
 					window.parent.postMessage(
-						{ type: "nodeSingleClick", nodeId: nodeId },
+						{
+							type: "nodeSingleClick",
+							nodeId: nodeId,
+							clientX: clickEvent.clientX,
+							clientY: clickEvent.clientY,
+						},
 						"*"
 					);
 					clickTimeout = null;
