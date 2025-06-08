@@ -1,6 +1,7 @@
 import logging
-from typing import Optional
+from typing import Any, Optional
 
+from google.protobuf.json_format import MessageToDict
 from networkx import DiGraph
 
 from familytree.proto import family_tree_pb2
@@ -29,6 +30,13 @@ class GraphHandler:
             nx.DiGraph: The family graph.
         """
         return self._graph
+
+    def get_member_info(self, member_id: str) -> dict[str, Any]:
+        """
+        Retrieves information about a family member.
+        """
+        node_data: GraphNode = self._graph.nodes[member_id]["data"]
+        return MessageToDict(node_data.attributes, preserving_proto_field_name=True)
 
     def has_parent(self, member_id: str) -> bool:
         node_data: GraphNode = self._graph.nodes[member_id]["data"]

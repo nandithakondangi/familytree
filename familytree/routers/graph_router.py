@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from familytree import app_state
 from familytree.models.graph_model import (
     CustomGraphRenderResponse,
+    MemberInfoResponse,
     PyvisGraphRenderResponse,
 )
 
@@ -41,14 +42,31 @@ async def get_data_with_poi(poi: str | None = None, degree: int = 2):
             handler = app_state.get_current_family_tree_handler()
             html_content = handler.render_family_tree()
             return PyvisGraphRenderResponse(
-                status="OK",
+                status="OK",  # pyrefly: ignore
                 message="Family tree rendered successfully",
-                graph_html=html_content,
+                graph_html=html_content,  # pyrefly: ignore
             )
         except Exception as e:
             error_message = "Unexpected error occured while rendering family tree"
             logger.exception(f"{error_message}: {e}")
             raise HTTPException(status_code=500, detail=f"{error_message}: {str(e)}")
+
+
+@router.get("/member_info/{user_id}", response_model=MemberInfoResponse)
+async def get_member_info(user_id: str):
+    """
+    Retrieves information about a specific member in the family tree.
+
+    Args:
+        user_id: The ID of the user whose information is to be retrieved.
+    """
+    try:
+        handler = app_state.get_current_family_tree_handler()
+        return handler.get_member_info(user_id)
+    except Exception as e:
+        error_message = "Unexpected error occured while retrieving member info"
+        logger.exception(f"{error_message}: {e}")
+        raise HTTPException(status_code=500, detail=f"{error_message}: {str(e)}")
 
 
 @router.get("/expand_parents/{user}")

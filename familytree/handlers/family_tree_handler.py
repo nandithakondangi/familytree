@@ -6,6 +6,7 @@ from familytree.handlers.chat_handler import ChatHandler
 from familytree.handlers.graph_handler import EdgeType, GraphHandler
 from familytree.handlers.proto_handler import ProtoHandler
 from familytree.models.base_model import OK_STATUS
+from familytree.models.graph_model import MemberInfoResponse
 from familytree.models.manage_model import (
     AddFamilyMemberRequest,
     AddFamilyMemberResponse,
@@ -111,6 +112,13 @@ class FamilyTreeHandler:
 
     def render_family_tree(self) -> str:
         return self.graph_handler.render_graph_to_html()
+
+    def get_member_info(self, user_id: str) -> MemberInfoResponse:
+        return MemberInfoResponse(
+            status=OK_STATUS,  # pyrefly: ignore
+            message="Member info retrieved successfully.",  # pyrefly: ignore
+            member_info=self.graph_handler.get_member_info(user_id),
+        )
 
     def _infer_relationships(
         self, main_relationship: dict[str, str | EdgeType]
