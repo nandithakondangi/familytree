@@ -23,6 +23,7 @@
     "@vue/cli-service": "~5.0.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^7.32.0",
+    "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-vue": "^8.0.3",
     "grpc-tools": "^1.13.0",
     "postcss": "^8.5.3",
