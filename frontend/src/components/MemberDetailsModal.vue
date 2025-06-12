@@ -812,7 +812,6 @@ const isEditing = reactive({}); // Tracks which field is being edited, e.g., { n
 const editValues = reactive({}); // Stores temporary values for fields being edited
 const initialMemberState = ref(null); // To store the state when modal opens
 const profileImageInputRef = ref(null);
-const openConfirmModal = inject("openConfirmModal");
 const updateStatus = inject("updateStatus");
 const isIndianCultureCallback = inject("isIndianCulture", () => () => true); // Default to true if not provided
 const isIndianCulture = computed(() => isIndianCultureCallback());
@@ -1409,7 +1408,6 @@ const handleProfileImageChange = (event) => {
 		};
 		reader.readAsDataURL(file);
 	}
-	// TODO: Add status update for invalid file type
 };
 
 const confirmDeleteAdditionalField = async (key) => {
@@ -1441,28 +1439,21 @@ const saveNewAdditionalField = () => {
 	if (!editableMember.value.additional_info) {
 		editableMember.value.additional_info = {};
 	}
-	// Warn if overwriting, or disallow if preferred (for now, it allows overwrite)
+	// Disallow if key already exists
 	if (
 		Object.prototype.hasOwnProperty.call(
 			editableMember.value.additional_info,
 			key,
-		) &&
-		editableMember.value.additional_info[key] !== value
-	) {
-		updateStatus(
-			`Note: Field "${formatFieldLabel(key)}" was updated with the new value.`,
-			3000,
-			"warning",
-		);
-	} else if (
-		!Object.prototype.hasOwnProperty.call(
-			editableMember.value.additional_info,
-			key,
 		)
 	) {
-		updateStatus(`Field "${formatFieldLabel(key)}" added.`, 3000);
+		updateStatus(
+			`Error: Field "${formatFieldLabel(
+				key,
+			)}" already exists. Please use a unique field name or edit the existing one.`,
+			3000,
+		);
+		return;
 	}
-
 	editableMember.value.additional_info[key] = value;
 	isAddingNewAdditionalField.value = false;
 };
