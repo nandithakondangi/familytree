@@ -10,6 +10,19 @@ let checkNetworkInterval = setInterval(() => {
 		clearInterval(checkNetworkInterval);
 
 		network.on("click", function (params) {
+			if (params.nodes.length === 0 && params.edges.length === 0) {
+				// Clicked on canvas
+				parent.postMessage(
+					{
+						type: "canvasClick", // New event type
+						x: params.pointer.canvas.x,
+						y: params.pointer.canvas.y,
+						clientX: params.event.srcEvent.clientX,
+						clientY: params.event.srcEvent.clientY,
+					},
+					"*",
+				);
+			}
 			if (params.nodes && params.nodes.length > 0) {
 				const nodeId = params.nodes[0];
 				clearTimeout(clickTimeout);
@@ -24,7 +37,7 @@ let checkNetworkInterval = setInterval(() => {
 							clientX: clickEvent.clientX,
 							clientY: clickEvent.clientY,
 						},
-						"*"
+						"*",
 					);
 					clickTimeout = null;
 					lastClickedNodeId = null;
@@ -46,7 +59,7 @@ let checkNetworkInterval = setInterval(() => {
 				}
 				window.parent.postMessage(
 					{ type: "nodeDoubleClick", nodeId: nodeId },
-					"*"
+					"*",
 				);
 			}
 		});
@@ -67,7 +80,7 @@ let checkNetworkInterval = setInterval(() => {
 						x: params.event.clientX,
 						y: params.event.clientY,
 					},
-					"*"
+					"*",
 				);
 			}
 		});
