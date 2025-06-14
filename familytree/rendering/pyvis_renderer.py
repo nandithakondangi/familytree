@@ -212,7 +212,7 @@ class PyvisRenderer:
             if theme == "dark"
             else COLOR_PALETTE.get("white", "#FFFFFF")
         )
-
+      
     def _create_dir_if_not_exists(self, file_path: str) -> None:
         """Ensures the directory for the given file_path exists."""
         output_dir = os.path.dirname(file_path)

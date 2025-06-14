@@ -1,193 +1,293 @@
 <template>
-  <div class="relative w-full h-full">
-    <iframe
-      ref="graphIframe"
-      :srcdoc="graphHtml"
-      class="w-full h-full border-none"
-      @load="handleIframeLoad"
-    ></iframe>
-     <div v-if="isLoading" class="absolute inset-0 bg-white/50 dark:bg-slate-800/60 backdrop-blur-md flex items-center justify-center rounded-xl">
-      <div class="flex flex-col items-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500/90 dark:border-indigo-400/90"></div>
-        <p class="mt-4 text-gray-700 dark:text-gray-300">Loading graph...</p>
-      </div>
-    </div>
-  </div>
+	<div class="relative w-full h-full">
+		<iframe
+			ref="graphIframeRef"
+			:key="iframeKey"
+			:srcdoc="graphHtml"
+			class="w-full h-full border-none"
+			@load="onIframeLoad"
+		></iframe>
+		<div
+			v-if="isLoading"
+			class="absolute inset-0 bg-white/50 dark:bg-slate-800/60 backdrop-blur-md flex items-center justify-center rounded-xl"
+		>
+			<div class="flex flex-col items-center">
+				<div
+					class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500/90 dark:border-indigo-400/90"
+				></div>
+				<p class="mt-4 text-gray-700 dark:text-gray-300">Loading graph...</p>
+			</div>
+		</div>
+	</div>
 </template>
 
 <script>
-import { inject, watch, ref } from 'vue';
+import { inject, watch, ref, onMounted, onBeforeUnmount, nextTick } from "vue";
 
 export default {
-  name: 'GraphView',
-   setup() {
-    // Inject the provided state and methods from App.vue
-    const triggerGraphRender = inject('triggerGraphRender');
-    const setMemberIdToEdit = inject('setMemberIdToEdit'); // For double-click
-    const showNodeContextMenu = inject('showNodeContextMenu'); // For right-click
-    const updateStatus = inject('updateStatus'); // For status updates
+	name: "GraphView",
+	emits: ["iframe-click"], // Declare the new event
+	setup(props, { emit }) {
+		// Add { emit } to access the emit function
+		// Inject the provided state and methods from App.vue
+		const triggerGraphRender = inject("triggerGraphRender");
+		const setMemberIdToEdit = inject("setMemberIdToEdit");
+		const showNodeContextMenu = inject("showNodeContextMenu");
+		const handleNodeSingleClickFromApp = inject("handleNodeSingleClick");
+		const updateStatus = inject("updateStatus");
+		const currentTheme = inject("currentTheme"); // Inject currentTheme
 
-    const isLoading = ref(false); // Reactive state for loading indicator
-    const graphHtml = ref(''); // Reactive variable to hold the HTML content
+		const isLoading = ref(false); // Reactive state for loading indicator
+		const graphHtml = ref(""); // Stores HTML from backend (renamed from themedGraphHtml)
+		const interactionScriptContent = ref(""); // To store the fetched script
+		const graphIframeRef = ref(null); // Ref for the iframe element
+		const iframeKey = ref(0); // Key to force iframe re-creation
 
-    // Watch for changes in triggerGraphRender provided by App.vue
-    // Removed unused newValue and oldValue parameters
-    watch(triggerGraphRender, () => {
-      console.log('Graph render trigger detected. Loading graph HTML.');
-      isLoading.value = true; // Show loading indicator
-      // When triggered, fetch the latest graph HTML from the backend
-      fetchGraphHtml();
-    });
+		// Watch for changes in triggerGraphRender provided by App.vue
+		// Removed unused newValue and oldValue parameters
+		watch(triggerGraphRender, () => {
+			isLoading.value = true; // Show loading indicator
+			// When triggered, fetch the latest graph HTML from the backend
+			fetchGraphHtml();
+		});
 
-    // Function to fetch graph HTML from backend
-    const fetchGraphHtml = () => {
-       fetch('/api/get-graph-html') // Replace with your actual backend endpoint
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch graph HTML.');
-            }
-            return response.text(); // Assuming backend returns HTML as text
-        })
-        .then(htmlContent => {
-            // Update the srcdoc of the iframe
-            // Access ref value using .value
-            graphHtml.value = htmlContent;
-            // Loading indicator will be hidden in handleIframeLoad
-        })
-        .catch(error => {
-            console.error('Error fetching graph HTML:', error);
-            updateStatus(`Error loading graph: ${error.message}`, 7000);
-            // Access ref value using .value
-            graphHtml.value = '<p style="color: red; text-align: center; margin-top: 50px;">Failed to load graph.</p>';
-            isLoading.value = false; // Hide loading indicator on error
-        });
-    };
+		const fetchInteractionScript = async () => {
+			try {
+				// Path relative to public folder
+				const response = await fetch("/scripts/pyvis_interaction_script.js");
+				if (!response.ok) {
+					throw new Error(
+						`Failed to fetch interaction script: ${response.status} ${response.statusText}`, // Keep: Error details
+					);
+				}
+				interactionScriptContent.value = await response.text();
+			} catch (error) {
+				console.error(
+					"[GraphView] Error fetching interaction script:",
+					error, // Keep: Essential error log
+				);
+				updateStatus("Error loading graph interaction logic.", 7000);
+				interactionScriptContent.value =
+					"// Failed to load interaction script; console.error('Interaction script load failed');";
+			}
+		};
 
-    // Initial fetch when component is mounted
-    fetchGraphHtml();
+		// Function to fetch graph HTML from backend
+		const fetchGraphHtml = () => {
+			iframeKey.value++;
+			const themeQueryParam = currentTheme ? `?theme=${currentTheme()}` : "";
+			fetch(`/api/v1/graph/render${themeQueryParam}`) // Add theme to API call
+				.then((response) => {
+					if (!response.ok) {
+						return response
+							.json()
+							.then((errorData) => {
+								throw new Error(
+									errorData.detail || `Server error: ${response.status}`,
+								);
+							})
+							.catch(() => {
+								throw new Error(
+									`Server error: ${response.status} ${response.statusText}`,
+								);
+							});
+					}
+					return response.json();
+				})
+				.then((data) => {
+					graphHtml.value =
+						data.graph_html ||
+						'<p style="text-align:center; padding-top: 20px;">No graph data received.</p>';
+				})
+				.catch((error) => {
+					console.error("Error fetching graph HTML:", error);
+					updateStatus(`Error loading graph: ${error.message}`, 7000); // Keep: User-facing status update
+					graphHtml.value = // Directly set graphHtml with error message
+						'<p style="color: red; text-align: center; margin-top: 50px;">Failed to load graph.</p>';
+					isLoading.value = false;
+				});
+		};
 
+		const onIframeLoad = () => {
+			// Use nextTick to ensure isLoading=false is processed after potential DOM updates from srcdoc change
+			nextTick(() => {
+				isLoading.value = false;
+			});
 
-    return {
-      graphHtml, // Return the ref itself
-      setMemberIdToEdit,
-      showNodeContextMenu,
-      isLoading,
-    };
-  },
-  methods: {
-    handleIframeLoad() {
-      console.log('Iframe loaded.');
-      this.isLoading = false; // Hide loading indicator
+			const iframe = graphIframeRef.value;
+			if (
+				iframe &&
+				iframe.contentWindow &&
+				interactionScriptContent.value &&
+				interactionScriptContent.value.startsWith("// Failed to load") === false
+			) {
+				try {
+					const scriptElement =
+						iframe.contentWindow.document.createElement("script");
+					scriptElement.textContent = interactionScriptContent.value;
+					iframe.contentWindow.document.body.appendChild(scriptElement);
+				} catch (e) {
+					console.error(
+						"[GraphView] CRITICAL: Failed to inject script into iframe:",
+						e,
+					);
+					updateStatus(
+						"CRITICAL: Error injecting script into graph view.",
+						10000,
+					);
+				}
+			} else {
+				if (!iframe || !iframe.contentWindow)
+					console.error(
+						"[GraphView] Iframe or contentWindow not available for script injection.",
+					);
+				if (
+					!interactionScriptContent.value ||
+					interactionScriptContent.value.startsWith("// Failed to load")
+				)
+					console.error(
+						"[GraphView] Interaction script content not loaded or failed to load, cannot inject.",
+					);
+			}
+		};
 
-      // Attempt to inject JavaScript into the iframe to capture events
-      const iframe = this.$refs.graphIframe;
-      if (iframe && iframe.contentWindow) {
-        try {
-          const script = iframe.contentWindow.document.createElement('script');
-          // Use a simple script to listen for double clicks on nodes
-          // This assumes your pyvis HTML structure has elements representing nodes
-          // You might need to inspect the generated HTML to target nodes correctly
-          // This is a basic example, you might need a more robust approach
-          // potentially using QWebChannel like in your PySide6 code,
-          // but that requires more complex setup in a web context.
-          // A simpler approach is to modify the pyvis template itself
-          // to include event listeners and post messages back to the parent window.
+		const handleMessageFromIframe = (event) => {
+			const data = event.data;
+			if (!data || !data.type) {
+				return;
+			}
 
-          // Example: Listen for double clicks on elements with a specific class/attribute
-          // This requires modifying the pyvis template to add data attributes or classes
-          // to nodes that include the member ID.
-           script.textContent = `
-            console.log('Attempting to inject JS into iframe');
-            // Wait for the network to be ready (pyvis might load data async)
-            // This is a simple polling mechanism, adjust as needed
-            let checkNetworkInterval = setInterval(() => {
-                if (typeof network !== 'undefined') { // Check if pyvis network object exists
-                    clearInterval(checkNetworkInterval);
-                    console.log('Pyvis network object found, adding event listeners.');
+			const iframeRect = graphIframeRef.value?.getBoundingClientRect();
+			let screenX, screenY;
+			let iframeRelativeX, iframeRelativeY;
 
-                    // Add double-click listener
-                    network.on("doubleClick", function (params) {
-                        if (params.nodes.length > 0) {
-                            const nodeId = params.nodes[0];
-                            console.log('Node double-clicked:', nodeId);
-                            // Post message to parent window with node ID
-                            window.parent.postMessage({
-                                type: 'nodeDoubleClick',
-                                nodeId: nodeId
-                            }, '*'); // Replace '*' with your app's origin for security
-                        }
-                    });
+			// Determine the source of coordinates based on event type
+			if (
+				data.type === "nodeRightClick" ||
+				data.type === "canvasRightClick" ||
+				data.type === "canvasClick"
+			) {
+				iframeRelativeX = data.x;
+				iframeRelativeY = data.y;
+			} else if (
+				data.type === "nodeSingleClick" ||
+				data.type === "nodeDoubleClick"
+			) {
+				iframeRelativeX = data.clientX;
+				iframeRelativeY = data.clientY;
+			}
 
-                    // Add right-click listener (contextmenu event)
-                    // Note: pyvis might have its own context menu handling,
-                    // you might need to disable it or find a way to hook into it.
-                    // This is a generic contextmenu listener on the canvas.
-                     network.on("oncontext", function (params) {
-                         params.event.preventDefault(); // Prevent default browser context menu
-                         const nodeId = network.getNodeAt(params.pointer.DOM);
-                         if (nodeId !== undefined) {
-                              console.log('Node right-clicked:', nodeId);
-                              // Post message to parent window with node ID and coordinates
-                              window.parent.postMessage({
-                                 type: 'nodeRightClick',
-                                 nodeId: nodeId,
-                                 x: params.event.clientX,
-                                 y: params.event.clientY
-                             }, '*'); // Replace '*' with your app's origin for security
-                         }
-                     });
+			// Validate coordinates for events that require them
+			const eventsRequiringCoordinates = [
+				"nodeSingleClick",
+				"nodeRightClick",
+				"canvasClick",
+				"canvasRightClick",
+			];
+			if (eventsRequiringCoordinates.includes(data.type)) {
+				if (
+					typeof iframeRelativeX !== "number" ||
+					typeof iframeRelativeY !== "number"
+				) {
+					console.warn(
+						`[GraphView] Event ${data.type} is missing expected coordinates.`,
+					);
+					// For nodeDoubleClick, it might proceed without coordinates if only nodeId is needed
+					if (data.type === "nodeDoubleClick" && data.nodeId) {
+						console.log(
+							"[GraphView] Received nodeDoubleClick (no coords path) from iframe:",
+							data.nodeId,
+						);
+						setMemberIdToEdit(data.nodeId);
+					}
+					return; // Stop if critical coordinates are missing
+				}
+			}
 
-                } else {
-                    console.log('Pyvis network object not yet available...');
-                }
-            }, 500); // Check every 500ms
+			// Calculate absolute screen coordinates
+			if (
+				typeof iframeRelativeX === "number" &&
+				typeof iframeRelativeY === "number"
+			) {
+				const iframeRect = graphIframeRef.value?.getBoundingClientRect();
+				if (iframeRect) {
+					screenX = iframeRect.left + iframeRelativeX;
+					screenY = iframeRect.top + iframeRelativeY;
+				} else {
+					screenX = iframeRelativeX; // Fallback if iframeRect is not available
+					screenY = iframeRelativeY;
+				}
+			}
 
-            // Listen for messages from the parent window if needed
-            // window.addEventListener('message', (event) => {
-            //     if (event.origin !== 'YOUR_APP_ORIGIN') { // Verify origin
-            //         return;
-            //     }
-            //     // Handle messages from parent
-            //     console.log('Message from parent:', event.data);
-            // });
-          `;
-          iframe.contentWindow.document.body.appendChild(script);
-           console.log('JS injected successfully.');
-        } catch (e) {
-          console.error('Failed to inject script into iframe:', e);
-          this.updateStatus('Error injecting script into graph view.', 7000);
-        }
-      }
-    },
-     // Method to handle messages from the iframe
-     handleMessage(event) {
-       // if (event.origin !== 'YOUR_APP_ORIGIN') { // Verify origin in production
-       //   return;
-       // }
+			switch (data.type) {
+				case "nodeSingleClick":
+					if (data.nodeId && typeof screenX === "number") {
+						console.log(
+							"[GraphView] Received nodeSingleClick from iframe:",
+							data.nodeId,
+							`iframeCoords: (${iframeRelativeX}, ${iframeRelativeY})`,
+							`screenCoords: (${screenX}, ${screenY})`,
+						);
+						handleNodeSingleClickFromApp(data.nodeId, screenX, screenY);
+					}
+					break;
+				case "nodeDoubleClick":
+					if (data.nodeId) {
+						console.log(
+							"[GraphView] Received nodeDoubleClick from iframe:",
+							data.nodeId,
+						);
+						setMemberIdToEdit(data.nodeId);
+					}
+					break;
+				case "nodeRightClick":
+					if (data.nodeId && typeof screenX === "number") {
+						console.log(
+							"[GraphView] Received nodeRightClick from iframe:",
+							data.nodeId,
+							`iframeCoords: (${iframeRelativeX}, ${iframeRelativeY})`,
+							`screenCoords: (${screenX}, ${screenY})`,
+						);
+						showNodeContextMenu(data.nodeId, screenX, screenY);
+					}
+					break;
+				case "canvasClick":
+					console.log(
+						"[GraphView] Received canvasClick from iframe. Emitting iframe-click.",
+					);
+					emit("iframe-click");
+					break;
+				case "canvasRightClick":
+					console.log(
+						"[GraphView] Received canvasRightClick from iframe. Emitting iframe-click.",
+					);
+					emit("iframe-click"); // A right-click on canvas should also close an open node context menu
+					// Potentially show a canvas-specific context menu here in the future
+					break;
+				default:
+					// console.warn("[GraphView] Received unhandled message type from iframe:", data.type);
+					break;
+			}
+		};
 
-       const data = event.data;
-       if (data.type === 'nodeDoubleClick') {
-         console.log('Received nodeDoubleClick from iframe:', data.nodeId);
-         // Call the injected method to trigger edit dialog
-         this.setMemberIdToEdit(data.nodeId);
-         // In a real app, this would trigger a modal/dialog for editing
-       } else if (data.type === 'nodeRightClick') {
-          console.log('Received nodeRightClick from iframe:', data.nodeId, data.x, data.y);
-          // Call the injected method to show context menu
-          this.showNodeContextMenu(data.nodeId, data.x, data.y);
-          // In a real app, this would display a context menu at the given coordinates
-       }
-       // Handle other message types as needed
-     }
-  },
-  mounted() {
-    // Listen for messages posted from the iframe
-    window.addEventListener('message', this.handleMessage);
-  },
-   beforeUnmount() {
-    // Clean up the event listener when the component is unmounted
-    window.removeEventListener('message', this.handleMessage);
-  }
+		onMounted(() => {
+			fetchInteractionScript();
+			fetchGraphHtml();
+			window.addEventListener("message", handleMessageFromIframe);
+		});
+
+		onBeforeUnmount(() => {
+			window.removeEventListener("message", handleMessageFromIframe);
+		});
+
+		return {
+			graphHtml, // Expose graphHtml for srcdoc
+			isLoading,
+			graphIframeRef, // Expose ref for template
+			onIframeLoad, // Expose event handler for template
+			iframeKey, // Expose key for template binding
+		};
+	},
 };
 </script>
 

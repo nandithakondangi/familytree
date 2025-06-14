@@ -1,439 +1,975 @@
 <template>
-  <Transition
-    enter-active-class="transition-all ease-out duration-500"
-    enter-from-class="opacity-0 translate-y-full"
-    enter-to-class="opacity-100 translate-y-0"
-    leave-active-class="transition-all ease-in duration-300"
-    leave-from-class="opacity-100 translate-y-0"
-    leave-to-class="opacity-0 translate-y-full scale-50"
-  >
-    <div v-if="isVisible" class="fixed inset-0 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex justify-center items-center">
-      <div class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+	<Transition
+		enter-active-class="transition-all ease-out duration-500"
+		enter-from-class="opacity-0 translate-y-full"
+		enter-to-class="opacity-100 translate-y-0"
+		leave-active-class="transition-all ease-in duration-300"
+		leave-from-class="opacity-100 translate-y-0"
+		leave-to-class="opacity-0 translate-y-full scale-50"
+	>
+		<div
+			v-if="isVisible"
+			class="fixed inset-0 overflow-y-auto h-full w-full z-50 flex justify-center items-center"
+		>
+			<div
+				class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 flex flex-col h-[65vh]"
+			>
+				<div
+					class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4"
+				>
+					<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+						Add New Family Member
+					</h3>
+					<button
+						@click="closeModal"
+						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+					>
+						<svg
+							class="h-6 w-6"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
+						</svg>
+					</button>
+				</div>
 
-        <div class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Add New Family Member</h3>
-          <button @click="closeModal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+				<form @submit.prevent="saveMember" class="flex-1 flex flex-col min-h-0">
+					<div class="flex-1 flex flex-col md:flex-row md:space-x-6 min-h-0">
+						<!-- Left Pane: Image Upload -->
+						<div
+							class="w-full md:w-1/3 flex flex-col items-center space-y-3 py-4"
+						>
+							<input
+								type="file"
+								ref="imageInputRef"
+								@change="handleImageUpload"
+								class="hidden"
+								accept="image/*"
+							/>
+							<div
+								@click="triggerImageUpload"
+								class="w-36 h-36 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-400 dark:border-gray-500 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors overflow-hidden"
+								title="Click to upload profile image"
+							>
+								<img
+									v-if="profileImagePreview"
+									:src="profileImagePreview"
+									alt="Profile preview"
+									class="w-full h-full object-cover"
+								/>
+								<svg
+									v-else
+									class="w-16 h-16 text-gray-400 dark:text-gray-500"
+									fill="currentColor"
+									viewBox="0 0 20 20"
+								>
+									<path
+										fill-rule="evenodd"
+										d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</div>
+							<button
+								v-if="profileImagePreview"
+								type="button"
+								@click="removeImage"
+								class="px-3 py-1 text-xs bg-red-500/80 hover:bg-red-600/80 text-white rounded-md transition-colors"
+							>
+								Remove Image
+							</button>
+							<p class="text-xs text-gray-600 dark:text-gray-400 text-center">
+								Optional: Click above to upload a profile picture.
+							</p>
 
-        <form @submit.prevent="saveMember">
-          <div class="space-y-4">
-            <div>
-              <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Name: <span class="text-red-500">*</span></label>
-              <input
-                type="text"
-                id="name"
-                v-model="form.name"
-                required
-                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                placeholder="Name"
-              />
-            </div>
+							<!-- Contextual Information if adding via relationship -->
+							<div
+								v-if="sourceNodeIdForRelationship"
+								class="mt-4 p-3 bg-indigo-500/20 dark:bg-indigo-800/30 rounded-md shadow w-full"
+							>
+								<h4
+									class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 text-center"
+								>
+									Adding new member relative to:
+								</h4>
+								<div class="space-y-1 text-xs">
+									<p class="text-center">
+										<span class="font-medium text-gray-600 dark:text-gray-300"
+											>Name:</span
+										>
+										<span class="text-gray-800 dark:text-gray-100 ml-1">{{
+											sourceMemberNameForRelationship || "N/A"
+										}}</span>
+									</p>
+									<p class="text-center">
+										<span class="font-medium text-gray-600 dark:text-gray-300"
+											>ID:</span
+										>
+										<span class="text-gray-800 dark:text-gray-100 ml-1">{{
+											sourceNodeIdForRelationship
+										}}</span>
+									</p>
+									<p class="text-center">
+										<span class="font-medium text-gray-600 dark:text-gray-300"
+											>New Member will be their:</span
+										>
+										<span class="text-gray-800 dark:text-gray-100 ml-1">{{
+											formattedRelationshipType
+										}}</span>
+									</p>
+								</div>
+							</div>
+						</div>
 
-            <div>
-              <label for="nicknames" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nicknames:</label>
-              <input
-                type="text"
-                id="nicknames"
-                v-model="form.nicknames"
-                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                placeholder="e.g., Johnny, Beth (comma-separated)"
-              />
-            </div>
+						<!-- Right Pane: Form Fields -->
+						<div
+							class="w-full md:w-2/3 flex-1 space-y-4 overflow-y-auto md:h-full min-h-0 py-4 pr-2"
+						>
+							<!-- Contextual Information if adding via relationship -->
+							<div>
+								<label
+									for="name"
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>Name: <span class="text-red-500">*</span></label
+								>
+								<input
+									type="text"
+									id="name"
+									v-model="form.name"
+									required
+									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									placeholder="Full Name"
+								/>
+							</div>
 
-            <div>
-              <label for="gender" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Gender:</label>
-              <select
-                id="gender"
-                v-model="form.gender"
-                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-              >
-                <option v-for="option in genderOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
-              </select>
-            </div>
+							<div>
+								<label
+									for="nicknames"
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>Nicknames:</label
+								>
+								<input
+									type="text"
+									id="nicknames"
+									v-model="form.nicknames"
+									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									placeholder="e.g., Johnny, Beth (comma-separated)"
+								/>
+							</div>
 
-            <div class="flex items-center justify-between">
-              <label for="isDobKnown" class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Is Date of Birth Known?</label>
-              <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                <input
-                  type="checkbox"
-                  id="isDobKnown"
-                  v-model="form.isDobKnown"
-                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
-                />
-                <label for="isDobKnown" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"></label>
-              </div>
-            </div>
+							<div>
+								<label
+									for="gender"
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>Gender:</label
+								>
+								<select
+									id="gender"
+									v-model="form.gender"
+									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+								>
+									<option
+										v-for="option in genderOptions"
+										:key="option.value"
+										:value="option.value"
+									>
+										{{ option.text }}
+									</option>
+								</select>
+							</div>
 
-            <div v-if="form.isDobKnown" class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner">
-              <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300">Date of Birth Details:</h4>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gregorian DOB:</label>
-                <input
-                  type="date"
-                  v-model="form.gregorianDobString"
-                  :max="todayDateString"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                />
-              </div>
+							<div class="flex items-center justify-between">
+								<label
+									for="isDobKnown"
+									class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+									>Is Date of Birth Known?</label
+								>
+								<div
+									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
+								>
+									<input
+										type="checkbox"
+										id="isDobKnown"
+										v-model="form.isDobKnown"
+										class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
+									/>
+									<label
+										for="isDobKnown"
+										class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
+									></label>
+								</div>
+							</div>
 
-              <div v-if="isIndianCulture">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traditional DOB:</label>
-                 <div class="flex space-x-3">
-                   <select
-                     v-model="form.traditionalDob.tamilMonth"
-                     class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                   >
-                     <option v-for="option in TamilMonthOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
-                     </select>
-                   <select
-                     v-model="form.traditionalDob.tamilStar"
-                     class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                   >
-                    <option v-for="option in TamilStarOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
-                      </select>
-                 </div>
-               </div>
-            </div>
+							<div
+								v-if="form.isDobKnown"
+								class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner"
+							>
+								<!-- DOB Fields (Gregorian, Traditional) -->
+								<h4
+									class="text-md font-semibold text-gray-700 dark:text-gray-300"
+								>
+									Date of Birth Details:
+								</h4>
+								<div>
+									<label
+										class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+										>Gregorian DOB:</label
+									>
+									<date-picker
+										:value="form.gregorianDobString"
+										@update:value="
+											(value) => handleDateUpdate('gregorianDobString', value)
+										"
+										type="date"
+										format="YYYY-MM-DD"
+										value-type="format"
+										placeholder="YYYY-MM-DD"
+										:editable="true"
+										:disabled-date="disableFutureDates"
+										input-class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										popup-class="dark:bg-slate-700"
+										class="w-full"
+										:clearable="true"
+									/>
+								</div>
+								<div v-if="isIndianCulture">
+									<!-- Traditional DOB fields -->
+									<label
+										class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+										>Traditional DOB:</label
+									>
+									<div class="flex space-x-3">
+										<select
+											v-model="form.traditionalDob.tamilMonth"
+											class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										>
+											<option
+												v-for="option in TamilMonthOptions"
+												:key="option.value"
+												:value="option.value"
+											>
+												{{ option.text }}
+											</option>
+										</select>
+										<select
+											v-model="form.traditionalDob.tamilStar"
+											class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										>
+											<option
+												v-for="option in TamilStarOptions"
+												:key="option.value"
+												:value="option.value"
+											>
+												{{ option.text }}
+											</option>
+										</select>
+									</div>
+								</div>
+							</div>
 
-             <div class="flex items-center justify-between">
-              <label for="isPersonAlive" class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">This person is alive</label>
-               <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                <input
-                  type="checkbox"
-                  id="isPersonAlive"
-                  v-model="form.isPersonAlive"
-                  class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
-                />
-                <label for="isPersonAlive" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"></label>
-              </div>
-            </div>
+							<div class="flex items-center justify-between">
+								<label
+									for="isPersonAlive"
+									class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+									>This person is alive</label
+								>
+								<div
+									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
+								>
+									<input
+										type="checkbox"
+										id="isPersonAlive"
+										v-model="form.isPersonAlive"
+										class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
+									/>
+									<label
+										for="isPersonAlive"
+										class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
+									></label>
+								</div>
+							</div>
 
-            <div v-if="!form.isPersonAlive" class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner">
-               <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300">Date of Death Details:</h4>
+							<div
+								v-if="!form.isPersonAlive"
+								class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner"
+							>
+								<!-- DOD Fields -->
+								<h4
+									class="text-md font-semibold text-gray-700 dark:text-gray-300"
+								>
+									Date of Death Details:
+								</h4>
+								<div class="flex items-center justify-between">
+									<label
+										for="isDodKnownToggle"
+										class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+										>Is Date of Death Known?</label
+									>
+									<div
+										class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
+									>
+										<input
+											type="checkbox"
+											id="isDodKnownToggle"
+											v-model="form.isDodKnown"
+											class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
+										/>
+										<label
+											for="isDodKnownToggle"
+											class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
+										></label>
+									</div>
+								</div>
+								<div v-if="form.isDodKnown" class="space-y-3">
+									<!-- Gregorian and Traditional DOD -->
+									<div>
+										<label
+											class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+											>Gregorian DoD:</label
+										>
+										<date-picker
+											:value="form.gregorianDodString"
+											@update:value="
+												(value) => handleDateUpdate('gregorianDodString', value)
+											"
+											type="date"
+											format="YYYY-MM-DD"
+											value-type="format"
+											placeholder="YYYY-MM-DD"
+											:editable="true"
+											:disabled-date="disableFutureDates"
+											input-class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											popup-class="dark:bg-slate-700"
+											class="w-full"
+											:clearable="true"
+										/>
+									</div>
+									<div v-if="isIndianCulture">
+										<!-- Traditional DOD fields -->
+										<label
+											class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+											>Traditional DoD:</label
+										>
+										<div class="grid grid-cols-3 gap-3">
+											<select
+												v-model="form.traditionalDod.tamilMonth"
+												class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											>
+												<option
+													v-for="option in TamilMonthOptions"
+													:key="option.value"
+													:value="option.value"
+												>
+													{{ option.text }}
+												</option>
+											</select>
+											<select
+												v-model="form.traditionalDod.paksham"
+												class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											>
+												<option
+													v-for="option in PakshamOptions"
+													:key="option.value"
+													:value="option.value"
+												>
+													{{ option.text }}
+												</option>
+											</select>
+											<select
+												v-model="form.traditionalDod.thithi"
+												class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											>
+												<option
+													v-for="option in ThithiOptions"
+													:key="option.value"
+													:value="option.value"
+												>
+													{{ option.text }}
+												</option>
+											</select>
+										</div>
+									</div>
+								</div>
+							</div>
 
-               <div class="flex items-center justify-between">
-                 <label for="isDodKnown" class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Is Date of Death Known?</label>
-                  <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                   <input
-                     type="checkbox"
-                     id="isDodKnown"
-                     v-model="form.isDodKnown"
-                     class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
-                   />
-                   <label for="isDodKnown" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"></label>
-                 </div>
-               </div>
+							<!-- Additional Information Section -->
+							<div class="space-y-2 pt-2">
+								<label
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>Additional Information:</label
+								>
+								<div
+									v-for="(field, index) in form.dynamicFields"
+									:key="index"
+									class="flex items-center space-x-2"
+								>
+									<input
+										type="text"
+										v-model="field.key"
+										placeholder="Field Name"
+										class="mt-1 block w-2/5 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									/>
+									<input
+										type="text"
+										v-model="field.value"
+										placeholder="Value"
+										class="mt-1 block w-2/5 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									/>
+									<button
+										type="button"
+										@click="removeDynamicField(index)"
+										title="Remove field"
+										class="p-1.5 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-full hover:bg-red-100 dark:hover:bg-red-700/50 transition-colors"
+									>
+										<svg
+											class="w-4 h-4"
+											fill="currentColor"
+											viewBox="0 0 20 20"
+										>
+											<path
+												fill-rule="evenodd"
+												d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+												clip-rule="evenodd"
+											></path>
+										</svg>
+									</button>
+								</div>
+								<button
+									type="button"
+									@click="addDynamicField"
+									class="mt-2 px-3 py-1.5 text-sm bg-green-500/80 hover:bg-green-600/80 text-white font-medium rounded-md hover:bg-green-600 transition-colors flex items-center"
+								>
+									<svg
+										class="w-4 h-4 mr-1"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+											clip-rule="evenodd"
+										></path>
+									</svg>
+									Add Field
+								</button>
+							</div>
+						</div>
+					</div>
 
-               <div v-if="form.isDodKnown" class="space-y-3">
-                 <div>
-                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gregorian DoD:</label>
-                   <input
-                     type="date"
-                     v-model="form.gregorianDodString"
-                     :max="todayDateString"
-                     class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                   />
-                 </div>
-
-                 <div v-if="isIndianCulture">
-                   <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Traditional DoD:</label>
-                    <div class="grid grid-cols-3 gap-3">
-                      <select
-                        v-model="form.traditionalDod.tamilMonth"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                      >
-                        <option v-for="option in TamilMonthOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
-                        </select>
-                      <select
-                        v-model="form.traditionalDod.paksham"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                      >
-                        <option v-for="option in PakshamOptions" :key="option.value" :value="option.value">{{ option.text }}</option>
-                      </select>
-                       <select
-                        v-model="form.traditionalDod.thithi"
-                        class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-                      >
-                        <option v-for="options in ThithiOptions" :key="options.value" :value="options.value">{{ options.text }}</option>
-                         </select>
-                    </div>
-                  </div>
-               </div>
-            </div>
-
-          </div>
-
-          <div class="flex justify-end space-x-4 mt-6">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
-            >
-              X Cancel
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
-            >
-              💾 Save Member
-            </button>
-          </div>
-        </form>
-
-      </div>
-    </div>
-  </Transition>
+					<div
+						class="flex justify-end space-x-4 mt-auto pt-4 border-t border-gray-300/70 dark:border-gray-600/70"
+					>
+						<button
+							type="button"
+							@click="closeModal"
+							class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
+						>
+							X Cancel
+						</button>
+						<button
+							type="submit"
+							class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
+						>
+							💾 Save Member
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</Transition>
 </template>
 
 <script>
-import { reactive, watch , computed} from 'vue';
-import { Gender as ProtoGender, TamilMonth as ProtoTamilMonth, TamilStar as ProtoTamilStar, Paksham as ProtoPaksham, Thithi as ProtoThithi } from '../proto/utils_pb';
+import { reactive, watch, computed, inject, ref } from "vue";
+import DatePicker from "vue-datepicker-next";
+import "vue-datepicker-next/index.css";
+import { FamilyMember } from "../proto/family_tree_pb";
+import {
+	GregorianDate as ProtoGregorianDate,
+	TraditionalDate as ProtoTraditionalDate,
+	Gender as ProtoGender,
+	TamilMonth as ProtoTamilMonth,
+	TamilStar as ProtoTamilStar,
+	Paksham as ProtoPaksham,
+	Thithi as ProtoThithi,
+} from "../proto/utils_pb";
 
 export default {
-  name: 'AddPersonModal',
-  props: {
-    isVisible: {
-      type: Boolean,
-      required: true,
-    },
-     isIndianCulture: {
-       type: Boolean,
-       required: true,
-     },
-     inferRelationshipsEnabled: {
-       type: Boolean,
-       required: true,
-     }
-  },
-  emits: ['close', 'save'], // Declare emitted events
-  setup(props, { emit }) {
-    const form = reactive({
-      name: '',
-      nicknames: '',
-      gender: 'GENDER_UNKNOWN',
-      isDobKnown: false,
-      gregorianDobString: '',
-      traditionalDob: { tamilMonth: 'TAMIL_MONTH_UNKNOWN', tamilStar: 'TAMIL_STAR_UNKNOWN' },
-      isPersonAlive: true,
-      isDodKnown: false,
-      gregorianDodString: '',
-      traditionalDod: { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' },
-    });
+	name: "AddPersonModal",
+	components: {
+		DatePicker,
+	},
+	props: {
+		isVisible: {
+			type: Boolean,
+			required: true,
+		},
+		isIndianCulture: {
+			type: Boolean,
+			required: true,
+		},
+		inferRelationshipsEnabled: {
+			type: Boolean,
+			required: true,
+		},
+		sourceNodeIdForRelationship: {
+			type: String,
+			default: null,
+		},
+		sourceMemberNameForRelationship: {
+			// New prop
+			type: String,
+			default: null,
+		},
+		relationshipTypeForNewMember: {
+			type: String,
+			default: null,
+		},
+	},
+	emits: ["close", "save"],
+	setup(props, { emit }) {
+		const updateStatus = inject("updateStatus");
+		const form = reactive({
+			name: "",
+			nicknames: "",
+			gender: "GENDER_UNKNOWN",
+			isDobKnown: false,
+			gregorianDobString: "",
+			traditionalDob: {
+				tamilMonth: "TAMIL_MONTH_UNKNOWN",
+				tamilStar: "TAMIL_STAR_UNKNOWN",
+			},
+			isPersonAlive: true,
+			isDodKnown: false,
+			gregorianDodString: "",
+			traditionalDod: {
+				tamilMonth: "TAMIL_MONTH_UNKNOWN",
+				paksham: "PAKSHAM_UNKNOWN",
+				thithi: "THITHI_UNKNOWN",
+			},
+			dynamicFields: [], // For key-value additional info
+		});
 
-    const getTodayDateStringLocal = () => {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
-      const day = today.getDate().toString().padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-    const todayDateString = getTodayDateStringLocal();
+		const handleDateUpdate = (field, newValue) => {
+			form[field] = newValue;
+		};
 
-    const genderOptions = computed(() => {
-      return Object.keys(ProtoGender).map(key => {
-        // Create a more user-friendly text representation for each option
-        const text = key.replace('GENDER_', '').replace('_', '').toUpperCase();
-        return {
-          value: key,
-          text: text === 'UNKNOWN' ? 'GENDER UNKNOWN' : text,
-        };
-      });
-    });
+		const profileImagePreview = ref(null);
+		const imageInputRef = ref(null);
 
-    const TamilMonthOptions = computed(() => {
-      return Object.keys(ProtoTamilMonth).map(key => {
-        // Create user friendly text representation for each option
-        const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
-        return {
-          value: key,
-          text: text,
-      };
-    });
-  });
+		// Function to disable future dates for the date picker
+		const disableFutureDates = (date) => {
+			return date > new Date(new Date().setHours(23, 59, 59, 999)); // Allow today
+		};
 
-  const TamilStarOptions = computed(() => {
-    return Object.keys(ProtoTamilStar).map(key => {
-      // Create user friendly test representation for each option
-      const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
-      return {
-        value: key,
-        text: text,
-      };
-    });
-  });
+		const genderOptions = computed(() => {
+			return Object.keys(ProtoGender).map((key) => {
+				const text = key.replace("GENDER_", "").replace("_", "").toUpperCase();
+				return {
+					value: key,
+					text: text === "UNKNOWN" ? "GENDER UNKNOWN" : text,
+				};
+			});
+		});
 
-  const PakshamOptions = computed(() => {
-    return Object.keys(ProtoPaksham).map(key => {
-      // Create user friendly text representation for each option
-      const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
-      return {
-        value: key,
-        text: text,
-      };
-    });
-  });
-  const ThithiOptions = computed(() => {
-    return Object.keys(ProtoThithi).map(key => {
-      // Create user friendly text representation for each option
-      const text = key.replace('_UNKNOWN', '').replace('_', ' ').toUpperCase();
-      return {
-        value: key,
-        text: text,
-    };
-  });
-});
+		const relationshipTypeMap = {
+			SPOUSE: "SPOUSE",
+			PARENT: "CHILD_TO_PARENT",
+			CHILD: "PARENT_TO_CHILD",
+		};
 
+		const TamilMonthOptions = computed(() => {
+			return Object.keys(ProtoTamilMonth).map((key) => {
+				const text = key
+					.replace("_UNKNOWN", "")
+					.replace("_", " ")
+					.toUpperCase();
+				return { value: key, text: text };
+			});
+		});
 
-    // Watch for changes in isPersonAlive to reset isDodKnown if person becomes alive
-    watch(() => form.isPersonAlive, (newValue) => {
-      if (newValue) {
-        form.isDodKnown = false;
-         // Optionally clear death date fields when person is marked alive
-         form.gregorianDodString = '';
-         form.traditionalDod = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' };
-      }
-    });
+		const TamilStarOptions = computed(() => {
+			return Object.keys(ProtoTamilStar).map((key) => {
+				const text = key
+					.replace("_UNKNOWN", "")
+					.replace("_", " ")
+					.toUpperCase();
+				return { value: key, text: text };
+			});
+		});
 
-    // Watch for changes in isDobKnown to clear DOB fields if unknown
-     watch(() => form.isDobKnown, (newValue) => {
-       if (!newValue) {
-         form.gregorianDobString = '';
-         form.traditionalDob = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', tamilStar: 'TAMIL_STAR_UNKNOWN' };
-       }
-     });
+		const PakshamOptions = computed(() => {
+			return Object.keys(ProtoPaksham).map((key) => {
+				const text = key
+					.replace("_UNKNOWN", "")
+					.replace("_", " ")
+					.toUpperCase();
+				return { value: key, text: text };
+			});
+		});
 
-     // Watch for changes in isDodKnown to clear DOD fields if unknown
-      watch(() => form.isDodKnown, (newValue) => {
-        if (!newValue) {
-          form.gregorianDodString = '';
-          form.traditionalDod = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' };
-        }
-      });
+		const ThithiOptions = computed(() => {
+			return Object.keys(ProtoThithi).map((key) => {
+				const text = key
+					.replace("_UNKNOWN", "")
+					.replace("_", " ")
+					.toUpperCase();
+				return { value: key, text: text };
+			});
+		});
 
-    const parseDateString = (dateString) => {
-      if (!dateString) return null;
-      const parts = dateString.split('-');
-      if (parts.length === 3) {
-        return {
-          day: parseInt(parts[2], 10),
-          month: parseInt(parts[1], 10),
-          year: parseInt(parts[0], 10),
-        };
-      }
-      return null;
-    };
+		const formattedRelationshipType = computed(() => {
+			if (!props.relationshipTypeForNewMember) return "";
+			const type = props.relationshipTypeForNewMember.toLowerCase();
+			return type.charAt(0).toUpperCase() + type.slice(1);
+		});
 
-    const closeModal = () => {
-      emit('close'); // Emit close event to parent
-      resetForm(); // Reset form state when closing
-    };
+		watch(
+			() => form.isPersonAlive,
+			(newValue) => {
+				if (newValue) {
+					form.isDodKnown = false;
+					form.gregorianDodString = "";
+					form.traditionalDod = {
+						tamilMonth: "TAMIL_MONTH_UNKNOWN",
+						paksham: "PAKSHAM_UNKNOWN",
+						thithi: "THITHI_UNKNOWN",
+					};
+				}
+			},
+		);
 
-    const saveMember = () => {
-      // Basic validation (name is required)
-      if (!form.name.trim()) {
-        alert('Name is required.'); // Replace with a more styled notification later
-        return;
-      }
+		watch(
+			() => form.isDobKnown,
+			(newValue) => {
+				if (!newValue) {
+					form.gregorianDobString = "";
+					form.traditionalDob = {
+						tamilMonth: "TAMIL_MONTH_UNKNOWN",
+						tamilStar: "TAMIL_STAR_UNKNOWN",
+					};
+				}
+			},
+		);
 
-      const gregorianDobObject = form.isDobKnown ? parseDateString(form.gregorianDobString) : null;
-      const gregorianDodObject = (!form.isPersonAlive && form.isDodKnown) ? parseDateString(form.gregorianDodString) : null;
+		watch(
+			() => form.isDodKnown,
+			(newValue) => {
+				if (!newValue) {
+					form.gregorianDodString = "";
+					form.traditionalDod = {
+						tamilMonth: "TAMIL_MONTH_UNKNOWN",
+						paksham: "PAKSHAM_UNKNOWN",
+						thithi: "THITHI_UNKNOWN",
+					};
+				}
+			},
+		);
 
-      // Prepare data to send to backend
-      const memberData = {
-        name: form.name.trim(),
-        nicknames: form.nicknames.split(',').map(name => name.trim()).filter(name => name), // Split and trim nicknames
-        gender: form.gender,
-        is_dob_known: form.isDobKnown,
-        gregorian_dob: gregorianDobObject,
-        traditional_dob: (form.isDobKnown /* && props.isIndianCulture */) ? form.traditionalDob : null, // Conditionally include traditional DOB
-        is_alive: form.isPersonAlive,
-        is_dod_known: !form.isPersonAlive ? form.isDodKnown : false, // Only relevant if not alive
-        gregorian_dod: gregorianDodObject,
-        traditional_dod: (!form.isPersonAlive && form.isDodKnown /* && props.isIndianCulture */) ? form.traditionalDod : null, // Conditionally include traditional DOD
-      };
+		const parseDateString = (dateString) => {
+			if (!dateString) return null;
+			const parts = dateString.split("-");
+			if (parts.length === 3) {
+				return {
+					day: parseInt(parts[2], 10),
+					month: parseInt(parts[1], 10),
+					year: parseInt(parts[0], 10),
+				};
+			}
+			return null;
+		};
 
-      console.log('Saving member:', memberData);
+		const closeModal = () => {
+			emit("close");
+			resetForm();
+		};
 
-      // TODO: Send memberData to your FastAPI backend API to add the person
-      // Example using fetch:
-      fetch('/api/add-person', { // Replace with your actual backend endpoint
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(memberData),
-      })
-      .then(response => {
-        if (!response.ok) {
-          // Handle backend errors
-          return response.json().then(err => { throw new Error(err.detail || 'Failed to add person.'); });
-        }
-        return response.json(); // Assuming backend returns the new person data or success message
-      })
-      .then(data => {
-        console.log('Person added successfully:', data);
-        // TODO: Show success message (e.g., using the status display)
-        // Inject updateStatus from App.vue if needed
-        // updateStatus('Person added successfully!', 5000);
+		const saveMember = () => {
+			if (!form.name.trim()) {
+				alert("Name is required.");
+				return;
+			}
 
-        emit('save', data); // Emit save event, optionally with the new person data
-        closeModal(); // Close modal on success
-      })
-      .catch(error => {
-        console.error('Error adding person:', error);
-        // TODO: Show error message (e.g., using a modal or status display)
-        alert(`Error adding person: ${error.message}`); // Replace with styled error
-      });
-    };
+			const familyMemberMessage = new FamilyMember();
+			familyMemberMessage.setName(form.name.trim());
+			familyMemberMessage.setNicknamesList(
+				form.nicknames
+					.split(",")
+					.map((name) => name.trim())
+					.filter((name) => name),
+			);
+			familyMemberMessage.setGender(ProtoGender[form.gender]);
+			familyMemberMessage.setAlive(form.isPersonAlive);
 
-    const resetForm = () => {
-      form.name = '';
-      form.nicknames = '';
-      form.gender = 'GENDER_UNKNOWN';
-      form.isDobKnown = false;
-      form.gregorianDobString = '';
-      form.traditionalDob = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', tamilStar: 'TAMIL_STAR_UNKNOWN' };
-      form.isPersonAlive = true;
-      form.isDodKnown = false;
-      form.gregorianDodString = '';
-      form.traditionalDod = { tamilMonth: 'TAMIL_MONTH_UNKNOWN', paksham: 'PAKSHAM_UNKNOWN', thithi: 'THITHI_UNKNOWN' };
-    };
+			if (form.isDobKnown) {
+				const dob = parseDateString(form.gregorianDobString);
+				if (dob) {
+					const gregorianDobMessage = new ProtoGregorianDate();
+					gregorianDobMessage.setYear(dob.year);
+					gregorianDobMessage.setMonth(dob.month);
+					gregorianDobMessage.setDate(dob.day);
+					familyMemberMessage.setDateOfBirth(gregorianDobMessage);
+				}
+				if (props.isIndianCulture) {
+					const traditionalDobMessage = new ProtoTraditionalDate();
+					if (form.traditionalDob.tamilMonth !== "TAMIL_MONTH_UNKNOWN") {
+						traditionalDobMessage.setMonth(
+							ProtoTamilMonth[form.traditionalDob.tamilMonth],
+						);
+					}
+					if (form.traditionalDob.tamilStar !== "TAMIL_STAR_UNKNOWN") {
+						traditionalDobMessage.setStar(
+							ProtoTamilStar[form.traditionalDob.tamilStar],
+						);
+					}
+					if (
+						traditionalDobMessage.getMonth() !==
+							ProtoTamilMonth.TAMIL_MONTH_UNKNOWN ||
+						traditionalDobMessage.getStar() !==
+							ProtoTamilStar.TAMIL_STAR_UNKNOWN
+					) {
+						familyMemberMessage.setTraditionalDateOfBirth(
+							traditionalDobMessage,
+						);
+					}
+				}
+			}
 
-    return {
-      form,
-      genderOptions,
-      TamilMonthOptions,
-      TamilStarOptions,
-      PakshamOptions,
-      ThithiOptions,
-      todayDateString,
-      closeModal,
-      saveMember,
-    };
-  },
+			if (!form.isPersonAlive && form.isDodKnown) {
+				const dod = parseDateString(form.gregorianDodString);
+				if (dod) {
+					const gregorianDodMessage = new ProtoGregorianDate();
+					gregorianDodMessage.setYear(dod.year);
+					gregorianDodMessage.setMonth(dod.month);
+					gregorianDodMessage.setDate(dod.day);
+					familyMemberMessage.setDateOfDeath(gregorianDodMessage);
+				}
+				if (props.isIndianCulture) {
+					const traditionalDodMessage = new ProtoTraditionalDate();
+					if (form.traditionalDod.tamilMonth !== "TAMIL_MONTH_UNKNOWN") {
+						traditionalDodMessage.setMonth(
+							ProtoTamilMonth[form.traditionalDod.tamilMonth],
+						);
+					}
+					if (form.traditionalDod.paksham !== "PAKSHAM_UNKNOWN") {
+						traditionalDodMessage.setPaksham(
+							ProtoPaksham[form.traditionalDod.paksham],
+						);
+					}
+					if (form.traditionalDod.thithi !== "THITHI_UNKNOWN") {
+						traditionalDodMessage.setThithi(
+							ProtoThithi[form.traditionalDod.thithi],
+						);
+					}
+					if (
+						traditionalDodMessage.getMonth() !==
+							ProtoTamilMonth.TAMIL_MONTH_UNKNOWN ||
+						traditionalDodMessage.getPaksham() !==
+							ProtoPaksham.PAKSHAM_UNKNOWN ||
+						traditionalDodMessage.getThithi() !== ProtoThithi.THITHI_UNKNOWN
+					) {
+						familyMemberMessage.setTraditionalDateOfDeath(
+							traditionalDodMessage,
+						);
+					}
+				}
+			}
+
+			// Prepare additionalInfo map for protobuf
+			const finalAdditionalInfoObject = {};
+			if (profileImagePreview.value) {
+				finalAdditionalInfoObject["profilePictureBase64"] =
+					profileImagePreview.value;
+			}
+			form.dynamicFields.forEach((field) => {
+				if (field.key && field.key.trim() !== "") {
+					finalAdditionalInfoObject[field.key.trim()] = field.value;
+				}
+			});
+
+			const additionalInfoProtoMap = familyMemberMessage.getAdditionalInfoMap();
+			for (const [key, value] of Object.entries(finalAdditionalInfoObject)) {
+				additionalInfoProtoMap.set(key, value);
+			}
+
+			const memberProtoJson = familyMemberMessage.toObject();
+
+			if (
+				Object.prototype.hasOwnProperty.call(memberProtoJson, "nicknamesList")
+			) {
+				memberProtoJson.nicknames = memberProtoJson.nicknamesList;
+				delete memberProtoJson.nicknamesList;
+			}
+
+			// Ensure additionalInfo is a direct object for Python backend
+			memberProtoJson.additionalInfo = finalAdditionalInfoObject;
+			if (
+				Object.prototype.hasOwnProperty.call(
+					memberProtoJson,
+					"additionalInfoMap",
+				)
+			) {
+				delete memberProtoJson.additionalInfoMap; // Clean up if toObject() created this
+			}
+
+			const request_data = {
+				infer_relationships: props.inferRelationshipsEnabled,
+				new_member_data: memberProtoJson,
+			};
+
+			if (
+				props.sourceNodeIdForRelationship &&
+				props.relationshipTypeForNewMember
+			) {
+				request_data.source_node_id = props.sourceNodeIdForRelationship;
+				request_data.relationship_type =
+					relationshipTypeMap[props.relationshipTypeForNewMember];
+			}
+
+			fetch("/api/v1/manage/add_family_member", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(request_data),
+			})
+				.then((response) => {
+					if (!response.ok) {
+						return response
+							.json()
+							.then((errBody) => {
+								throw new Error(
+									errBody.detail || `Server error: ${response.status}`,
+								);
+							})
+							.catch(() => {
+								throw new Error(
+									`Server error: ${response.status} ${response.statusText}`,
+								);
+							});
+					}
+					return response.json();
+				})
+				.then((data) => {
+					updateStatus(data.message || "Person added successfully!", 5000);
+					emit("save", data);
+					closeModal();
+				})
+				.catch((error) => {
+					console.error("Error adding person:", error);
+					updateStatus(`Error adding person: ${error.message}`, 7000);
+				});
+		};
+
+		const resetForm = () => {
+			form.name = "";
+			form.nicknames = "";
+			form.gender = "GENDER_UNKNOWN";
+			form.isDobKnown = false;
+			form.gregorianDobString = "";
+			form.traditionalDob = {
+				tamilMonth: "TAMIL_MONTH_UNKNOWN",
+				tamilStar: "TAMIL_STAR_UNKNOWN",
+			};
+			form.isPersonAlive = true;
+			form.isDodKnown = false;
+			form.gregorianDodString = "";
+			form.traditionalDod = {
+				tamilMonth: "TAMIL_MONTH_UNKNOWN",
+				paksham: "PAKSHAM_UNKNOWN",
+				thithi: "THITHI_UNKNOWN",
+			};
+			form.dynamicFields = [];
+			profileImagePreview.value = null;
+			if (imageInputRef.value) {
+				imageInputRef.value.value = "";
+			}
+		};
+
+		const addDynamicField = () => {
+			form.dynamicFields.push({ key: "", value: "" });
+		};
+
+		const removeDynamicField = (index) => {
+			form.dynamicFields.splice(index, 1);
+		};
+
+		const handleImageUpload = (event) => {
+			const file = event.target.files[0];
+			if (file && file.type.startsWith("image/")) {
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					profileImagePreview.value = e.target.result; // base64 Data URL
+				};
+				reader.readAsDataURL(file);
+			} else {
+				profileImagePreview.value = null;
+				if (file) {
+					// if a file was selected but not an image
+					updateStatus(
+						"Please select a valid image file (e.g., JPG, PNG).",
+						4000,
+					);
+				}
+			}
+		};
+
+		const triggerImageUpload = () => {
+			imageInputRef.value?.click();
+		};
+
+		const removeImage = () => {
+			profileImagePreview.value = null;
+			if (imageInputRef.value) {
+				imageInputRef.value.value = ""; // Reset file input
+			}
+		};
+
+		return {
+			form,
+			genderOptions,
+			TamilMonthOptions,
+			TamilStarOptions,
+			PakshamOptions,
+			ThithiOptions,
+			disableFutureDates,
+			closeModal,
+			saveMember,
+			updateStatus,
+			profileImagePreview,
+			imageInputRef,
+			handleImageUpload,
+			triggerImageUpload,
+			handleDateUpdate,
+			removeImage,
+			addDynamicField,
+			removeDynamicField,
+			formattedRelationshipType,
+		};
+	},
 };
 </script>
 
 <style scoped>
-/* Custom styles for the toggle switch */
+/* Custom styles for the toggle switch (existing) */
 .toggle-checkbox {
-  transition: right 0.2s ease-in-out, border-color 0.2s ease-in-out;
+	transition: right 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
-
 .toggle-checkbox:checked {
-  right: 0; /* This might need adjustment if the knob is not visually centered */
-  /* border-color: #6366f1; /* indigo-500 */ /* Color is handled by peer-checked on the label now */
+	right: 0;
 }
-
 .toggle-label {
-  transition: background-color 0.2s ease-in-out;
+	transition: background-color 0.2s ease-in-out;
 }
 .toggle-checkbox:checked + .toggle-label {
-  background-color: #4f46e5; /* indigo-600 */
-  /* In dark mode, this will be overridden by dark:peer-checked:bg-indigo-500 on the toggle div itself */
+	background-color: #4f46e5; /* indigo-600 */
 }
+
+/* Ensure enough height for scrollable content if form grows very long */
+/* The parent .fixed inset-0 already has overflow-y-auto */
 </style>
