@@ -158,7 +158,7 @@ class PyvisRenderer:
 
         return pyvis_display_graph
 
-    def _get_pyvis_graph_options(self) -> str:
+    def _get_pyvis_graph_options(self, node_font_color: str) -> str:
         """Returns the PyVis graph options dictionary."""
         return json.dumps(
             {
@@ -184,7 +184,7 @@ class PyvisRenderer:
                 "nodes": {
                     "font": {
                         "size": 14,
-                        "color": COLOR_PALETTE.get("white", "#FFFFFF"),
+                        "color": node_font_color,
                     }
                 },
                 "edges": {
@@ -199,27 +199,19 @@ class PyvisRenderer:
             }
         )
 
-    def _get_js_injection_code(self) -> str:
-        """Prepares JavaScript code for injection, including qwebchannel setup."""
-        if not self.jinja_env:
-            logger.error(
-                "Jinja2 environment not initialized. Cannot prepare JS injection code."
-            )
-            return "<script>console.error('JS injection setup failed: Jinja2 not available.');</script>"
+    def _get_font_color(self, theme: str) -> str:
+        return (
+            COLOR_PALETTE.get("white", "#FFFFFF")
+            if theme == "dark"
+            else COLOR_PALETTE.get("black", "#000000")
+        )
 
-        try:
-            pyvis_template_rpath = (
-                "pyvis_browser_interaction.js.template"  # Relative to resource dir
-            )
-            template = self.jinja_env.get_template(pyvis_template_rpath)
-            rendered_js = template.render()
-            return f'<script type="text/javascript">\n{rendered_js}\n</script>'
-
-        except Exception as e:
-            logger.exception(
-                f"Error preparing JS injection code from template '{pyvis_template_rpath}': {e}"
-            )
-            return "<script>console.error('Error setting up JS injection from template.');</script>"
+    def _get_background_color(self, theme: str) -> str:
+        return (
+            COLOR_PALETTE.get("gray", "#222222")
+            if theme == "dark"
+            else COLOR_PALETTE.get("white", "#FFFFFF")
+        )
 
     def _create_dir_if_not_exists(self, file_path: str) -> None:
         """Ensures the directory for the given file_path exists."""
@@ -245,10 +237,14 @@ class PyvisRenderer:
             # Depending on desired behavior, you might want to re-raise here
             # or let the caller decide if this is a critical failure.
 
-    def _handle_empty_graph(self, output_html_file_path: Optional[str]) -> str:
+    def _handle_empty_graph(
+        self, output_html_file_path: Optional[str], theme: str = "light"
+    ) -> str:
         """Handles the case where the source graph is empty."""
         logger.info("Source NetworkX graph is empty. Cannot render.")
-        empty_html = "<html><body style='background-color: #222; color: #fff;'><p>No family tree data to display.</p></body></html>"
+        bg_color = self._get_background_color(theme)
+        text_color = self._get_font_color(theme)
+        empty_html = f"<html><body style='background-color: {bg_color}; color: {text_color};'><p>No family tree data to display.</p></body></html>"
         if output_html_file_path:
             self._write_html_to_file(empty_html, output_html_file_path)
         return empty_html
@@ -256,6 +252,7 @@ class PyvisRenderer:
     def render_graph_to_html(
         self,
         source_nx_graph: DiGraph,
+        theme: str,
         output_html_file_path: Optional[str] = None,
     ) -> str:
         """
@@ -265,32 +262,35 @@ class PyvisRenderer:
         Args:
             source_nx_graph: The NetworkX DiGraph from GraphHandler.
             output_html_file_path: Optional path to save the generated HTML.
+            theme: The current theme ('light' or 'dark') to adjust background.
 
         Returns:
             An HTML string representing the visualized graph.
         """
         if not source_nx_graph or not source_nx_graph.nodes:
-            return self._handle_empty_graph(output_html_file_path)
+            return self._handle_empty_graph(output_html_file_path, theme)
 
         pyvis_display_graph: DiGraph = self._prepare_pyvis_display_graph(
             source_nx_graph
         )
+        bg_color = self._get_background_color(theme)
+        text_color = self._get_font_color(theme)
 
         # Handle case where filtering results in an empty graph for PyVis
         if not pyvis_display_graph or not pyvis_display_graph.nodes:
             logger.info(
                 "Prepared PyVis graph is empty (no visible nodes/edges after filtering). Cannot render."
             )
-            empty_filtered_html = "<html><body style='background-color: #222; color: #fff;'><p>No visible family members to display based on current filters.</p></body></html>"
+            empty_filtered_html = f"<html><body style='background-color: {bg_color}; color: {text_color};'><p>No visible family members to display based on current filters.</p></body></html>"
             if output_html_file_path:
                 self._write_html_to_file(empty_filtered_html, output_html_file_path)
             return empty_filtered_html
 
         pyvis_network = Network(
             directed=True,
-            notebook=False,  # Important for generating standalone HTML
-            bgcolor=COLOR_PALETTE.get("gray", "#222222"),
-            font_color=COLOR_PALETTE.get("white", "#FFFFFF"),
+            notebook=False,
+            bgcolor=bg_color,
+            font_color=text_color,
             cdn_resources="in_line",  # For offline compatibility
             height="1000px",
             width="100%",
@@ -299,21 +299,12 @@ class PyvisRenderer:
         pyvis_network.from_nx(pyvis_display_graph)
 
         try:
-            options = self._get_pyvis_graph_options()
-            pyvis_network.set_options(options)
+            options_str = self._get_pyvis_graph_options(text_color)
+            pyvis_network.set_options(options_str)
         except TypeError as e:
             logger.error(f"Error serializing pyvis options to JSON: {e}")
 
         html_content = pyvis_network.generate_html(notebook=False)
-
-        js_code_to_inject = self._get_js_injection_code()
-        if "</body>" in html_content:
-            html_content = html_content.replace(
-                "</body>", js_code_to_inject + "\n</body>", 1
-            )
-        else:
-            html_content += js_code_to_inject
-            logger.warning("</body> tag not found. Appending JS code.")
 
         if output_html_file_path:
             self._write_html_to_file(html_content, output_html_file_path)

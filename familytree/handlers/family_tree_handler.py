@@ -110,8 +110,8 @@ class FamilyTreeHandler:
         )
         return response
 
-    def render_family_tree(self) -> str:
-        return self.graph_handler.render_graph_to_html()
+    def render_family_tree(self, theme: str) -> str:
+        return self.graph_handler.render_graph_to_html(theme)
 
     def get_member_info(self, user_id: str) -> MemberInfoResponse:
         return MemberInfoResponse(

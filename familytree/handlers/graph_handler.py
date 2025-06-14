@@ -229,8 +229,7 @@ class GraphHandler:
         logger.debug(f"Added PARENT edge: {source_member_id} -> {parent_id}")
 
     def render_graph_to_html(
-        self,
-        output_html_file_path: Optional[str] = None,
+        self, theme: str, output_html_file_path: Optional[str] = None
     ) -> str:
         """
         Renders the current family tree graph to an HTML string using PyvisRenderer
@@ -248,4 +247,4 @@ class GraphHandler:
             str: The HTML content of the rendered graph.
         """
         renderer = PyvisRenderer()
-        return renderer.render_graph_to_html(self._graph, output_html_file_path)
+        return renderer.render_graph_to_html(self._graph, theme, output_html_file_path)

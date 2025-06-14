@@ -21,7 +21,7 @@ router = APIRouter(
 @router.get(
     "/render", response_model=PyvisGraphRenderResponse | CustomGraphRenderResponse
 )
-async def get_data_with_poi(poi: str | None = None, degree: int = 2):
+async def get_data_with_poi(theme: str, poi: str | None = None, degree: int = 2):
     """
     Renders graph data for the family tree.
     Can be focused on a specific Point of Interest (poi) and show connections
@@ -40,7 +40,7 @@ async def get_data_with_poi(poi: str | None = None, degree: int = 2):
     else:
         try:
             handler = app_state.get_current_family_tree_handler()
-            html_content = handler.render_family_tree()
+            html_content = handler.render_family_tree(theme)
             return PyvisGraphRenderResponse(
                 status="OK",  # pyrefly: ignore
                 message="Family tree rendered successfully",
