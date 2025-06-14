@@ -305,6 +305,7 @@ export default {
 	watch: {
 		currentTheme() {
 			this.applyTheme();
+			this.triggerReRender(); // Trigger re-render when theme changes
 		},
 		isContextMenuVisible(isVisible) {
 			if (isVisible) {

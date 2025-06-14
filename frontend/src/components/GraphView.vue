@@ -35,6 +35,7 @@ export default {
 		const showNodeContextMenu = inject("showNodeContextMenu");
 		const handleNodeSingleClickFromApp = inject("handleNodeSingleClick");
 		const updateStatus = inject("updateStatus");
+		const currentTheme = inject("currentTheme"); // Inject currentTheme
 
 		const isLoading = ref(false); // Reactive state for loading indicator
 		const graphHtml = ref(""); // Stores HTML from backend (renamed from themedGraphHtml)
@@ -74,7 +75,8 @@ export default {
 		// Function to fetch graph HTML from backend
 		const fetchGraphHtml = () => {
 			iframeKey.value++;
-			fetch("/api/v1/graph/render")
+			const themeQueryParam = currentTheme ? `?theme=${currentTheme()}` : "";
+			fetch(`/api/v1/graph/render${themeQueryParam}`) // Add theme to API call
 				.then((response) => {
 					if (!response.ok) {
 						return response
