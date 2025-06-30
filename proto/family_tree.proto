@@ -14,8 +14,8 @@ message FamilyMember {
   utils.GregorianDate date_of_death = 7;
   utils.TraditionalDate traditional_date_of_death = 8;
   utils.Gender gender = 9;
-  optional int64 birth_family_unit_id = 10;
-  optional int64 acquired_family_unit_id = 11;
+  optional string birth_family_unit_id = 10;
+  optional string acquired_family_unit_id = 11;
   optional utils.GregorianDate wedding_date = 12;
   map<string, string> additional_info = 13;
 }
@@ -30,8 +30,8 @@ message Relationships {
 // Group that denotes a single household or the most granular family consisting of partners and children
 message FamilyUnit {
   string id = 1;
-  repeated int64 parent_ids = 2;
-  repeated int64 child_ids = 3;
+  repeated string parent_ids = 2;
+  repeated string child_ids = 3;
   string name = 4;
   map<string, string> additional_info = 5;
 }

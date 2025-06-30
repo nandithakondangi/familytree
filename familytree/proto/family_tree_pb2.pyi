@@ -52,8 +52,8 @@ class FamilyMember(google.protobuf.message.Message):
     name: builtins.str
     alive: builtins.bool
     gender: proto.utils_pb2.Gender.ValueType
-    birth_family_unit_id: builtins.int
-    acquired_family_unit_id: builtins.int
+    birth_family_unit_id: builtins.str
+    acquired_family_unit_id: builtins.str
     @property
     def nicknames(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
@@ -80,8 +80,8 @@ class FamilyMember(google.protobuf.message.Message):
         date_of_death: proto.utils_pb2.GregorianDate | None = ...,
         traditional_date_of_death: proto.utils_pb2.TraditionalDate | None = ...,
         gender: proto.utils_pb2.Gender.ValueType = ...,
-        birth_family_unit_id: builtins.int | None = ...,
-        acquired_family_unit_id: builtins.int | None = ...,
+        birth_family_unit_id: builtins.str | None = ...,
+        acquired_family_unit_id: builtins.str | None = ...,
         wedding_date: proto.utils_pb2.GregorianDate | None = ...,
         additional_info: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
@@ -154,17 +154,17 @@ class FamilyUnit(google.protobuf.message.Message):
     id: builtins.str
     name: builtins.str
     @property
-    def parent_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def parent_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
-    def child_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    def child_ids(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
     def additional_info(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
     def __init__(
         self,
         *,
         id: builtins.str = ...,
-        parent_ids: collections.abc.Iterable[builtins.int] | None = ...,
-        child_ids: collections.abc.Iterable[builtins.int] | None = ...,
+        parent_ids: collections.abc.Iterable[builtins.str] | None = ...,
+        child_ids: collections.abc.Iterable[builtins.str] | None = ...,
         name: builtins.str = ...,
         additional_info: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
