@@ -45,7 +45,7 @@ class FamilyMember(google.protobuf.message.Message):
     TRADITIONAL_DATE_OF_DEATH_FIELD_NUMBER: builtins.int
     GENDER_FIELD_NUMBER: builtins.int
     BIRTH_FAMILY_UNIT_ID_FIELD_NUMBER: builtins.int
-    MARRIAGE_FAMILY_UNIT_ID_FIELD_NUMBER: builtins.int
+    ACQUIRED_FAMILY_UNIT_ID_FIELD_NUMBER: builtins.int
     WEDDING_DATE_FIELD_NUMBER: builtins.int
     ADDITIONAL_INFO_FIELD_NUMBER: builtins.int
     id: builtins.str
@@ -53,7 +53,7 @@ class FamilyMember(google.protobuf.message.Message):
     alive: builtins.bool
     gender: proto.utils_pb2.Gender.ValueType
     birth_family_unit_id: builtins.int
-    marriage_family_unit_id: builtins.int
+    acquired_family_unit_id: builtins.int
     @property
     def nicknames(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
@@ -81,18 +81,18 @@ class FamilyMember(google.protobuf.message.Message):
         traditional_date_of_death: proto.utils_pb2.TraditionalDate | None = ...,
         gender: proto.utils_pb2.Gender.ValueType = ...,
         birth_family_unit_id: builtins.int | None = ...,
-        marriage_family_unit_id: builtins.int | None = ...,
+        acquired_family_unit_id: builtins.int | None = ...,
         wedding_date: proto.utils_pb2.GregorianDate | None = ...,
         additional_info: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_alive", b"_alive", "_birth_family_unit_id", b"_birth_family_unit_id", "_marriage_family_unit_id", b"_marriage_family_unit_id", "_wedding_date", b"_wedding_date", "alive", b"alive", "birth_family_unit_id", b"birth_family_unit_id", "date_of_birth", b"date_of_birth", "date_of_death", b"date_of_death", "marriage_family_unit_id", b"marriage_family_unit_id", "traditional_date_of_birth", b"traditional_date_of_birth", "traditional_date_of_death", b"traditional_date_of_death", "wedding_date", b"wedding_date"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_alive", b"_alive", "_birth_family_unit_id", b"_birth_family_unit_id", "_marriage_family_unit_id", b"_marriage_family_unit_id", "_wedding_date", b"_wedding_date", "additional_info", b"additional_info", "alive", b"alive", "birth_family_unit_id", b"birth_family_unit_id", "date_of_birth", b"date_of_birth", "date_of_death", b"date_of_death", "gender", b"gender", "id", b"id", "marriage_family_unit_id", b"marriage_family_unit_id", "name", b"name", "nicknames", b"nicknames", "traditional_date_of_birth", b"traditional_date_of_birth", "traditional_date_of_death", b"traditional_date_of_death", "wedding_date", b"wedding_date"]) -> None: ...
+    def HasField(self, field_name: typing.Literal["_acquired_family_unit_id", b"_acquired_family_unit_id", "_alive", b"_alive", "_birth_family_unit_id", b"_birth_family_unit_id", "_wedding_date", b"_wedding_date", "acquired_family_unit_id", b"acquired_family_unit_id", "alive", b"alive", "birth_family_unit_id", b"birth_family_unit_id", "date_of_birth", b"date_of_birth", "date_of_death", b"date_of_death", "traditional_date_of_birth", b"traditional_date_of_birth", "traditional_date_of_death", b"traditional_date_of_death", "wedding_date", b"wedding_date"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_acquired_family_unit_id", b"_acquired_family_unit_id", "_alive", b"_alive", "_birth_family_unit_id", b"_birth_family_unit_id", "_wedding_date", b"_wedding_date", "acquired_family_unit_id", b"acquired_family_unit_id", "additional_info", b"additional_info", "alive", b"alive", "birth_family_unit_id", b"birth_family_unit_id", "date_of_birth", b"date_of_birth", "date_of_death", b"date_of_death", "gender", b"gender", "id", b"id", "name", b"name", "nicknames", b"nicknames", "traditional_date_of_birth", b"traditional_date_of_birth", "traditional_date_of_death", b"traditional_date_of_death", "wedding_date", b"wedding_date"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing.Literal["_acquired_family_unit_id", b"_acquired_family_unit_id"]) -> typing.Literal["acquired_family_unit_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_alive", b"_alive"]) -> typing.Literal["alive"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_birth_family_unit_id", b"_birth_family_unit_id"]) -> typing.Literal["birth_family_unit_id"] | None: ...
-    @typing.overload
-    def WhichOneof(self, oneof_group: typing.Literal["_marriage_family_unit_id", b"_marriage_family_unit_id"]) -> typing.Literal["marriage_family_unit_id"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing.Literal["_wedding_date", b"_wedding_date"]) -> typing.Literal["wedding_date"] | None: ...
 
@@ -214,6 +214,24 @@ class FamilyTree(google.protobuf.message.Message):
         def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
         def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
 
+    @typing.final
+    class FamilyUnitsEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        @property
+        def value(self) -> global___FamilyUnit: ...
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: global___FamilyUnit | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing.Literal["value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing.Literal["key", b"key", "value", b"value"]) -> None: ...
+
     MEMBERS_FIELD_NUMBER: builtins.int
     RELATIONSHIPS_FIELD_NUMBER: builtins.int
     FAMILY_UNITS_FIELD_NUMBER: builtins.int
@@ -222,13 +240,13 @@ class FamilyTree(google.protobuf.message.Message):
     @property
     def relationships(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___Relationships]: ...
     @property
-    def family_units(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___FamilyUnit]: ...
+    def family_units(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___FamilyUnit]: ...
     def __init__(
         self,
         *,
         members: collections.abc.Mapping[builtins.str, global___FamilyMember] | None = ...,
         relationships: collections.abc.Mapping[builtins.str, global___Relationships] | None = ...,
-        family_units: collections.abc.Iterable[global___FamilyUnit] | None = ...,
+        family_units: collections.abc.Mapping[builtins.str, global___FamilyUnit] | None = ...,
     ) -> None: ...
     def ClearField(self, field_name: typing.Literal["family_units", b"family_units", "members", b"members", "relationships", b"relationships"]) -> None: ...
 
