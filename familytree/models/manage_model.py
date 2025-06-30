@@ -1,3 +1,4 @@
+from builtins import isinstance
 from typing import Any, Optional
 
 from pydantic import BaseModel, field_serializer, field_validator
@@ -29,13 +30,15 @@ class AddFamilyMemberRequest(BaseModel):
     def serialize_relationship_type(self, v: Optional[EdgeType]):
         if v is None:
             return None
-        return v.value  # pragma: no cover
+        return v.name  # pragma: no cover
 
-    @field_validator("relationship_type", mode="before")
+    @field_validator("relationship_type", mode="before")  # pyrefly: ignore
     @classmethod
-    def validate_relationship_type(cls, v: Optional[str]):
+    def validate_relationship_type(cls, v: Optional[str | EdgeType]):
         if v is None:
             return None
+        if isinstance(v, EdgeType):
+            return v
         # Explicitly map known input strings to EdgeType enum members
         if v == "SPOUSE":
             return EdgeType.SPOUSE
@@ -50,4 +53,52 @@ class AddFamilyMemberRequest(BaseModel):
 
 
 class AddFamilyMemberResponse(FamilyTreeBaseResponse):
+    new_member_id: Optional[str] = None
+
+
+class UpdateFamilyMemberRequest(BaseModel):
+    member_id: str
+    updated_member_data: dict[str, Any]
+
+
+class UpdateFamilyMemberResponse(FamilyTreeBaseResponse):
     pass
+
+
+class AddRelationshipRequest(BaseModel):
+    source_member_id: str
+    target_member_id: str
+    relationship_type: EdgeType
+
+
+class AddRelationshipResponse(FamilyTreeBaseResponse):
+    pass
+
+
+class DeleteFamilyMemberRequest(BaseModel):
+    member_id: str
+    include_orphaned_members: bool = False
+
+
+class DeleteFamilyMemberResponse(FamilyTreeBaseResponse):
+    pass
+
+
+class DeleteRelationshipRequest(BaseModel):
+    source_member_id: str
+    target_member_id: str
+    remove_inverse_relationship: bool = True
+
+
+class DeleteRelationshipResponse(FamilyTreeBaseResponse):
+    pass
+
+
+class SaveFamilyResponse(FamilyTreeBaseResponse):
+    family_members: Optional[dict[str, dict[str, Any]]] = None
+    relationships: Optional[dict[str, dict[str, Any]]] = None
+    family_units: Optional[list[dict[str, Any]]] = None
+
+
+class ExportInteractiveGraphResponse(FamilyTreeBaseResponse):
+    graph_html: Optional[str] = None
