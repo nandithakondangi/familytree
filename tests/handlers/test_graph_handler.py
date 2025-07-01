@@ -2,9 +2,10 @@ from unittest.mock import MagicMock, patch
 
 import networkx as nx
 import pytest
+from familytree.proto import family_tree_pb2, utils_pb2
 
+from familytree.exceptions import InvalidInputError
 from familytree.handlers.graph_handler import GraphHandler
-from familytree.proto import family_tree_pb2
 from familytree.utils.graph_types import EdgeType, GraphEdge, GraphNode
 
 
@@ -19,6 +20,7 @@ def test_init(graph_handler_instance):
     assert isinstance(graph_handler_instance._graph, nx.DiGraph)
     assert len(graph_handler_instance._graph.nodes) == 0
     assert len(graph_handler_instance._graph.edges) == 0
+    assert graph_handler_instance.get_family_unit_graph() == {}
 
 
 def test_get_family_graph(graph_handler_instance):
@@ -44,9 +46,7 @@ def test_add_member(graph_handler_instance):
 
 
 def test_add_child_relation(graph_handler_instance):
-    """Tests adding a parent-child relationship.
-    add_child_relation(parent_id, child_id)
-    """
+    """Tests adding a parent-child relationship and its effect on family units."""
     parent_id = "P001"
     child_id = "C001"
     graph_handler_instance.add_member(
@@ -55,9 +55,9 @@ def test_add_child_relation(graph_handler_instance):
     graph_handler_instance.add_member(
         child_id, family_tree_pb2.FamilyMember(id=child_id, name="Child")
     )
-    # P001 is parent of C001
     graph_handler_instance.add_child_relation(parent_id, child_id)
 
+    # Test edge creation
     assert graph_handler_instance._graph.has_edge(parent_id, child_id)
     edge_data: GraphEdge = graph_handler_instance._graph.edges[parent_id, child_id][
         "data"
@@ -70,21 +70,43 @@ def test_add_child_relation(graph_handler_instance):
         is False
     )
 
+    # Test family unit creation and updates
+    family_units = graph_handler_instance.get_family_unit_graph()
+    assert len(family_units) == 1
+    family_unit = list(family_units.values())[0]
+    assert parent_id in family_unit.parent_ids
+    assert child_id in family_unit.child_ids
+    assert family_unit.name == "Parent's family"
+    assert (
+        graph_handler_instance._get_acquired_family_id(parent_id) == family_unit.id
+    )
+    assert graph_handler_instance._get_birth_family_id(child_id) == family_unit.id
 
-def test_add_child_relation_target_missing(graph_handler_instance, caplog):
-    """Tests adding child relation when child node is missing."""
+
+def test_add_child_relation_node_missing(graph_handler_instance):
+    """Tests adding child relation when a node is missing."""
     parent_id = "P001"
     missing_child_id = "C_MISSING"
     graph_handler_instance.add_member(
-        parent_id, family_tree_pb2.FamilyMember(id=parent_id)
+        parent_id, family_tree_pb2.FamilyMember(id=parent_id, name="Parent")
     )
-    graph_handler_instance.add_child_relation(parent_id, missing_child_id)
+
+    with pytest.raises(InvalidInputError) as excinfo:
+        graph_handler_instance.add_child_relation(parent_id, missing_child_id)
+    assert f"Child ID '{missing_child_id}' not found in graph nodes." in str(
+        excinfo.value
+    )
     assert not graph_handler_instance._graph.has_edge(parent_id, missing_child_id)
-    assert f"Child ID '{missing_child_id}' is not found in graph nodes." in caplog.text
+
+    with pytest.raises(InvalidInputError) as excinfo:
+        graph_handler_instance.add_child_relation(missing_child_id, parent_id)
+    assert f"Source ID '{missing_child_id}' not found in graph nodes." in str(
+        excinfo.value
+    )
 
 
 def test_add_spouse_relation(graph_handler_instance):
-    """Tests adding a spouse relationship."""
+    """Tests adding a spouse relationship and its effect on family units."""
     s1_id = "S001"
     s2_id = "S002"
     graph_handler_instance.add_member(
@@ -98,26 +120,42 @@ def test_add_spouse_relation(graph_handler_instance):
     assert graph_handler_instance._graph.has_edge(s1_id, s2_id)
     edge1_data: GraphEdge = graph_handler_instance._graph.edges[s1_id, s2_id]["data"]
     assert edge1_data.edge_type == EdgeType.SPOUSE
-    assert edge1_data.is_rendered is True  # First edge is visible
+    assert edge1_data.is_rendered is True
     assert (
         graph_handler_instance._graph.nodes[s1_id]["data"].has_visible_spouse is False
     )
+
+    # Test family unit creation
+    family_units = graph_handler_instance.get_family_unit_graph()
+    assert len(family_units) == 1
+    family_unit = list(family_units.values())[0]
+    assert s1_id in family_unit.parent_ids
+    assert s2_id in family_unit.parent_ids
+    assert family_unit.name == "Spouse1's and Spouse2's family"
 
     # Add reverse relationship
     graph_handler_instance.add_spouse_relation(s2_id, s1_id)
     assert graph_handler_instance._graph.has_edge(s2_id, s1_id)
     edge2_data: GraphEdge = graph_handler_instance._graph.edges[s2_id, s1_id]["data"]
     assert edge2_data.edge_type == EdgeType.SPOUSE
-    assert edge2_data.is_rendered is False  # Reverse edge should be hidden
+    assert edge2_data.is_rendered is False
     assert (
         graph_handler_instance._graph.nodes[s2_id]["data"].has_visible_spouse is False
     )
 
+    # Test family unit update
+    family_units = graph_handler_instance.get_family_unit_graph()
+    assert len(family_units) == 1  # Should still be one family unit
+    family_unit = list(family_units.values())[0]
+    assert s1_id in family_unit.parent_ids
+    assert s2_id in family_unit.parent_ids
+    assert family_unit.name == "Spouse1's and Spouse2's family"
+    assert graph_handler_instance._get_acquired_family_id(s1_id) == family_unit.id
+    assert graph_handler_instance._get_acquired_family_id(s2_id) == family_unit.id
+
 
 def test_add_parent_relation(graph_handler_instance):
-    """Tests adding a child-parent relationship.
-    add_parent_relation(child_id, parent_id)
-    """
+    """Tests adding a child-parent relationship and its effect on family units."""
     parent_id = "P001"
     child_id = "C001"
     graph_handler_instance.add_member(
@@ -126,7 +164,6 @@ def test_add_parent_relation(graph_handler_instance):
     graph_handler_instance.add_member(
         child_id, family_tree_pb2.FamilyMember(id=child_id, name="Child")
     )
-    # C001 is child of P001
     graph_handler_instance.add_parent_relation(child_id, parent_id)
 
     assert graph_handler_instance._graph.has_edge(child_id, parent_id)
@@ -135,10 +172,22 @@ def test_add_parent_relation(graph_handler_instance):
     ]
     assert isinstance(edge_data, GraphEdge)
     assert edge_data.edge_type == EdgeType.CHILD_TO_PARENT
-    assert edge_data.is_rendered is False  # Default for parent relation
+    assert edge_data.is_rendered is False
     assert (
         graph_handler_instance._graph.nodes[child_id]["data"].has_visible_parents
         is False
+    )
+
+    # Test family unit creation
+    family_units = graph_handler_instance.get_family_unit_graph()
+    assert len(family_units) == 1
+    family_unit = list(family_units.values())[0]
+    assert parent_id in family_unit.parent_ids
+    assert child_id in family_unit.child_ids
+    assert family_unit.name == "Parent's family"
+    assert graph_handler_instance._get_birth_family_id(child_id) == family_unit.id
+    assert (
+        graph_handler_instance._get_acquired_family_id(parent_id) == family_unit.id
     )
 
 
@@ -148,6 +197,7 @@ def test_create_from_proto_empty(graph_handler_instance):
     graph_handler_instance.create_from_proto(ft_proto)
     assert len(graph_handler_instance._graph.nodes) == 0
     assert len(graph_handler_instance._graph.edges) == 0
+    assert len(graph_handler_instance.get_family_unit_graph()) == 0
 
 
 def test_create_from_proto_with_data(graph_handler_instance, weasley_family_tree_pb):
@@ -162,76 +212,46 @@ def test_create_from_proto_with_data(graph_handler_instance, weasley_family_tree
     arthur_node_data: GraphNode = graph_handler_instance._graph.nodes["ARTHW"]["data"]
     assert arthur_node_data.attributes.name == "Arthur Weasley"
 
-    # Arthur (ARTHW) is parent of Bill (BILLW)
-    # Proto: relationships["ARTHW"].children_ids contains "BILLW"
-    # create_from_proto calls: add_child_relation("ARTHW", "BILLW") -> edge ARTHW -> BILLW (PARENT_TO_CHILD)
+    # Check edges
     assert graph_handler_instance._graph.has_edge("ARTHW", "BILLW")
     edge_arthur_bill: GraphEdge = graph_handler_instance._graph.edges["ARTHW", "BILLW"][
         "data"
     ]
     assert edge_arthur_bill.edge_type == EdgeType.PARENT_TO_CHILD
-    assert edge_arthur_bill.is_rendered is True
 
-    # Molly (MOLLW) is spouse of Arthur (ARTHW)
-    # Proto: relationships["MOLLW"].spouse_ids contains "ARTHW"
-    # create_from_proto calls: add_spouse_relation("MOLLW", "ARTHW") -> edge MOLLW -> ARTHW (SPOUSE)
     assert graph_handler_instance._graph.has_edge("MOLLW", "ARTHW")
     edge_molly_arthur: GraphEdge = graph_handler_instance._graph.edges[
         "MOLLW", "ARTHW"
     ]["data"]
     assert edge_molly_arthur.edge_type == EdgeType.SPOUSE
-    assert edge_molly_arthur.is_rendered is False
 
-    # Ron (RONAW) has parent Arthur (ARTHW)
-    # Proto: relationships["RONAW"].parent_ids contains "ARTHW"
-    # create_from_proto calls: add_parent_relation("RONAW", "ARTHW") -> edge RONAW -> ARTHW (CHILD_TO_PARENT)
-    if (
-        "RONAW" in weasley_family_tree_pb.relationships
-        and "ARTHW" in weasley_family_tree_pb.relationships["RONAW"].parent_ids
-    ):
-        assert graph_handler_instance._graph.has_edge("RONAW", "ARTHW")
-        edge_ron_arthur: GraphEdge = graph_handler_instance._graph.edges[
-            "RONAW", "ARTHW"
-        ]["data"]
-        assert edge_ron_arthur.edge_type == EdgeType.CHILD_TO_PARENT
-    else:
-        # Fallback check if parent_ids not explicitly in fixture for Ron for some reason
-        # (though the conftest populates them)
-        assert graph_handler_instance._graph.has_edge("ARTHW", "RONAW")
-        assert (
-            graph_handler_instance._graph.edges["ARTHW", "RONAW"]["data"].edge_type
-            == EdgeType.PARENT_TO_CHILD
-        )
+    assert graph_handler_instance._graph.has_edge("RONAW", "ARTHW")
+    edge_ron_arthur: GraphEdge = graph_handler_instance._graph.edges["RONAW", "ARTHW"][
+        "data"
+    ]
+    assert edge_ron_arthur.edge_type == EdgeType.CHILD_TO_PARENT
+
+    # Check family units
+    family_units = graph_handler_instance.get_family_unit_graph()
+    assert len(family_units) == 1
+    arthur_molly_family_id = graph_handler_instance._get_acquired_family_id("ARTHW")
+    assert arthur_molly_family_id
+    arthur_molly_family = family_units[arthur_molly_family_id]
+    assert "ARTHW" in arthur_molly_family.parent_ids
+    assert "MOLLW" in arthur_molly_family.parent_ids
+    assert "BILLW" in arthur_molly_family.child_ids
+    assert "RONAW" in arthur_molly_family.child_ids
 
 
-def test_create_from_proto_missing_source_in_relationships(
-    graph_handler_instance, caplog
-):
-    """Tests graph creation when a source_member_id in relationships doesn't exist as a node."""
-    ft_proto = family_tree_pb2.FamilyTree()
-    ft_proto.members["M001"].id = "M001"  # Valid member
-    # Relationship for a non-existent member
-    ft_proto.relationships["M_GHOST"].children_ids.append("M001")
-
-    graph_handler_instance.create_from_proto(ft_proto)
-    assert "Skipping relationships for this member" in caplog.text
-    assert not graph_handler_instance._graph.has_edge("M_GHOST", "M001")
-
-
-def test_create_from_proto_missing_target_in_relationships(
-    graph_handler_instance, caplog
-):
-    """Tests graph creation when a target_id in relationships doesn't exist as a node."""
+def test_create_from_proto_missing_node_in_relationships(graph_handler_instance):
+    """Tests graph creation when a member_id in relationships doesn't exist as a node."""
     ft_proto = family_tree_pb2.FamilyTree()
     ft_proto.members["M001"].id = "M001"
-    ft_proto.relationships["M001"].children_ids.append(
-        "C_GHOST"
-    )  # C_GHOST is not a member
+    ft_proto.relationships["M_GHOST"].children_ids.append("M001")
 
-    graph_handler_instance.create_from_proto(ft_proto)
-    # The warning for missing target is logged inside add_child_relation, etc.
-    assert "Child ID 'C_GHOST' is not found in graph nodes." in caplog.text
-    assert not graph_handler_instance._graph.has_edge("M001", "C_GHOST")
+    with pytest.raises(InvalidInputError) as excinfo:
+        graph_handler_instance.create_from_proto(ft_proto)
+    assert "Source ID 'M_GHOST' not found in graph nodes." in str(excinfo.value)
 
 
 def _setup_node_with_visibility_flags(
@@ -241,7 +261,7 @@ def _setup_node_with_visibility_flags(
     has_visible_children=None,
     has_visible_spouse=None,
 ):
-    member_data = family_tree_pb2.FamilyMember(id=node_id)
+    member_data = family_tree_pb2.FamilyMember(id=node_id, name=node_id)
     handler.add_member(node_id, member_data)
     node: GraphNode = handler._graph.nodes[node_id]["data"]
     node.has_visible_parents = has_visible_parents
@@ -283,10 +303,10 @@ def test_has_spouse(graph_handler_instance):
 
 
 def test_get_spouse(graph_handler_instance):
-    graph_handler_instance.add_member("p1", family_tree_pb2.FamilyMember(id="p1"))
-    graph_handler_instance.add_member("p2", family_tree_pb2.FamilyMember(id="p2"))
+    graph_handler_instance.add_member("p1", family_tree_pb2.FamilyMember(id="p1", name="p1"))
+    graph_handler_instance.add_member("p2", family_tree_pb2.FamilyMember(id="p2", name="p2"))
     graph_handler_instance.add_member(
-        "p3", family_tree_pb2.FamilyMember(id="p3")
+        "p3", family_tree_pb2.FamilyMember(id="p3", name="p3")
     )  # Not a spouse
     graph_handler_instance.add_spouse_relation("p1", "p2")
     graph_handler_instance.add_child_relation("p1", "p3")  # Different type of relation
@@ -299,16 +319,16 @@ def test_get_spouse(graph_handler_instance):
 
 def test_get_children(graph_handler_instance):
     graph_handler_instance.add_member(
-        "parent", family_tree_pb2.FamilyMember(id="parent")
+        "parent", family_tree_pb2.FamilyMember(id="parent", name="Parent")
     )
     graph_handler_instance.add_member(
-        "child1", family_tree_pb2.FamilyMember(id="child1")
+        "child1", family_tree_pb2.FamilyMember(id="child1", name="Child1")
     )
     graph_handler_instance.add_member(
-        "child2", family_tree_pb2.FamilyMember(id="child2")
+        "child2", family_tree_pb2.FamilyMember(id="child2", name="Child2")
     )
     graph_handler_instance.add_member(
-        "spouse", family_tree_pb2.FamilyMember(id="spouse")
+        "spouse", family_tree_pb2.FamilyMember(id="spouse", name="Spouse")
     )  # Not a child
 
     graph_handler_instance.add_child_relation("parent", "child1")
@@ -324,12 +344,12 @@ def test_get_children(graph_handler_instance):
 
 def test_get_parent(graph_handler_instance):
     # get_parent looks for CHILD_TO_PARENT edges *from* the member_id
-    graph_handler_instance.add_member("child", family_tree_pb2.FamilyMember(id="child"))
+    graph_handler_instance.add_member("child", family_tree_pb2.FamilyMember(id="child", name="Child"))
     graph_handler_instance.add_member(
-        "parent1", family_tree_pb2.FamilyMember(id="parent1")
+        "parent1", family_tree_pb2.FamilyMember(id="parent1", name="Parent1")
     )
     graph_handler_instance.add_member(
-        "sibling", family_tree_pb2.FamilyMember(id="sibling")
+        "sibling", family_tree_pb2.FamilyMember(id="sibling", name="Sibling")
     )  # Not a parent
 
     graph_handler_instance.add_parent_relation(
@@ -353,25 +373,41 @@ def test_render_graph_to_html(graph_handler_instance):
             "<html><body>Mocked Graph</body></html>"
         )
 
-        # Add a dummy node to ensure graph is not empty for renderer
         graph_handler_instance.add_member(
-            "M001", family_tree_pb2.FamilyMember(id="M001")
+            "M001", family_tree_pb2.FamilyMember(id="M001", name="M001")
         )
 
         html_output = graph_handler_instance.render_graph_to_html(
-            output_html_file_path="dummy.html"
+            theme="dark", output_html_file_path="dummy.html"
         )
 
         mock_pyvis_renderer_cls.assert_called_once()
         mock_renderer_instance.render_graph_to_html.assert_called_once_with(
-            graph_handler_instance._graph, "dummy.html"
+            graph_handler_instance._graph, "dark", "dummy.html"
         )
         assert html_output == "<html><body>Mocked Graph</body></html>"
 
         # Test without output_html_file_path
-        mock_renderer_instance.render_graph_to_html.reset_mock()  # Reset mock for second call
-        html_output_no_path = graph_handler_instance.render_graph_to_html()
+        mock_renderer_instance.render_graph_to_html.reset_mock()
+        html_output_no_path = graph_handler_instance.render_graph_to_html(theme="light")
         mock_renderer_instance.render_graph_to_html.assert_called_once_with(
-            graph_handler_instance._graph, None
+            graph_handler_instance._graph, "light", None
         )
         assert html_output_no_path == "<html><body>Mocked Graph</body></html>"
+
+
+def test_get_member_info(graph_handler_instance):
+    """Tests retrieving member information."""
+    member_id = "M001"
+    member_data = family_tree_pb2.FamilyMember(
+        id=member_id, name="John Doe", gender=utils_pb2.MALE
+    )
+    graph_handler_instance.add_member(member_id, member_data)
+
+    info = graph_handler_instance.get_member_info(member_id)
+    assert info["id"] == member_id
+    assert info["name"] == "John Doe"
+    assert info["gender"] == "MALE"
+
+    with pytest.raises(KeyError):  # Node not found
+        graph_handler_instance.get_member_info("non_existent_node")
