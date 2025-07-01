@@ -7,24 +7,8 @@ from familytree.handlers.graph_handler import EdgeType
 from familytree.models.base_model import FamilyTreeBaseResponse
 
 
-class CreateFamilyResponse(FamilyTreeBaseResponse):
-    pass
-
-
-class LoadFamilyRequest(BaseModel):
-    filename: str
-    content: str
-
-
-class LoadFamilyResponse(FamilyTreeBaseResponse):
-    pass
-
-
-class AddFamilyMemberRequest(BaseModel):
-    infer_relationships: bool
-    new_member_data: dict[str, Any]  # Dictionary representing FamilyMember proto
-    source_family_member_id: Optional[str] = None
-    relationship_type: Optional[EdgeType] = None
+class RelationshipTypeValidatorMixin:
+    """Mixin for validating and serializing EdgeType fields."""
 
     @field_serializer("relationship_type")
     def serialize_relationship_type(self, v: Optional[EdgeType]):
@@ -48,12 +32,43 @@ class AddFamilyMemberRequest(BaseModel):
             return EdgeType.CHILD_TO_PARENT
         else:
             raise ValueError(
-                f"Invalid relationship type string for AddFamilyMemberRequest: {v}"
+                f"Invalid relationship type string for {cls.__name__}: {v}"
             )
+
+
+class CreateFamilyResponse(FamilyTreeBaseResponse):
+    pass
+
+
+class LoadFamilyRequest(BaseModel):
+    filename: str
+    content: str
+
+
+class LoadFamilyResponse(FamilyTreeBaseResponse):
+    pass
+
+
+class AddFamilyMemberRequest(RelationshipTypeValidatorMixin, BaseModel):
+    infer_relationships: bool
+    new_member_data: dict[str, Any]  # Dictionary representing FamilyMember proto
+    source_family_member_id: Optional[str] = None
+    relationship_type: Optional[EdgeType] = None
 
 
 class AddFamilyMemberResponse(FamilyTreeBaseResponse):
     new_member_id: Optional[str] = None
+
+
+class AddRelationshipRequest(RelationshipTypeValidatorMixin, BaseModel):
+    source_member_id: str
+    target_member_id: str
+    relationship_type: EdgeType
+    add_inverse_relationship: bool = True
+
+
+class AddRelationshipResponse(FamilyTreeBaseResponse):
+    pass
 
 
 class UpdateFamilyMemberRequest(BaseModel):
@@ -65,19 +80,9 @@ class UpdateFamilyMemberResponse(FamilyTreeBaseResponse):
     pass
 
 
-class AddRelationshipRequest(BaseModel):
-    source_member_id: str
-    target_member_id: str
-    relationship_type: EdgeType
-
-
-class AddRelationshipResponse(FamilyTreeBaseResponse):
-    pass
-
-
 class DeleteFamilyMemberRequest(BaseModel):
     member_id: str
-    include_orphaned_members: bool = False
+    remove_orphaned_neighbors: bool = False
 
 
 class DeleteFamilyMemberResponse(FamilyTreeBaseResponse):
@@ -95,9 +100,7 @@ class DeleteRelationshipResponse(FamilyTreeBaseResponse):
 
 
 class SaveFamilyResponse(FamilyTreeBaseResponse):
-    family_members: Optional[dict[str, dict[str, Any]]] = None
-    relationships: Optional[dict[str, dict[str, Any]]] = None
-    family_units: Optional[list[dict[str, Any]]] = None
+    family_tree_txtpb: str
 
 
 class ExportInteractiveGraphResponse(FamilyTreeBaseResponse):

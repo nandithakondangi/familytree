@@ -4,7 +4,7 @@ import networkx as nx
 import pytest
 from familytree.proto import family_tree_pb2, utils_pb2
 
-from familytree.exceptions import InvalidInputError
+from familytree.exceptions import InvalidInputError, MemberNotFoundError
 from familytree.handlers.graph_handler import GraphHandler
 from familytree.utils.graph_types import EdgeType, GraphEdge, GraphNode
 
@@ -411,3 +411,31 @@ def test_get_member_info(graph_handler_instance):
 
     with pytest.raises(KeyError):  # Node not found
         graph_handler_instance.get_member_info("non_existent_node")
+
+def test_remove_member_not_found(graph_handler_instance):
+    """Tests removing a member that does not exist."""
+    with pytest.raises(MemberNotFoundError):
+        graph_handler_instance.remove_member("non_existent_node", False)
+
+def test_remove_member_no_orphans(graph_handler_instance):
+    """Tests removing a member without removing orphans."""
+    graph_handler_instance.add_member("p1", family_tree_pb2.FamilyMember(id="p1", name="p1"))
+    graph_handler_instance.add_member("p2", family_tree_pb2.FamilyMember(id="p2", name="p2"))
+    graph_handler_instance.add_spouse_relation("p1", "p2")
+    graph_handler_instance.remove_member("p1", False)
+    assert "p1" not in graph_handler_instance._graph.nodes
+    assert "p2" in graph_handler_instance._graph.nodes
+
+def test_remove_relationship_not_found(graph_handler_instance):
+    """Tests removing a relationship that does not exist."""
+    graph_handler_instance.add_member("p1", family_tree_pb2.FamilyMember(id="p1", name="p1"))
+    graph_handler_instance.add_member("p2", family_tree_pb2.FamilyMember(id="p2", name="p2"))
+    with pytest.raises(InvalidInputError):
+        graph_handler_instance.remove_relationship("p1", "p2", False)
+
+def test_update_family_member_not_found(graph_handler_instance):
+    """Tests updating a member that does not exist."""
+    with pytest.raises(KeyError):
+        graph_handler_instance.update_family_member(
+            "non_existent_node", family_tree_pb2.FamilyMember()
+        )

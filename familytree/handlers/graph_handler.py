@@ -3,8 +3,9 @@ from typing import Any, Optional
 
 from google.protobuf.json_format import MessageToDict
 from networkx import DiGraph
+from networkx.exception import NetworkXError
 
-from familytree.exceptions import InvalidInputError
+from familytree.exceptions import InvalidInputError, MemberNotFoundError
 from familytree.proto import family_tree_pb2
 from familytree.rendering.pyvis_renderer import PyvisRenderer
 from familytree.utils import id_utils
@@ -78,12 +79,12 @@ class GraphHandler:
                     family_unit_to_update.child_ids.append(child_id)
 
         parent_names = [
-            self.get_member_info(id)["name"]
-            for id in family_unit_to_update.parent_ids
+            self.get_member_info(id)["name"] for id in family_unit_to_update.parent_ids
         ]
-        family_unit_to_update.name = " and ".join(f"{name}'s" for name in parent_names) + " family"
+        family_unit_to_update.name = (
+            " and ".join(f"{name}'s" for name in parent_names) + " family"
+        )
         self._family_unit_map[family_unit_id] = family_unit_to_update
-
 
     def _get_birth_family_id(self, member_id: str) -> str:
         """
@@ -284,7 +285,7 @@ class GraphHandler:
         """
         logger.info("Creating NetworkX graph from FamilyTree proto...")
         self._graph = DiGraph()  # Initialize the private graph
-        self._family_unit_map = {} # Initialize the family unit map
+        self._family_unit_map = {}  # Initialize the family unit map
 
         # 1. Add all members as nodes
         for (
@@ -466,6 +467,84 @@ class GraphHandler:
             family_unit_to_update,
             {"parents": [parent_id]},
         )
+
+    def update_family_member(
+        self, member_id: str, updated_family_member: family_tree_pb2.FamilyMember
+    ):
+        """
+        Updates the attributes of a family member in the graph.
+
+        Args:
+            member_id: The ID of the member to update.
+            updated_family_member: The updated FamilyMember protobuf message.
+        """
+        member_info: GraphNode = self._graph.nodes[member_id]["data"]
+        member_info.attributes.MergeFrom(updated_family_member)
+        self._graph.nodes[member_id]["data"] = member_info
+        logger.debug(f"Updated member: {member_id}")
+
+    def remove_member(self, member_id: str, remove_orphaned_neighbors: bool):
+        """
+        Removes a family member from the graph.
+
+        Optionally removes neighboring members if they become orphaned (i.e., have no
+        other connections) after the primary member's removal.
+
+        Args:
+            member_id: The ID of the member to remove.
+            remove_orphaned_neighbors: If True, remove neighbors who become disconnected.
+
+        Raises:
+            MemberNotFoundError: If the member with the given ID is not found.
+        """
+        if self._graph.has_node(member_id):
+            neighbors = list(self._graph.neighbors(member_id))
+            self._graph.remove_node(member_id)
+            if remove_orphaned_neighbors:
+                for neighbor in neighbors:
+                    if self._graph.degree(neighbor) == 0:
+                        self._graph.remove_node(neighbor)
+            logger.debug(f"Removed member: {member_id}")
+        else:
+            error_message = f"Member ID '{member_id}' is not part of the family graph"
+            logger.error(error_message)
+            raise MemberNotFoundError(member_id=member_id, operation="remove_member")
+
+    def remove_relationship(
+        self,
+        source_member_id: str,
+        target_member_id: str,
+        remove_inverse_relationship: bool,
+    ):
+        """
+        Removes a relationship (edge) between two members in the graph.
+
+        Optionally removes the inverse relationship (edge in the opposite direction)
+        if it exists.
+
+        Args:
+            source_member_id: The ID of the source member of the relationship.
+            target_member_id: The ID of the target member of the relationship.
+            remove_inverse_relationship: If True, also remove the edge from target to source.
+
+        Raises:
+            InvalidInputError: If the relationship from source to target does not exist.
+        """
+        try:
+            self._graph.remove_edge(source_member_id, target_member_id)
+            if remove_inverse_relationship:
+                self._graph.remove_edge(target_member_id, source_member_id)
+            logger.debug(
+                f"Removed relationship: {source_member_id} -> {target_member_id}"
+            )
+        except NetworkXError:
+            error_message = f"Relationship between {source_member_id} and {target_member_id} not found"
+            logger.error(error_message)
+            raise InvalidInputError(
+                operation="remove_relationship",
+                field="relationship",
+                description=error_message,
+            )
 
     def render_graph_to_html(
         self, theme: str, output_html_file_path: Optional[str] = None
