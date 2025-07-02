@@ -44,16 +44,8 @@ class ProtoHandler:
             Exception: For other unexpected errors during loading.
         """
         logger.info("Loading FamilyTree from text proto")
-        try:
-            text_format.Merge(family_tree_textproto, self._family_tree)
-            logger.info("Successfully loaded FamilyTree from text proto")
-        except text_format.ParseError as e:
-            logger.error(f"Error parsing text proto: {e}")
-            raise
-        except Exception as e:
-            logger.exception(
-                f"An unexpected error occured when loading FamilyTree from text proto: {e}"
-            )
+        text_format.Merge(family_tree_textproto, self._family_tree)
+        logger.info("Successfully loaded FamilyTree from text proto")
 
     def update_from_nx_graph(
         self, nx_graph: DiGraph, family_unit_map: dict[str, family_tree_pb2.FamilyUnit]

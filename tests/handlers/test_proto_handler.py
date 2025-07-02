@@ -90,19 +90,16 @@ def test_load_from_textproto_success(proto_handler_instance, family_tree_1):
 
 
 @patch("google.protobuf.text_format.Merge", side_effect=Exception("Mocked error"))
-def test_load_from_textproto_generic_exception(
-    mock_merge, proto_handler_instance, caplog
-):
+def test_load_from_textproto_generic_exception(mock_merge, proto_handler_instance):
     """Tests that a generic exception during loading is caught and logged."""
-    proto_handler_instance.load_from_textproto("some content")
-    assert "An unexpected error occured" in caplog.text
+    with pytest.raises(Exception):
+        proto_handler_instance.load_from_textproto("some content")
 
 
-def test_load_from_textproto_parse_error(proto_handler_instance, caplog):
+def test_load_from_textproto_parse_error(proto_handler_instance):
     """Tests loading from a malformed text protobuf string."""
     with pytest.raises(text_format.ParseError):
         proto_handler_instance.load_from_textproto("malformed { proto content")
-    assert "Error parsing text proto" in caplog.text
 
 
 def test_save_to_textproto(proto_handler_instance, family_tree_1):
