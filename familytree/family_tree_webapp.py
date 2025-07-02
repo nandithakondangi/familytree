@@ -4,7 +4,7 @@ import sys
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
-from google.protobuf.json_format import ParseError
+from google.protobuf.text_format import ParseError
 
 PYTHON_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_PROJECT_DIR = os.path.dirname(PYTHON_DIR)

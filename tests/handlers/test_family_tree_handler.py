@@ -2,8 +2,6 @@ import re
 from unittest.mock import MagicMock
 
 import pytest
-from google.protobuf import text_format
-from google.protobuf.json_format import MessageToDict
 from pydantic import ValidationError
 
 from familytree.exceptions import InvalidInputError, MemberNotFoundError
@@ -112,25 +110,21 @@ def test_load_family_tree(
     for child_id in weasley_children_ids:
         # Arthur is parent of child_id
         assert (
-            graph.edges["ARTHW", child_id]["data"].edge_type
-            == EdgeType.PARENT_TO_CHILD
+            graph.edges["ARTHW", child_id]["data"].edge_type == EdgeType.PARENT_TO_CHILD
         )
         assert graph.edges["ARTHW", child_id]["data"].is_rendered
         # child_id is child of Arthur
         assert (
-            graph.edges[child_id, "ARTHW"]["data"].edge_type
-            == EdgeType.CHILD_TO_PARENT
+            graph.edges[child_id, "ARTHW"]["data"].edge_type == EdgeType.CHILD_TO_PARENT
         )
         assert not graph.edges[child_id, "ARTHW"]["data"].is_rendered
         # Molly is parent of child_id
         assert (
-            graph.edges["MOLLW", child_id]["data"].edge_type
-            == EdgeType.PARENT_TO_CHILD
+            graph.edges["MOLLW", child_id]["data"].edge_type == EdgeType.PARENT_TO_CHILD
         )
         # child_id is child of Molly
         assert (
-            graph.edges[child_id, "MOLLW"]["data"].edge_type
-            == EdgeType.CHILD_TO_PARENT
+            graph.edges[child_id, "MOLLW"]["data"].edge_type == EdgeType.CHILD_TO_PARENT
         )
 
 
@@ -442,7 +436,7 @@ def test_add_family_member_invalid_relationship_type(caplog):
             AddFamilyMemberRequest(
                 new_member_data=new_member_dict,
                 source_family_member_id=source_member_id,
-                relationship_type=10,  # Not an EdgeType enum
+                relationship_type=10,  # pyrefly: ignore
                 infer_relationships=False,
             )
         )
@@ -505,7 +499,7 @@ def test_add_first_family_member_no_relationship():
     )
 
 
-def test_save_family_tree(weasley_family_tree_textproto, weasley_family_tree_pb):
+def test_save_family_tree(weasley_family_tree_textproto):
     """
     Tests the save_family_tree method.
     """
@@ -524,10 +518,7 @@ def test_save_family_tree(weasley_family_tree_textproto, weasley_family_tree_pb)
     assert response.status == OK_STATUS
     assert response.message == "Created family tree text proto"
 
-    # The saved tree should be equal to the original tree
-    saved_tree = family_tree_pb2.FamilyTree()
-    text_format.Parse(response.family_tree_txtpb, saved_tree)
-    assert saved_tree == weasley_family_tree_pb
+    assert response.family_tree_txtpb == weasley_family_tree_textproto
 
 
 def test_add_relationship(loaded_handler):

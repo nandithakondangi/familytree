@@ -8,7 +8,7 @@ from networkx.exception import NetworkXError
 from familytree.exceptions import InvalidInputError, MemberNotFoundError
 from familytree.proto import family_tree_pb2
 from familytree.rendering.pyvis_renderer import PyvisRenderer
-from familytree.utils import id_utils
+from familytree.utils import id_utils, proto_utils
 from familytree.utils.graph_types import EdgeType, GraphEdge, GraphNode
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class GraphHandler:
             family_unit_id: The ID of the family unit to update.
             data_to_update: A dictionary containing 'parents' or 'children' keys with lists of member IDs.
         """
-        logger.info("Updating family units map...")
+        logger.debug("Updating family units map...")
         family_unit_to_update = self._family_unit_map.get(
             family_unit_id, family_tree_pb2.FamilyUnit()
         )
@@ -135,6 +135,26 @@ class GraphHandler:
         self._graph.nodes[member_id][
             "data"
         ].attributes.acquired_family_unit_id = family_unit_id
+
+    def _remove_member_from_family_units(self, member_id: str):
+        """Removes a member ID from all family units and deletes empty units."""
+        units_to_delete = []
+        for unit_id, unit in self._family_unit_map.items():
+            # Use a while loop to remove all occurrences if any duplicates exist
+            while member_id in unit.parent_ids:
+                unit.parent_ids.remove(member_id)
+            while member_id in unit.child_ids:
+                unit.child_ids.remove(member_id)
+
+            # If a family unit becomes empty, mark it for deletion
+            if not unit.parent_ids and not unit.child_ids:
+                units_to_delete.append(unit_id)
+
+        for unit_id in units_to_delete:
+            del self._family_unit_map[unit_id]
+            logger.debug(
+                f"Removed empty family unit '{unit_id}' after member deletion."
+            )
 
     def get_family_graph(self) -> DiGraph:
         """
@@ -301,13 +321,19 @@ class GraphHandler:
         ) in family_tree.relationships.items():  # Use the passed parameter
             # Children relationships: source_member_id is PARENT of child_id
             for child_id in relationships_data.children_ids:
-                self.add_child_relation(source_member_id, child_id)
+                self.add_child_relation(
+                    source_member_id, child_id, add_to_family_unit=False
+                )
             # Spouse relationships: source_member_id is SPOUSE of spouse_id
             for spouse_id in relationships_data.spouse_ids:
-                self.add_spouse_relation(source_member_id, spouse_id)
+                self.add_spouse_relation(
+                    source_member_id, spouse_id, add_to_family_unit=False
+                )
             # Parent relationships: source_member_id is CHILD of parent_id
             for parent_id in relationships_data.parent_ids:
-                self.add_parent_relation(source_member_id, parent_id)
+                self.add_parent_relation(
+                    source_member_id, parent_id, add_to_family_unit=False
+                )
 
         for family_unit_id, family_unit in family_tree.family_units.items():
             self._family_unit_map[family_unit_id] = family_unit
@@ -335,7 +361,9 @@ class GraphHandler:
         self._graph.add_node(member_id, data=node_obj)
         logger.debug(f"Added node: {member_id}")
 
-    def add_child_relation(self, source_member_id: str, child_id: str) -> None:
+    def add_child_relation(
+        self, source_member_id: str, child_id: str, add_to_family_unit: bool = True
+    ) -> None:
         """
         Adds a directed edge from `source_member_id` to `child_id` of type PARENT_TO_CHILD.
 
@@ -365,20 +393,23 @@ class GraphHandler:
         logger.debug(f"Added CHILD edge: {source_member_id} -> {child_id}")
 
         # Update family_units
-        if not self._get_acquired_family_id(source_member_id):
-            new_family_unit_id = id_utils.generate_family_unit_id()
-            self._set_acquired_family_id(source_member_id, new_family_unit_id)
+        if add_to_family_unit:
+            if not self._get_acquired_family_id(source_member_id):
+                new_family_unit_id = id_utils.generate_family_unit_id()
+                self._set_acquired_family_id(source_member_id, new_family_unit_id)
+                self._update_family_units_map(
+                    new_family_unit_id, {"parents": [source_member_id]}
+                )
+            family_unit_to_update = self._get_acquired_family_id(source_member_id)
+            self._set_birth_family_id(child_id, family_unit_to_update)
             self._update_family_units_map(
-                new_family_unit_id, {"parents": [source_member_id]}
+                family_unit_to_update,
+                {"children": [child_id]},
             )
-        family_unit_to_update = self._get_acquired_family_id(source_member_id)
-        self._set_birth_family_id(child_id, family_unit_to_update)
-        self._update_family_units_map(
-            family_unit_to_update,
-            {"children": [child_id]},
-        )
 
-    def add_spouse_relation(self, source_member_id: str, spouse_id: str) -> None:
+    def add_spouse_relation(
+        self, source_member_id: str, spouse_id: str, add_to_family_unit: bool = True
+    ) -> None:
         """
         Adds a directed edge from `source_member_id` to `spouse_id` of type SPOUSE.
 
@@ -411,20 +442,23 @@ class GraphHandler:
         logger.debug(f"Added SPOUSE edge: {source_member_id} -> {spouse_id}")
 
         # Update family_units
-        if not self._get_acquired_family_id(source_member_id):
-            new_family_unit_id = id_utils.generate_family_unit_id()
-            self._set_acquired_family_id(source_member_id, new_family_unit_id)
+        if add_to_family_unit:
+            if not self._get_acquired_family_id(source_member_id):
+                new_family_unit_id = id_utils.generate_family_unit_id()
+                self._set_acquired_family_id(source_member_id, new_family_unit_id)
+                self._update_family_units_map(
+                    new_family_unit_id, {"parents": [source_member_id]}
+                )
+            family_unit_to_update = self._get_acquired_family_id(source_member_id)
+            self._set_acquired_family_id(spouse_id, family_unit_to_update)
             self._update_family_units_map(
-                new_family_unit_id, {"parents": [source_member_id]}
+                family_unit_to_update,
+                {"parents": [spouse_id]},
             )
-        family_unit_to_update = self._get_acquired_family_id(source_member_id)
-        self._set_acquired_family_id(spouse_id, family_unit_to_update)
-        self._update_family_units_map(
-            family_unit_to_update,
-            {"parents": [spouse_id]},
-        )
 
-    def add_parent_relation(self, source_member_id: str, parent_id: str) -> None:
+    def add_parent_relation(
+        self, source_member_id: str, parent_id: str, add_to_family_unit: bool = True
+    ) -> None:
         """
         Adds a directed edge from `source_member_id` to `parent_id` of type CHILD_TO_PARENT.
 
@@ -455,18 +489,19 @@ class GraphHandler:
         logger.debug(f"Added PARENT edge: {source_member_id} -> {parent_id}")
 
         # Update family_units
-        if not self._get_birth_family_id(source_member_id):
-            new_family_unit_id = id_utils.generate_family_unit_id()
-            self._set_birth_family_id(source_member_id, new_family_unit_id)
+        if add_to_family_unit:
+            if not self._get_birth_family_id(source_member_id):
+                new_family_unit_id = id_utils.generate_family_unit_id()
+                self._set_birth_family_id(source_member_id, new_family_unit_id)
+                self._update_family_units_map(
+                    new_family_unit_id, {"children": [source_member_id]}
+                )
+            family_unit_to_update = self._get_birth_family_id(source_member_id)
+            self._set_acquired_family_id(parent_id, family_unit_to_update)
             self._update_family_units_map(
-                new_family_unit_id, {"children": [source_member_id]}
+                family_unit_to_update,
+                {"parents": [parent_id]},
             )
-        family_unit_to_update = self._get_birth_family_id(source_member_id)
-        self._set_acquired_family_id(parent_id, family_unit_to_update)
-        self._update_family_units_map(
-            family_unit_to_update,
-            {"parents": [parent_id]},
-        )
 
     def update_family_member(
         self, member_id: str, updated_family_member: family_tree_pb2.FamilyMember
@@ -479,7 +514,7 @@ class GraphHandler:
             updated_family_member: The updated FamilyMember protobuf message.
         """
         member_info: GraphNode = self._graph.nodes[member_id]["data"]
-        member_info.attributes.MergeFrom(updated_family_member)
+        proto_utils.apply_changes(member_info.attributes, updated_family_member)
         self._graph.nodes[member_id]["data"] = member_info
         logger.debug(f"Updated member: {member_id}")
 
@@ -499,11 +534,14 @@ class GraphHandler:
         """
         if self._graph.has_node(member_id):
             neighbors = list(self._graph.neighbors(member_id))
+            # Remove the primary member from graph and family units
             self._graph.remove_node(member_id)
+            self._remove_member_from_family_units(member_id)
             if remove_orphaned_neighbors:
                 for neighbor in neighbors:
                     if self._graph.degree(neighbor) == 0:
                         self._graph.remove_node(neighbor)
+                        self._remove_member_from_family_units(neighbor)
             logger.debug(f"Removed member: {member_id}")
         else:
             error_message = f"Member ID '{member_id}' is not part of the family graph"

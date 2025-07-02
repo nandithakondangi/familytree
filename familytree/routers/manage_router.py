@@ -1,16 +1,31 @@
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
-from google.protobuf.json_format import ParseError
+from fastapi import APIRouter, Depends, Query
 
-from familytree import app_state
+from familytree.exceptions import UnsupportedOperationError
+from familytree.handlers.family_tree_handler import FamilyTreeHandler
 from familytree.models.base_model import OK_STATUS
 from familytree.models.manage_model import (
     AddFamilyMemberRequest,
     AddFamilyMemberResponse,
+    AddRelationshipRequest,
+    AddRelationshipResponse,
     CreateFamilyResponse,
+    DeleteFamilyMemberRequest,
+    DeleteFamilyMemberResponse,
+    DeleteRelationshipRequest,
+    DeleteRelationshipResponse,
+    ExportInteractiveGraphResponse,
     LoadFamilyRequest,
     LoadFamilyResponse,
+    SaveFamilyResponse,
+    UpdateFamilyMemberRequest,
+    UpdateFamilyMemberResponse,
+)
+from familytree.routers import (
+    get_current_family_tree_handler_dependency,
+    get_new_family_tree_handler_dependency,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,120 +38,120 @@ router = APIRouter(
 
 
 @router.post("/create_family", response_model=CreateFamilyResponse)
-async def create_new_family():
+async def create_new_family(
+    family_tree_handler: FamilyTreeHandler = Depends(
+        get_new_family_tree_handler_dependency
+    ),
+):
     """
     Creates a new, empty family tree structure
     """
-    try:
-        app_state.reset_current_family_tree_handler()
-        message = "New family tree created."
-        # pyrefly: ignore
-        response = CreateFamilyResponse(status=OK_STATUS, message=message)
-        return response
-    except Exception as e:
-        error_message = "Unexpected error occured during create family operation."
-        logger.exception(error_message, e)
-        raise HTTPException(status_code=500, detail=error_message)
+    message = "New family tree created."
+    # pyrefly: ignore
+    return CreateFamilyResponse(status=OK_STATUS, message=message)
 
 
 @router.post("/load_family", response_model=LoadFamilyResponse)
-async def load_family_data(request: LoadFamilyRequest):
+async def load_family_data(
+    request: LoadFamilyRequest,
+    family_handler: FamilyTreeHandler = Depends(get_new_family_tree_handler_dependency),
+):
     """
     Loads existing family tree data from a specified source (e.g., a file).
     """
-    try:
-        app_state.reset_current_family_tree_handler()
-        family_handler = app_state.get_current_family_tree_handler()
-        return family_handler.load_family_tree(request)
-    except Exception:
-        error_message = "Unexpected error occured during load family operation."
-        logger.exception(error_message)
-        raise HTTPException(status_code=500, detail=error_message)
+    return family_handler.load_family_tree(request)
 
 
 @router.post("/add_family_member", response_model=AddFamilyMemberResponse)
-async def add_family_member(request: AddFamilyMemberRequest):
+async def add_family_member(
+    request: AddFamilyMemberRequest,
+    family_handler: FamilyTreeHandler = Depends(
+        get_current_family_tree_handler_dependency
+    ),
+):
     """
     Adds a new individual to the currently active family tree.
     """
-    try:
-        family_handler = app_state.get_current_family_tree_handler()
-        return family_handler.add_family_member(request)
-    except ParseError:
-        error_message = "Failed to parse the new member data."
-        logger.exception(error_message)
-        raise HTTPException(status_code=400, detail=error_message)
-    except Exception:
-        error_message = "Unexpected error occured during add family member operation"
-        logger.exception(error_message)
-        raise HTTPException(status_code=500, detail=error_message)
+    return family_handler.add_family_member(request)
 
 
-@router.post("/add_relationship")
-async def add_relationship():
+@router.post("/add_relationship", response_model=AddRelationshipResponse)
+async def add_relationship(
+    request: AddRelationshipRequest,
+    family_handler: FamilyTreeHandler = Depends(
+        get_current_family_tree_handler_dependency
+    ),
+):
     """
     Adds a relationship between two individuals in the family tree.
     """
-    message = "Endpoint /manage/add_relationship is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    return family_handler.add_relationship(request)
 
 
-@router.post("/update_family_member")
-async def update_family_member():
+@router.post("/update_family_member", response_model=UpdateFamilyMemberResponse)
+async def update_family_member(
+    request: UpdateFamilyMemberRequest,
+    family_handler: FamilyTreeHandler = Depends(
+        get_current_family_tree_handler_dependency
+    ),
+):
     """
     Updates the information of an existing member in the family tree.
     """
-    message = "Endpoint /manage/update_family_member is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    return family_handler.update_family_member(request)
 
 
-@router.post("/delete_family_member")
-async def delete_family_member():
+@router.post("/delete_family_member", response_model=DeleteFamilyMemberResponse)
+async def delete_family_member(
+    request: DeleteFamilyMemberRequest,
+    family_handler: FamilyTreeHandler = Depends(
+        get_current_family_tree_handler_dependency
+    ),
+):
     """
     Removes a member from the family tree.
     """
-    message = "Endpoint /manage/delete_family_member is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    return family_handler.delete_family_member(request)
 
 
-@router.post("/delete_relationship")
-async def delete_relationship():
+@router.post("/delete_relationship", response_model=DeleteRelationshipResponse)
+async def delete_relationship(
+    request: DeleteRelationshipRequest,
+    family_handler: FamilyTreeHandler = Depends(
+        get_current_family_tree_handler_dependency
+    ),
+):
     """
     Removes a relationship between two individuals from the family tree.
     """
-    message = "Endpoint /manage/delete_relationship is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    return family_handler.delete_relationship(request)
 
 
-@router.get("/save_family")
-async def save_family_data():
+@router.get("/save_family", response_model=SaveFamilyResponse)
+async def save_family_data(
+    visible_only: Annotated[
+        bool,
+        Query(
+            alias="visibleOnly",
+            title="Toggle for data to be saved",
+            description="Toggles what data to be saved. If true, then currently visible nodes will only be saved, otherwise all nodes will be saved.",
+        ),
+    ] = False,
+    family_handler: FamilyTreeHandler = Depends(
+        get_current_family_tree_handler_dependency
+    ),
+):
     """
     Saves the current state of the family tree data to a persistent storage.
     """
-    message = "Endpoint /manage/save_family_data is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    return family_handler.save_family_tree(visible_only)
 
 
-@router.get("/export_family_snapshot")
-async def export_family_snapshot():
-    """
-    Exports a static snapshot of the current family tree view (e.g., as an image or PDF).
-    """
-    message = "Endpoint /manage/export_family_snapshot is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
-
-
-@router.get("/export_interactive_graph")
+@router.get("/export_interactive_graph", response_model=ExportInteractiveGraphResponse)
 async def export_interactive_graph():
     """
     Exports the family tree data in a format suitable for an interactive graph visualization.
     """
-    message = "Endpoint /manage/export_interactive_graph is not yet implemented."
-    logger.warning(message)
-    raise HTTPException(status_code=501, detail=message)
+    raise UnsupportedOperationError(
+        operation="export_interactive_graph", feature="export_interactive_graph"
+    )

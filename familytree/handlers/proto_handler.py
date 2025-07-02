@@ -5,7 +5,7 @@ from networkx import DiGraph
 from thefuzz import fuzz
 
 from familytree.proto import family_tree_pb2
-from familytree.utils import id_utils
+from familytree.utils import id_utils, proto_utils
 from familytree.utils.graph_types import EdgeType
 
 logger = logging.getLogger(__name__)
@@ -121,8 +121,8 @@ class ProtoHandler:
                     node_data["data"].attributes
                 )
             else:
-                self._family_tree.members[node_id].MergeFrom(
-                    node_data["data"].attributes
+                proto_utils.apply_changes(
+                    self._family_tree.members[node_id], node_data["data"].attributes
                 )
 
     def _update_missing_relationships(self, edges_from_graph):
@@ -168,7 +168,9 @@ class ProtoHandler:
             if family_unit_id not in self._family_tree.family_units:
                 self._family_tree.family_units[family_unit_id].CopyFrom(family_unit)
             else:
-                self._family_tree.family_units[family_unit_id].MergeFrom(family_unit)
+                proto_utils.apply_changes(
+                    self._family_tree.family_units[family_unit_id], family_unit
+                )
 
     def _calculate_similarity(self, member1, member2):
         """

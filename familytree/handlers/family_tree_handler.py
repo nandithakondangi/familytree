@@ -135,17 +135,29 @@ class FamilyTreeHandler:
 
         Returns:
             An UpdateFamilyMemberResponse object indicating the status of the operation.
+
+        Raises:
+            MemberNotFoundError: If no member with the given ID is found.
         """
-        updated_family_member = ParseDict(
-            request.updated_member_data, family_tree_pb2.FamilyMember()
-        )
-        self.graph_handler.update_family_member(
-            request.member_id, updated_family_member
-        )
-        return UpdateFamilyMemberResponse(
-            status=OK_STATUS,
-            message=f"Member {request.member_id} updated successfully.",
-        )
+        try:
+            updated_family_member = ParseDict(
+                request.updated_member_data, family_tree_pb2.FamilyMember()
+            )
+            self.graph_handler.update_family_member(
+                request.member_id, updated_family_member
+            )
+            return UpdateFamilyMemberResponse(
+                status=OK_STATUS,
+                message=f"Member {request.member_id} updated successfully.",
+            )
+        except KeyError as e:
+            logger.error(
+                f"Member with ID '{request.member_id}' not found for update.",
+                exc_info=True,
+            )
+            raise MemberNotFoundError(
+                member_id=request.member_id, operation="update_family_member"
+            ) from e
 
     def get_member_info(self, user_id: str) -> MemberInfoResponse:
         """

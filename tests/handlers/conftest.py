@@ -132,7 +132,7 @@ def create_weasley_family_tree_proto():
     family_unit.id = "FUNT"
     family_unit.name = "Weasley family"
     family_unit.parent_ids.extend(["ARTHW", "MOLLW"])
-    family_unit.child_ids.extend(children_ids)
+    family_unit.child_ids.extend(sorted(children_ids))
 
     return family_tree
 
@@ -146,4 +146,4 @@ def weasley_family_tree_pb():
 @pytest.fixture
 def weasley_family_tree_textproto(weasley_family_tree_pb):
     """Provides the Weasley family tree as a text protobuf string."""
-    return text_format.MessageToString(weasley_family_tree_pb, as_utf8=True)
+    return text_format.MessageToString(weasley_family_tree_pb, indent=2)

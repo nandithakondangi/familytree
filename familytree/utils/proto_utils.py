@@ -1,5 +1,8 @@
 import logging
 
+from google.protobuf.descriptor import FieldDescriptor
+from google.protobuf.message import Message
+
 # Assuming proto files are compiled and accessible as in proto_handler.py
 # This implies that the directory containing the 'proto' package is in PYTHONPATH.
 import familytree.proto.utils_pb2 as utils_pb2
@@ -51,3 +54,44 @@ def get_enum_values_from_proto_schema(
             f"An unexpected error occurred getting enum values for '{enum_name}': {e}"
         )
         return []
+
+
+def apply_changes(a: Message, b: Message):
+    """
+    Recursively applies set fields from message 'b' to message 'a'.
+
+    - For singular fields (including enums), it overwrites the value.
+    - For 'oneof' fields, it correctly sets the new field, clearing the old one.
+    - For 'map' fields, it clears the map in 'a' and copies all entries from 'b'.
+    - For repeated fields, it clears the list in 'a' and adds all elements from 'b'.
+    - For nested messages, it recursively applies changes.
+    """
+    if a.DESCRIPTOR.full_name != b.DESCRIPTOR.full_name:
+        raise TypeError("Messages 'a' and 'b' must be of the same type.")
+
+    for field_descriptor, field_value in b.ListFields():
+        # Check if the field is a map
+        is_map = (
+            field_descriptor.type == FieldDescriptor.TYPE_MESSAGE
+            and field_descriptor.message_type.GetOptions().map_entry
+        )
+
+        if is_map:
+            # Handle map fields: clear destination and update from source
+            map_a = getattr(a, field_descriptor.name)
+            map_a.update(field_value)
+        elif field_descriptor.label == FieldDescriptor.LABEL_REPEATED:
+            # Handle repeated fields (lists): clear and extend
+            list_a = getattr(a, field_descriptor.name)
+            set_a = set(list_a)
+            set_b = set(field_value)
+            del list_a[:]
+            list_a.extend(sorted(list(set_a.union(set_b))))
+        elif field_descriptor.type == FieldDescriptor.TYPE_MESSAGE:
+            # Handle nested messages: recurse
+            nested_a = getattr(a, field_descriptor.name)
+            # Note: We pass field_value directly, which is the nested message from 'b'
+            apply_changes(nested_a, field_value)
+        else:
+            # Handle singular fields (including those in a 'oneof' and enums)
+            setattr(a, field_descriptor.name, field_value)
