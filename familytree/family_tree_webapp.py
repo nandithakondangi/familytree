@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
 from google.protobuf.json_format import ParseError
 
@@ -15,6 +15,10 @@ sys.path.append(BASE_PROJECT_DIR)
 sys.path.append(PYTHON_DIR)
 
 from familytree.exceptions import FamilyTreeBaseError  # noqa: E402
+from familytree.models.base_model import (  # noqa: E402
+    ERROR_STATUS,
+    FamilyTreeBaseResponse,
+)
 from familytree.routers import chat_router, graph_router, manage_router  # noqa: E402
 
 logging.basicConfig(
@@ -42,11 +46,9 @@ async def handle_custom_family_tree_errors(request: Request, exc: FamilyTreeBase
 
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "detail": exc.detail,  # The pre-formatted, context-aware message from the exception
-            "operation": exc.operation,  # Optionally include more structured context
-            # Add other relevant fields from your custom exception if needed
-        },
+        content=FamilyTreeBaseResponse(
+            status=ERROR_STATUS, message=exc.detail
+        ).model_dump(),
     )
 
 
@@ -64,7 +66,9 @@ async def handle_parse_errors(request: Request, exc: ParseError):
     )
     return JSONResponse(
         status_code=400,  # Bad Request
-        content={"detail": error_message},
+        content=FamilyTreeBaseResponse(
+            status=ERROR_STATUS, message=error_message
+        ).model_dump(),
     )
 
 
@@ -73,25 +77,26 @@ async def handle_generic_exception(request: Request, exc: Exception):
     """
     Handles any other unhandled exceptions.
     """
-    # Avoid re-handling HTTPExceptions that might be raised intentionally elsewhere
-    # and are already handled by FastAPI's default mechanisms.
     if isinstance(exc, HTTPException):
         logger.warning(
             f"HTTPException caught by generic handler: {exc.status_code} - {exc.detail} for {request.url.path}"
         )
         raise exc
 
-    operation_context = getattr(request.state, "operation_name", "an unknown operation")
-    error_message = (
-        f"An unexpected internal server error occurred during '{operation_context}'."
-    )
+    operation_context = "an unknown operation"
+    if request.scope.get("endpoint"):
+        operation_context = request.scope["endpoint"].__name__
+
+    error_message = f"An unexpected internal server error occurred during '{operation_context}': {exc}"
     logger.critical(
         f"Unhandled generic exception during {operation_context} for {request.url.path}: {exc}",
         exc_info=True,
     )
     return JSONResponse(
-        status_code=500,
-        content={"detail": error_message},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=FamilyTreeBaseResponse(
+            status=ERROR_STATUS, message=error_message
+        ).model_dump(),
     )
 
 
@@ -107,12 +112,10 @@ async def health_check():
     return {"status": "ok", "message": "API is healthy"}
 
 
+# Register exception handlers BEFORE including routers
 app.include_router(chat_router.router, prefix="/api/v1")
 app.include_router(graph_router.router, prefix="/api/v1")
 app.include_router(manage_router.router, prefix="/api/v1")
-app.add_exception_handler(FamilyTreeBaseError, handle_custom_family_tree_errors)
-app.add_exception_handler(ParseError, handle_parse_errors)
-app.add_exception_handler(Exception, handle_generic_exception)
 
 
 @app.get("/{full_path:path}", include_in_schema=False)

@@ -1,9 +1,17 @@
+from unittest.mock import MagicMock
+
 import google.protobuf.text_format as text_format
 import pytest
+from fastapi.testclient import TestClient
 
 import familytree.proto.family_tree_pb2 as family_tree_pb2
 import familytree.proto.utils_pb2 as utils_pb2
 from familytree import app_state
+from familytree.family_tree_webapp import app
+from familytree.routers import (
+    get_current_family_tree_handler_dependency,
+    get_new_family_tree_handler_dependency,
+)
 
 
 def create_weasley_family_tree_proto():
@@ -139,3 +147,45 @@ def reset_app_state_between_tests():
     app_state.reset_current_family_tree_handler()
     yield
     app_state.reset_current_family_tree_handler()
+
+
+@pytest.fixture
+def client():
+    return TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.fixture
+def mock_family_tree_handler():
+    """Mocks the FamilyTreeHandler instance."""
+    return MagicMock()
+
+
+@pytest.fixture(name="client_with_mock_handler")
+def client_with_mock_handler_fixture(mock_family_tree_handler):
+    """
+    Provides a TestClient where the FamilyTreeHandler dependencies are
+    overridden with a mock instance. This is the correct way to test
+    FastAPI dependencies, avoiding issues with patching.
+    """
+
+    def override_get_handler():
+        """Returns the mock handler for standard endpoints."""
+        return mock_family_tree_handler
+
+    def override_get_new_handler():
+        """Returns the mock handler for endpoints that create a new tree."""
+        mock_family_tree_handler.reset_mock()  # Allow tests to verify reset behavior
+        return mock_family_tree_handler
+
+    # Apply the overrides to the app
+    app.dependency_overrides[get_current_family_tree_handler_dependency] = (
+        override_get_handler
+    )
+    app.dependency_overrides[get_new_family_tree_handler_dependency] = (
+        override_get_new_handler
+    )
+
+    yield TestClient(app, raise_server_exceptions=False)
+
+    # Clean up the overrides after the test is done
+    app.dependency_overrides.clear()
