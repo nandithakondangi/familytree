@@ -299,7 +299,7 @@ class FamilyTreeHandler:
             - The conversation ID (newly generated if not provided, or the existing one).
             - The response text from the agent team.
         """
-        return self.chat_handler.send_query_to_agent_team(query, conversation_id)
+        return await self.chat_handler.call_agent_aync(query, conversation_id)
 
     def _add_relationship_to_graph(self, relationship: dict[str, str | EdgeType]):
         """

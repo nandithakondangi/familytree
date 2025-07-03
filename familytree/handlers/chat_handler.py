@@ -1,6 +1,13 @@
 import logging
 
-from familytree.ai import create_agent_team
+from google.adk.agents.run_config import RunConfig, StreamingMode
+from google.adk.runners import Runner
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
+from google.adk.sessions.session import Session
+from google.genai import types
+
+from familytree.ai import family_tree_assistant
+from familytree.exceptions import OperationError
 from familytree.utils import id_utils
 
 logger = logging.getLogger(__name__)
@@ -14,17 +21,51 @@ class ChatHandler:
     def __init__(self):
         """
         Initializes the ChatHandler.
-
-        Attributes:
-            system_prompt_path (str): Path to the system prompt file.
-            api_key (str): API key for the Gemini service.
         """
-        self.system_prompt_path = ""
-        self.api_key = ""
-        self.agent_team = create_agent_team()
-        self.session_store: dict[str, list[str]] = {}
+        self.app_name = "Family Genie"
+        self.user_id = "user"
+        self.family_tree_assistant = family_tree_assistant
+        self.session_service = InMemorySessionService()
+        self.runner = Runner(
+            app_name=self.app_name,
+            agent=self.family_tree_assistant,
+            session_service=self.session_service,
+        )
+        self.run_config = RunConfig(streaming_mode=StreamingMode.SSE, max_llm_calls=10)
 
-    def send_query_to_agent_team(
+    def _get_or_create_session(
+        self, conversation_id: str | None
+    ) -> tuple[str, Session]:
+        """
+        Gets or creates a session.
+
+        Args:
+            conversation_id (str, optional): The conversation ID.
+
+        Returns:
+            str: The session ID.
+        """
+        if conversation_id is None:
+            conversation_id = id_utils.generate_family_conversation_id()
+            session = await self.session_service.create_session(
+                app_name=self.app_name, session_id=conversation_id, user_id=self.user_id
+            )
+        else:
+            try:
+                session = await self.session_service.get_session(
+                    app_name=self.app_name,
+                    session_id=conversation_id,
+                    user_id=self.user_id,
+                )
+                assert session
+            except AssertionError:
+                logger.error("ADK Session not found")
+                raise OperationError(
+                    operation="Fetch ADK session", reason="ADK Session not found."
+                )
+        return conversation_id, session
+
+    async def call_agent_aync(
         self, query: str, conversation_id: str | None
     ) -> tuple[str, str]:
         """
@@ -37,51 +78,36 @@ class ChatHandler:
         Returns:
             str: The final response from the agent team.
         """
-        conversation_id, history = self._retrieve_history(conversation_id)
-        final_output = await self.agent_team.run({"query": query, "history": history})
-        response_text = final_output.get(
-            "final_response", "Sorry, I could not generate a response."
+        conversation_id, session = self._get_or_create_session(conversation_id)
+
+        content = types.Content(
+            role="user",  # pyrefly: ignore
+            parts=[types.Part(text=query)],
         )
-        self._update_history(conversation_id, query, response_text)
-        return conversation_id, response_text
+        final_response_text = "Genie was unable to generate a response"
 
-    def _retrieve_history(self, conversation_id: str | None) -> tuple[str, list[str]]:
-        """
-        Retrieves the conversation history for a given conversation ID.
+        async for event in self.runner.run_async(
+            user_id=self.user_id,
+            session_id=conversation_id,
+            new_message=content,
+            run_config=self.run_config,
+        ):
+            if event.is_final_response():
+                if event.content and event.content.parts:
+                    # Assuming text response in the first part
+                    try:
+                        final_response_text = event.content.parts[0].text
+                        assert final_response_text
+                    except AssertionError:
+                        logger.error("Final response not found")
+                        raise OperationError(
+                            operation="Agent response",
+                            reason="Final response not found.",
+                        )
+                elif event.actions and event.actions.escalate:
+                    final_response_text += (
+                        f": {event.error_message or 'No specific message.'}"
+                    )
+                break
 
-        If no conversation ID is provided or it's not found in the session store,
-        a new conversation ID is generated and an empty history is initialized.
-
-        Args:
-            conversation_id: The ID of the conversation to retrieve.
-
-        Returns:
-            A tuple containing the conversation ID and its history (list of strings).
-        """
-
-        if conversation_id and conversation_id in self.session_store:
-            # Existing conversation
-            history = self.session_store[conversation_id]
-        else:
-            # New conversation
-            conversation_id = id_utils.generate_family_conversation_id()
-            history: list[str] = []
-            self.session_store[conversation_id] = history
-        return conversation_id, history
-
-    def _update_history(self, conversation_id: str, query: str, response: str) -> None:
-        """
-        Updates the conversation history for a given conversation ID.
-
-        Appends the user's query and the agent's response to the history.
-
-        Args:
-            conversation_id: The ID of the conversation to update.
-            query: The user's query.
-            response: The agent's response.
-        """
-
-        _, history = self._retrieve_history(conversation_id)
-        history.append(f"User: {query}")
-        history.append(f"Family Genie: {response}")
-        self.session_store[conversation_id] = history
+        return conversation_id, final_response_text
