@@ -10,3 +10,4 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(FamilyTreeBaseResponse):
     response: str
+    conversation_id: str

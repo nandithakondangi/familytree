@@ -17,3 +17,8 @@ def generate_member_id() -> str:
 def generate_family_unit_id() -> str:
     family_unit_base = "FUNT"
     return "-".join([_generate_random_block(c) for c in family_unit_base])
+
+
+def generate_family_conversation_id() -> str:
+    family_conversation_base = "FCON"
+    return "-".join([_generate_random_block(c) for c in family_conversation_base])

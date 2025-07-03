@@ -32,10 +32,13 @@ async def send_message(
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
     logger.info(f"Received query: {request.query}")
-    response_text = family_handler.ask_about_family(request.query)
+    conversation_id, response_text = family_handler.ask_about_family(
+        request.query, request.conversation_id
+    )
 
     return ChatResponse(
         status=OK_STATUS,
         message="Response generated successfully",
-        response=response_text,
+        response=response_text,  # pyrefly: ignore
+        conversation_id=conversation_id,
     )
