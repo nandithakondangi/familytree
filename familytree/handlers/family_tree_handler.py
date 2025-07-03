@@ -284,6 +284,9 @@ class FamilyTreeHandler:
             family_tree_txtpb=self.proto_handler.save_to_textproto(),  # pyrefly: ignore
         )
 
+    def ask_about_family(self, query: str) -> str:
+        return self.chat_handler.send_query_to_agent_team(query)
+
     def _add_relationship_to_graph(self, relationship: dict[str, str | EdgeType]):
         """
         Adds a single relationship to the graph based on its type.

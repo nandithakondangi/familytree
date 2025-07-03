@@ -1,5 +1,7 @@
 import logging
 
+from familytree.ai import create_agent_team
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,30 +20,10 @@ class ChatHandler:
         """
         self.system_prompt_path = ""
         self.api_key = ""
+        self.agent_team = create_agent_team()
 
-    def initialize_gemini_2_5_flash(self):
-        """
-        Initializes the Gemini 2.5 Flash model.
-
-        Note: This method is not yet implemented.
-        """
-        pass
-
-    def get_gemini_response(self, message: str):
-        """
-        Gets a response from the Gemini model for a given message.
-
-        Args:
-            message (str): The user's message to send to the model.
-
-        Note: This method is not yet implemented.
-        """
-        pass
-
-    def _load_system_prompt(self):
-        """
-        Loads the system prompt from the specified file path.
-
-        Note: This method is not yet implemented.
-        """
-        pass
+    def send_query_to_agent_team(self, query: str) -> str:
+        final_output = await self.agent_team.run({"query": query})
+        return final_output.get(
+            "final_response", "Sorry, I could not generate a response."
+        )
