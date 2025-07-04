@@ -284,6 +284,23 @@ class FamilyTreeHandler:
             family_tree_txtpb=self.proto_handler.save_to_textproto(),  # pyrefly: ignore
         )
 
+    def ask_about_family(
+        self, query: str, conversation_id: str | None
+    ) -> tuple[str, str]:
+        """
+        Sends a query to the chat handler's agent team to get information about the family.
+
+        Args:
+            query: The user's question about the family.
+            conversation_id: An optional ID for the ongoing conversation.
+
+        Returns:
+            A tuple containing:
+            - The conversation ID (newly generated if not provided, or the existing one).
+            - The response text from the agent team.
+        """
+        return await self.chat_handler.call_agent_aync(query, conversation_id)
+
     def _add_relationship_to_graph(self, relationship: dict[str, str | EdgeType]):
         """
         Adds a single relationship to the graph based on its type.
