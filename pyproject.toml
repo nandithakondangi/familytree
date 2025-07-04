@@ -12,6 +12,7 @@ dependencies = [
     "pyside6>=6.9.0",
     "pyvis>=0.3.2",
     "setuptools>=78.1.0",
+    "thefuzz>=0.22.1",
 ]
 
 [tool.pytest.ini_options]
@@ -28,6 +29,7 @@ dev = [
     "mypy-protobuf>=3.6.0",
     "pyrefly>=0.17.1",
     "pytest>=8.3.5",
+    "pytest-cov>=6.2.1",
     "types-networkx>=3.5.0.20250531",
 ]
 [tool.pyrefly]

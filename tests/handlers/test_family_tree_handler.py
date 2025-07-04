@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
+from familytree.exceptions import InvalidInputError, MemberNotFoundError
 from familytree.handlers.chat_handler import ChatHandler
 from familytree.handlers.family_tree_handler import FamilyTreeHandler
 from familytree.handlers.graph_handler import GraphHandler
@@ -12,13 +13,28 @@ from familytree.models.base_model import OK_STATUS
 from familytree.models.manage_model import (
     AddFamilyMemberRequest,
     AddFamilyMemberResponse,
+    AddRelationshipRequest,
+    DeleteFamilyMemberRequest,
+    DeleteRelationshipRequest,
     LoadFamilyRequest,
     LoadFamilyResponse,
+    UpdateFamilyMemberRequest,
 )
 from familytree.proto import family_tree_pb2
 from familytree.utils.graph_types import EdgeType, GraphNode
 
 MEMBER_ID_PATTERN = r"^F[A-Z0-9]{3}-M[A-Z0-9]{3}-B[A-Z0-9]{3}-R[A-Z0-9]{3}$"
+
+
+@pytest.fixture
+def loaded_handler(weasley_family_tree_textproto):
+    """Provides a FamilyTreeHandler with the Weasley family tree loaded."""
+    handler = FamilyTreeHandler()
+    request = LoadFamilyRequest(
+        filename="test.textpb", content=weasley_family_tree_textproto
+    )
+    handler.load_family_tree(request)
+    return handler
 
 
 def test_family_tree_handler_init():
@@ -155,13 +171,13 @@ def test_infer_relationships_integration():
     handler_ptc = FamilyTreeHandler()
     # Setup graph: parent1 --spouse-- parent2, child1 is unrelated yet
     handler_ptc.graph_handler.add_member(
-        "parent1", family_tree_pb2.FamilyMember(id="parent1")
+        "parent1", family_tree_pb2.FamilyMember(id="parent1", name="Parent 1")
     )
     handler_ptc.graph_handler.add_member(
-        "parent2", family_tree_pb2.FamilyMember(id="parent2")
+        "parent2", family_tree_pb2.FamilyMember(id="parent2", name="Parent 2")
     )
     handler_ptc.graph_handler.add_member(
-        "child1", family_tree_pb2.FamilyMember(id="child1")
+        "child1", family_tree_pb2.FamilyMember(id="child1", name="Child 1")
     )
     handler_ptc.graph_handler.add_spouse_relation("parent1", "parent2")
     handler_ptc.graph_handler.add_spouse_relation(
@@ -190,13 +206,14 @@ def test_infer_relationships_integration():
     handler_ctp = FamilyTreeHandler()
     # Setup graph: child1 --parent_of-- existing_parent, new_parent is unrelated
     handler_ctp.graph_handler.add_member(
-        "child1", family_tree_pb2.FamilyMember(id="child1")
+        "child1", family_tree_pb2.FamilyMember(id="child1", name="Child 1")
     )
     handler_ctp.graph_handler.add_member(
-        "existing_parent", family_tree_pb2.FamilyMember(id="existing_parent")
+        "existing_parent",
+        family_tree_pb2.FamilyMember(id="existing_parent", name="Existing Parent"),
     )
     handler_ctp.graph_handler.add_member(
-        "new_parent", family_tree_pb2.FamilyMember(id="new_parent")
+        "new_parent", family_tree_pb2.FamilyMember(id="new_parent", name="New Parent")
     )
     handler_ctp.graph_handler.add_parent_relation(
         "child1", "existing_parent"
@@ -225,16 +242,16 @@ def test_infer_relationships_integration():
     handler_s = FamilyTreeHandler()
     # Setup graph: spouse1 has children childA, childB. spouse2 is unrelated.
     handler_s.graph_handler.add_member(
-        "spouse1", family_tree_pb2.FamilyMember(id="spouse1")
+        "spouse1", family_tree_pb2.FamilyMember(id="spouse1", name="Spouse 1")
     )
     handler_s.graph_handler.add_member(
-        "spouse2", family_tree_pb2.FamilyMember(id="spouse2")
+        "spouse2", family_tree_pb2.FamilyMember(id="spouse2", name="Spouse 2")
     )
     handler_s.graph_handler.add_member(
-        "childA", family_tree_pb2.FamilyMember(id="childA")
+        "childA", family_tree_pb2.FamilyMember(id="childA", name="Child A")
     )
     handler_s.graph_handler.add_member(
-        "childB", family_tree_pb2.FamilyMember(id="childB")
+        "childB", family_tree_pb2.FamilyMember(id="childB", name="Child B")
     )
     handler_s.graph_handler.add_child_relation(
         "spouse1", "childA"
@@ -419,23 +436,23 @@ def test_add_family_member_invalid_relationship_type(caplog):
             AddFamilyMemberRequest(
                 new_member_data=new_member_dict,
                 source_family_member_id=source_member_id,
-                relationship_type=10,  # Not an EdgeType enum
+                relationship_type=10,  # pyrefly: ignore
                 infer_relationships=False,
             )
         )
 
 
-def test_render_family_tree():
+def test_render_family_tree(loaded_handler):
     """Tests the render_family_tree method."""
-    handler = FamilyTreeHandler()
+    handler = loaded_handler
     expected_html = "<html>Mocked Tree</html>"
 
     # Mock the graph_handler's render_graph_to_html method
     handler.graph_handler.render_graph_to_html = MagicMock(return_value=expected_html)
 
-    html_output = handler.render_family_tree()
+    html_output = handler.render_family_tree("light")
 
-    handler.graph_handler.render_graph_to_html.assert_called_once_with()
+    handler.graph_handler.render_graph_to_html.assert_called_once_with("light")
     assert html_output == expected_html
 
 
@@ -480,3 +497,215 @@ def test_add_first_family_member_no_relationship():
         response.message
         == f"{new_member_data['name']} added successfully to the family."
     )
+
+
+def test_save_family_tree(weasley_family_tree_textproto):
+    """
+    Tests the save_family_tree method.
+    """
+    handler = FamilyTreeHandler()
+
+    # Load a known family tree to have some data to save
+    request = LoadFamilyRequest(
+        filename="test.textpb", content=weasley_family_tree_textproto
+    )
+    handler.load_family_tree(request)
+
+    # Call the save method
+    response = handler.save_family_tree(visible_only=False)
+
+    # Assert the response
+    assert response.status == OK_STATUS
+    assert response.message == "Created family tree text proto"
+
+    assert response.family_tree_txtpb == weasley_family_tree_textproto
+
+
+def test_add_relationship(loaded_handler):
+    handler = loaded_handler
+    # Add Fleur Delacour and connect her to Bill
+    fleur_id = "FLEUD"
+    handler.graph_handler.add_member(
+        fleur_id, family_tree_pb2.FamilyMember(id=fleur_id, name="Fleur Delacour")
+    )
+
+    request = AddRelationshipRequest(
+        source_member_id="BILLW",
+        target_member_id=fleur_id,
+        relationship_type=EdgeType.SPOUSE,
+        add_inverse_relationship=True,
+    )
+    response = handler.add_relationship(request)
+
+    assert response.status == OK_STATUS
+    assert (
+        "Relationship between BILLW and FLEUD added successfully." in response.message
+    )
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_edge("BILLW", fleur_id)
+    assert graph.get_edge_data("BILLW", fleur_id)["data"].edge_type == EdgeType.SPOUSE
+    assert graph.has_edge(fleur_id, "BILLW")
+    assert graph.get_edge_data(fleur_id, "BILLW")["data"].edge_type == EdgeType.SPOUSE
+
+
+def test_add_relationship_no_inverse(loaded_handler):
+    handler = loaded_handler
+    fleur_id = "FLEUD"
+    handler.graph_handler.add_member(
+        fleur_id, family_tree_pb2.FamilyMember(id=fleur_id, name="Fleur Delacour")
+    )
+
+    request = AddRelationshipRequest(
+        source_member_id="BILLW",
+        target_member_id=fleur_id,
+        relationship_type=EdgeType.SPOUSE,
+        add_inverse_relationship=False,
+    )
+    response = handler.add_relationship(request)
+
+    assert response.status == OK_STATUS
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_edge("BILLW", fleur_id)
+    assert not graph.has_edge(fleur_id, "BILLW")
+
+
+def test_add_relationship_invalid_type(loaded_handler):
+    handler = loaded_handler
+    with pytest.raises(InvalidInputError):
+        handler._add_relationship_to_graph(
+            {
+                "source_id": "ARTHW",
+                "target_id": "MOLLW",
+                "relationship_type": "INVALID_RELATIONSHIP",
+            }
+        )
+
+
+def test_update_family_member(loaded_handler):
+    handler = loaded_handler
+    member_id_to_update = "RONAW"
+    updated_data = {
+        "name": "Ronald Bilius Weasley",
+        "nicknames": ["Ron", "Won-Won"],
+    }
+
+    request = UpdateFamilyMemberRequest(
+        member_id=member_id_to_update,
+        updated_member_data=updated_data,
+    )
+
+    response = handler.update_family_member(request)
+
+    assert response.status == OK_STATUS
+    assert f"Member {member_id_to_update} updated successfully." in response.message
+
+    response = handler.get_member_info(member_id_to_update)
+    updated_member_info = response.member_info
+    assert updated_member_info["name"] == "Ronald Bilius Weasley"
+    assert "Ron" in updated_member_info["nicknames"]
+
+
+def test_get_member_info(loaded_handler):
+    handler = loaded_handler
+    member_id = "GINNW"
+
+    response = handler.get_member_info(member_id)
+
+    assert response.status == OK_STATUS
+    assert response.message == "Member info retrieved successfully."
+    assert response.member_info["name"] == "Ginny Weasley"
+    assert response.member_info["id"] == member_id
+
+
+def test_get_member_info_not_found(loaded_handler):
+    handler = loaded_handler
+    with pytest.raises(MemberNotFoundError):
+        handler.get_member_info("UNKNOWN_ID")
+
+
+def test_delete_family_member(loaded_handler):
+    handler = loaded_handler
+    member_id_to_delete = "PERCW"
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_node(member_id_to_delete)
+
+    request = DeleteFamilyMemberRequest(member_id=member_id_to_delete)
+    response = handler.delete_family_member(request)
+
+    assert response.status == OK_STATUS
+    assert response.message == "Member deleted successfully."
+
+    assert not graph.has_node(member_id_to_delete)
+    # Check that edges are also removed
+    assert not graph.has_edge("ARTHW", member_id_to_delete)
+    assert not graph.has_edge(member_id_to_delete, "ARTHW")
+
+
+def test_delete_family_member_with_orphaned_neighbors(loaded_handler):
+    # The spouse should be removed if remove_orphaned_neighbors is true.
+    handler = loaded_handler
+    percy_id = "PERCW"
+    audrey_id = "AUDW"
+    handler.graph_handler.add_member(
+        audrey_id, family_tree_pb2.FamilyMember(id=audrey_id, name="Audrey Weasley")
+    )
+    handler.graph_handler.add_spouse_relation(percy_id, audrey_id)
+    handler.graph_handler.add_spouse_relation(audrey_id, percy_id)
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_node(audrey_id)
+
+    request = DeleteFamilyMemberRequest(
+        member_id=percy_id, remove_orphaned_neighbors=True
+    )
+    handler.delete_family_member(request)
+
+    assert not graph.has_node(percy_id)
+    assert not graph.has_node(audrey_id)  # Audrey is an orphan and should be removed.
+
+
+def test_delete_relationship(loaded_handler):
+    handler = loaded_handler
+    source_id = "ARTHW"
+    target_id = "MOLLW"
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_edge(source_id, target_id)
+
+    request = DeleteRelationshipRequest(
+        source_member_id=source_id,
+        target_member_id=target_id,
+        remove_inverse_relationship=False,
+    )
+    response = handler.delete_relationship(request)
+
+    assert response.status == OK_STATUS
+    assert response.message == "Relationship deleted successfully."
+
+    assert not graph.has_edge(source_id, target_id)
+    assert graph.has_edge(target_id, source_id)  # Inverse should still exist
+
+
+def test_delete_relationship_with_inverse(loaded_handler):
+    handler = loaded_handler
+    source_id = "ARTHW"
+    target_id = "MOLLW"
+
+    graph = handler.graph_handler.get_family_graph()
+    assert graph.has_edge(source_id, target_id)
+    assert graph.has_edge(target_id, source_id)
+
+    request = DeleteRelationshipRequest(
+        source_member_id=source_id,
+        target_member_id=target_id,
+        remove_inverse_relationship=True,
+    )
+    response = handler.delete_relationship(request)
+
+    assert response.status == OK_STATUS
+
+    assert not graph.has_edge(source_id, target_id)
+    assert not graph.has_edge(target_id, source_id)

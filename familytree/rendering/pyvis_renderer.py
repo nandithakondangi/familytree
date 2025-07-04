@@ -7,6 +7,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from networkx import DiGraph
 from pyvis.network import Network
 
+from familytree.exceptions import OperationError
 from familytree.proto import family_tree_pb2
 from familytree.proto.utils_pb2 import Gender
 from familytree.utils import resource_utils as ResourceUtility
@@ -212,7 +213,7 @@ class PyvisRenderer:
             if theme == "dark"
             else COLOR_PALETTE.get("white", "#FFFFFF")
         )
-      
+
     def _create_dir_if_not_exists(self, file_path: str) -> None:
         """Ensures the directory for the given file_path exists."""
         output_dir = os.path.dirname(file_path)
@@ -303,6 +304,10 @@ class PyvisRenderer:
             pyvis_network.set_options(options_str)
         except TypeError as e:
             logger.error(f"Error serializing pyvis options to JSON: {e}")
+            raise OperationError(
+                operation="HTML rendering",
+                reason="Error serializing pyvis options to JSON",
+            )
 
         html_content = pyvis_network.generate_html(notebook=False)
 

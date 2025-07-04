@@ -1,9 +1,17 @@
+from unittest.mock import MagicMock
+
 import google.protobuf.text_format as text_format
 import pytest
+from fastapi.testclient import TestClient
 
 import familytree.proto.family_tree_pb2 as family_tree_pb2
 import familytree.proto.utils_pb2 as utils_pb2
 from familytree import app_state
+from familytree.family_tree_webapp import app
+from familytree.routers import (
+    get_current_family_tree_handler_dependency,
+    get_new_family_tree_handler_dependency,
+)
 
 
 def create_weasley_family_tree_proto():
@@ -19,6 +27,7 @@ def create_weasley_family_tree_proto():
     arthur.date_of_birth.month = 2
     arthur.date_of_birth.date = 6
     arthur.alive = True
+    arthur.acquired_family_unit_id = "FUNT"
 
     molly = family_tree.members["MOLLW"]
     molly.id = "MOLLW"
@@ -29,6 +38,7 @@ def create_weasley_family_tree_proto():
     molly.date_of_birth.month = 10
     molly.date_of_birth.date = 30
     molly.alive = True
+    molly.acquired_family_unit_id = "FUNT"
 
     bill = family_tree.members["BILLW"]
     bill.id = "BILLW"
@@ -38,6 +48,7 @@ def create_weasley_family_tree_proto():
     bill.date_of_birth.month = 11
     bill.date_of_birth.date = 29
     bill.alive = True
+    bill.birth_family_unit_id = "FUNT"
 
     charlie = family_tree.members["CHARW"]
     charlie.id = "CHARW"
@@ -47,6 +58,7 @@ def create_weasley_family_tree_proto():
     charlie.date_of_birth.month = 12
     charlie.date_of_birth.date = 12
     charlie.alive = True
+    charlie.birth_family_unit_id = "FUNT"
 
     percy = family_tree.members["PERCW"]
     percy.id = "PERCW"
@@ -56,6 +68,7 @@ def create_weasley_family_tree_proto():
     percy.date_of_birth.month = 8
     percy.date_of_birth.date = 22
     percy.alive = True
+    percy.birth_family_unit_id = "FUNT"
 
     fred = family_tree.members["FREDW"]
     fred.id = "FREDW"
@@ -68,6 +81,7 @@ def create_weasley_family_tree_proto():
     fred.date_of_death.year = 1998
     fred.date_of_death.month = 5
     fred.date_of_death.date = 2
+    fred.birth_family_unit_id = "FUNT"
 
     george = family_tree.members["GEORW"]
     george.id = "GEORW"
@@ -77,6 +91,7 @@ def create_weasley_family_tree_proto():
     george.date_of_birth.month = 4
     george.date_of_birth.date = 1
     george.alive = True
+    george.birth_family_unit_id = "FUNT"
 
     ron = family_tree.members["RONAW"]
     ron.id = "RONAW"
@@ -87,6 +102,7 @@ def create_weasley_family_tree_proto():
     ron.date_of_birth.month = 3
     ron.date_of_birth.date = 1
     ron.alive = True
+    ron.birth_family_unit_id = "FUNT"
 
     ginny = family_tree.members["GINNW"]
     ginny.id = "GINNW"
@@ -98,6 +114,7 @@ def create_weasley_family_tree_proto():
     ginny.alive = True
     ginny.traditional_date_of_birth.month = utils_pb2.CHITHIRAI
     ginny.traditional_date_of_birth.star = utils_pb2.ASHWINI
+    ginny.birth_family_unit_id = "FUNT"
 
     # --- Relationships (same as in tests/handlers/conftest.py for consistency) ---
     arthur_rel = family_tree.relationships["ARTHW"]
@@ -118,6 +135,12 @@ def create_weasley_family_tree_proto():
         child_rel.parent_ids.append("ARTHW")
         child_rel.parent_ids.append("MOLLW")
 
+    funt = family_tree.family_units["FUNT"]
+    funt.id = "FUNT"
+    funt.name = "Arthur and Molly's family"
+    funt.parent_ids.extend(["ARTHW", "MOLLW"])
+    funt.child_ids.extend(sorted(children_ids))
+
     return family_tree
 
 
@@ -130,7 +153,7 @@ def weasley_family_tree_pb():
 @pytest.fixture
 def weasley_family_tree_textproto(weasley_family_tree_pb):
     """Provides the Weasley family tree as a text protobuf string."""
-    return text_format.MessageToString(weasley_family_tree_pb, as_utf8=True)
+    return text_format.MessageToString(weasley_family_tree_pb, indent=2)
 
 
 @pytest.fixture(autouse=True)
@@ -139,3 +162,45 @@ def reset_app_state_between_tests():
     app_state.reset_current_family_tree_handler()
     yield
     app_state.reset_current_family_tree_handler()
+
+
+@pytest.fixture
+def client():
+    return TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.fixture
+def mock_family_tree_handler():
+    """Mocks the FamilyTreeHandler instance."""
+    return MagicMock()
+
+
+@pytest.fixture(name="client_with_mock_handler")
+def client_with_mock_handler_fixture(mock_family_tree_handler):
+    """
+    Provides a TestClient where the FamilyTreeHandler dependencies are
+    overridden with a mock instance. This is the correct way to test
+    FastAPI dependencies, avoiding issues with patching.
+    """
+
+    def override_get_handler():
+        """Returns the mock handler for standard endpoints."""
+        return mock_family_tree_handler
+
+    def override_get_new_handler():
+        """Returns the mock handler for endpoints that create a new tree."""
+        mock_family_tree_handler.reset_mock()  # Allow tests to verify reset behavior
+        return mock_family_tree_handler
+
+    # Apply the overrides to the app
+    app.dependency_overrides[get_current_family_tree_handler_dependency] = (
+        override_get_handler
+    )
+    app.dependency_overrides[get_new_family_tree_handler_dependency] = (
+        override_get_new_handler
+    )
+
+    yield TestClient(app, raise_server_exceptions=False)
+
+    # Clean up the overrides after the test is done
+    app.dependency_overrides.clear()
