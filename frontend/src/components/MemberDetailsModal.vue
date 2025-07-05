@@ -14,18 +14,23 @@
 			:style="transformOriginStyle"
 		>
 			<div
-				class="relative bg-violet-600/90 dark:bg-violet-400/90 backdrop-blur-lg rounded-2xl shadow-2xl p-6 max-w-xl w-full mx-4 flex flex-col h-[55vh]"
+				class="relative backdrop-blur-lg rounded-2xl shadow-2xl p-6 max-w-xl w-full mx-4 flex flex-col h-[55vh]"
+				style="background-color: var(--theme-bg-primary)"
 				@click.stop
 			>
 				<div
-					class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4"
+					class="flex justify-between items-center border-b pb-3 mb-4"
+					style="border-color: var(--theme-border-color)"
 				>
-					<h3 class="text-lg font-semibold text-white dark:text-black">
+					<h3
+						class="text-lg font-semibold"
+						style="color: var(--theme-text-on-primary-bg)"
+					>
 						Member Details
 					</h3>
 					<button
 						@click="closeModal"
-						class="text-violet-100 dark:text-violet-800 hover:text-white dark:hover:text-black transition-colors"
+						class="icon-close transition-colors"
 						aria-label="Close modal"
 					>
 						<svg
@@ -95,7 +100,8 @@
 							</button>
 						</div>
 						<h4
-							class="w-full text-xl font-bold text-white dark:text-black text-center"
+							class="w-full text-xl font-bold text-center"
+							style="color: var(--theme-text-on-primary-bg)"
 						>
 							{{ editableMember.name || "Unnamed" }}
 						</h4>
@@ -113,7 +119,7 @@
 								@save="saveField"
 								@cancel="cancelEdit"
 								editTrigger="button"
-								:showEditButtonOnHover="true"
+								:show-edit-button-on-hover="true"
 								valueClass="text-sm italic text-white dark:text-black text-center"
 								inputContainerClass="flex flex-col items-center"
 								emptyDisplayValue="''"
@@ -142,7 +148,9 @@
 						<div
 							class="detail-field-editable flex items-center justify-between"
 						>
-							<span class="font-medium text-white dark:text-black"
+							<span
+								class="font-medium"
+								style="color: var(--theme-text-on-primary-bg)"
 								>Gender:</span
 							>
 							<div class="ml-2 flex-grow">
@@ -177,7 +185,11 @@
 						<div
 							class="detail-field-editable flex items-center justify-between"
 						>
-							<span class="font-medium text-white dark:text-black">Alive:</span>
+							<span
+								class="font-medium"
+								style="color: var(--theme-text-on-primary-bg)"
+								>Alive:</span
+							>
 							<div class="ml-2 flex-grow">
 								<EditableField
 									:value="editableMember.alive"
@@ -215,7 +227,9 @@
 						<div
 							class="detail-field-editable flex items-center justify-between"
 						>
-							<span class="font-medium text-white dark:text-black"
+							<span
+								class="font-medium"
+								style="color: var(--theme-text-on-primary-bg)"
 								>Born on:</span
 							>
 							<div class="ml-2 flex-grow">
@@ -229,11 +243,11 @@
 										(editableMember.traditional_date_of_birth.month ||
 											editableMember.traditional_date_of_birth.star)
 											? ' (' +
-											  formatTraditionalDate(
+												formatTraditionalDate(
 													editableMember.traditional_date_of_birth,
 													'dob',
-											  ) +
-											  ')'
+												) +
+												')'
 											: ''
 									}`"
 									fieldName="dob"
@@ -244,12 +258,13 @@
 								>
 									<template #default>
 										<div
-											class="space-y-3 p-2 bg-violet-500/20 dark:bg-violet-800/20 rounded-md"
+											class="space-y-3 p-2 rounded-md"
+											style="background-color: var(--theme-bg-tertiary)"
 										>
 											<div class="flex items-center justify-between">
 												<label
 													for="isDobKnownToggleField"
-													class="block text-sm text-white dark:text-black cursor-pointer"
+													class="form-label cursor-pointer"
 													>Is Date of Birth Known?</label
 												>
 												<div
@@ -270,10 +285,7 @@
 											</div>
 											<div v-if="isDobKnown_DobField" class="space-y-2">
 												<div>
-													<label
-														class="block text-xs font-medium text-white dark:text-black mb-0.5"
-														>Gregorian DOB:</label
-													>
+													<label class="form-label-xs">Gregorian DOB:</label>
 													<date-picker
 														:value="gregorianDob_DobField"
 														@update:value="
@@ -289,17 +301,14 @@
 														placeholder="YYYY-MM-DD"
 														:editable="true"
 														:disabled-date="disableFutureDates"
-														input-class="form-input text-sm"
-														popup-class="dark:bg-slate-700"
+														input-class="input-field text-sm"
+														popup-class="datepicker-popup-theme"
 														class="w-full"
 														:clearable="true"
 													/>
 												</div>
 												<div v-if="isIndianCulture">
-													<label
-														class="block text-xs font-medium text-white dark:text-black mb-0.5"
-														>Traditional DOB:</label
-													>
+													<label class="form-label-xs">Traditional DOB:</label>
 													<div class="grid grid-cols-2 gap-2">
 														<select
 															v-model="traditionalDob_DobField.tamilMonth"
@@ -346,7 +355,9 @@
 							"
 							class="detail-field-editable flex items-center justify-between"
 						>
-							<span class="font-medium text-white dark:text-black"
+							<span
+								class="font-medium"
+								style="color: var(--theme-text-on-primary-bg)"
 								>Died on:</span
 							>
 							<div class="ml-2 flex-grow">
@@ -361,11 +372,11 @@
 											editableMember.traditional_date_of_death.paksham ||
 											editableMember.traditional_date_of_death.thithi)
 											? ' (' +
-											  formatTraditionalDate(
+												formatTraditionalDate(
 													editableMember.traditional_date_of_death,
 													'dod',
-											  ) +
-											  ')'
+												) +
+												')'
 											: ''
 									}`"
 									fieldName="dod"
@@ -376,12 +387,13 @@
 								>
 									<template #default>
 										<div
-											class="space-y-3 p-2 bg-violet-500/20 dark:bg-violet-800/20 rounded-md"
+											class="space-y-3 p-2 rounded-md"
+											style="background-color: var(--theme-bg-tertiary)"
 										>
 											<div class="flex items-center justify-between">
 												<label
 													for="isDodKnownToggleFieldEditable"
-													class="block text-sm text-white dark:text-black cursor-pointer"
+													class="form-label cursor-pointer"
 													>Is Date of Death Known?</label
 												>
 												<div
@@ -404,10 +416,7 @@
 											</div>
 											<div v-if="isDodKnown_DodFieldEditable" class="space-y-2">
 												<div>
-													<label
-														class="block text-xs font-medium text-white dark:text-black mb-0.5"
-														>Gregorian DoD:</label
-													>
+													<label class="form-label-xs">Gregorian DoD:</label>
 													<date-picker
 														:value="gregorianDod_DodFieldEditable"
 														@update:value="
@@ -423,17 +432,14 @@
 														placeholder="YYYY-MM-DD"
 														:editable="true"
 														:disabled-date="disableFutureDates"
-														input-class="form-input text-sm"
-														popup-class="dark:bg-slate-700"
+														input-class="input-field text-sm"
+														popup-class="datepicker-popup-theme"
 														class="w-full"
 														:clearable="true"
 													/>
 												</div>
 												<div v-if="isIndianCulture">
-													<label
-														class="block text-xs font-medium text-white dark:text-black mb-0.5"
-														>Traditional DoD:</label
-													>
+													<label class="form-label-xs">Traditional DoD:</label>
 													<div class="grid grid-cols-3 gap-2">
 														<select
 															v-model="
@@ -498,15 +504,19 @@
 								!editableMember.alive &&
 								wasAliveWhenModalOpened
 							"
-							class="mt-3 pt-3 border-t border-gray-300/50 dark:border-gray-600/50 space-y-3"
+							class="mt-3 pt-3 border-t space-y-3"
+							style="border-color: var(--theme-border-color)"
 						>
-							<h5 class="text-md font-semibold text-white dark:text-black">
+							<h5
+								class="text-md font-semibold"
+								style="color: var(--theme-text-on-primary-bg)"
+							>
 								Date of Death Details:
 							</h5>
 							<div class="flex items-center justify-between">
 								<label
 									for="isDodKnownToggleDetails"
-									class="block text-sm text-white dark:text-black cursor-pointer"
+									class="form-label cursor-pointer"
 									>Is Date of Death Known?</label
 								>
 								<div
@@ -528,10 +538,7 @@
 
 							<div v-if="isDodKnown_Dedicated" class="space-y-3">
 								<div>
-									<label
-										class="block text-sm font-medium text-white dark:text-black mb-1"
-										>Gregorian DoD:</label
-									>
+									<label class="form-label mb-1">Gregorian DoD:</label>
 									<date-picker
 										:value="gregorianDod_Dedicated"
 										@update:value="
@@ -547,16 +554,14 @@
 										placeholder="YYYY-MM-DD"
 										:editable="true"
 										:disabled-date="disableFutureDates"
-										input-class="form-input"
-										popup-class="dark:bg-slate-700"
+										input-class="input-field"
+										popup-class="datepicker-popup-theme"
 										class="w-full"
 										:clearable="true"
 									/>
 								</div>
 								<div v-if="isIndianCulture">
-									<label
-										class="block text-sm font-medium text-white dark:text-black mb-1"
-										>Traditional DoD:</label
+									<label class="form-label mb-1">Traditional DoD:</label>
 									>
 									<div class="grid grid-cols-3 gap-2">
 										<select
@@ -605,9 +610,13 @@
 
 						<!-- Additional Information Section -->
 						<div
-							class="mt-4 pt-3 border-t border-gray-300/50 dark:border-gray-600/50"
+							class="mt-4 pt-3 border-t"
+							style="border-color: var(--theme-border-color)"
 						>
-							<h5 class="text-md font-semibold text-white dark:text-black mb-2">
+							<h5
+								class="text-md font-semibold mb-2"
+								style="color: var(--theme-text-on-primary-bg)"
+							>
 								Additional Information
 							</h5>
 							<div class="space-y-2">
@@ -621,7 +630,8 @@
 										<!-- Display Key when NOT editing -->
 										<span
 											v-if="!isEditing[`additional_info.${key}`]"
-											class="font-medium text-white dark:text-black mr-1"
+											class="font-medium mr-1"
+											style="color: var(--theme-text-on-primary-bg)"
 											>{{ formatFieldLabel(key) }}:</span
 										>
 
@@ -632,7 +642,7 @@
 											@toggleEdit="toggleEdit"
 											@save="saveField"
 											@cancel="cancelEdit"
-											:valueClass="`text-sm font-semibold text-white dark:text-black`"
+											:valueClass="`text-sm font-semibold text-on-primary-bg`"
 											:inputContainerClass="'flex flex-col items-start w-full'"
 											:displayArrangement="
 												isEditing[`additional_info.${key}`]
@@ -640,7 +650,7 @@
 													: 'inline' // When NOT editing, value and edit button are inline
 											"
 											displayAlignment="start"
-											:editTrigger="'button'"
+											edit-trigger="button"
 											:showEditButtonOnHover="
 												!isEditing[`additional_info.${key}`]
 											"
@@ -649,15 +659,14 @@
 												#default="{ internalValue, updateInternalValue }"
 											>
 												<div class="w-full">
-													<span
-														class="block text-xs font-medium text-white dark:text-black mb-0.5"
+													<span class="form-label-xs"
 														>{{ formatFieldLabel(key) }}:</span
 													>
 													<input
 														type="text"
 														:value="internalValue"
 														@input="updateInternalValue($event.target.value)"
-														class="form-input text-sm w-full"
+														class="input-field text-sm w-full"
 													/>
 												</div>
 											</template>
@@ -666,7 +675,7 @@
 									<!-- Delete button for existing field -->
 									<button
 										v-if="!isEditing[`additional_info.${key}`]"
-										@click="confirmDeleteAdditionalField(key)"
+										@click="deleteAdditionalField(key)"
 										class="ml-2 p-1 text-red-400 hover:text-red-300 dark:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
 										title="Delete field"
 									>
@@ -693,24 +702,24 @@
 										type="text"
 										v-model="newAdditionalField.key"
 										placeholder="New Field Name (e.g., Occupation)"
-										class="form-input text-sm w-full"
+										class="input-field text-sm w-full"
 									/>
 									<input
 										type="text"
 										v-model="newAdditionalField.value"
 										placeholder="Value (e.g., Engineer)"
-										class="form-input text-sm w-full"
+										class="input-field text-sm w-full"
 									/>
 									<div class="flex justify-end space-x-2 pt-1">
 										<button
 											@click="cancelAddNewAdditionalField"
-											class="px-3 py-1 text-xs rounded-md bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 hover:bg-gray-400/80 dark:hover:bg-gray-500/80"
+											class="button-secondary px-3 py-1 text-xs"
 										>
 											Cancel
 										</button>
 										<button
 											@click="saveNewAdditionalField"
-											class="px-3 py-1 text-xs rounded-md bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-400"
+											class="button-success px-3 py-1 text-xs"
 										>
 											Save Field
 										</button>
@@ -741,7 +750,8 @@
 										Object.keys(otherAdditionalFields).length === 0 &&
 										!isAddingNewAdditionalField
 									"
-									class="text-xs text-white dark:text-black italic pt-1"
+									class="text-xs italic pt-1"
+									style="color: var(--theme-text-on-primary-bg)"
 								>
 									No custom fields yet. Click "Add New Field" to add one.
 								</div>
@@ -751,21 +761,18 @@
 				</div>
 
 				<div
-					class="flex justify-end space-x-4 mt-auto pt-4 border-t border-gray-300/70 dark:border-gray-600/70"
+					class="flex justify-end space-x-4 mt-auto pt-4 border-t"
+					style="border-color: var(--theme-border-color)"
 				>
 					<button
 						v-if="hasChanges"
 						type="button"
 						@click="handleUpdateMember"
-						class="px-4 py-2 bg-green-600 dark:bg-green-500 text-white font-medium rounded-lg hover:bg-green-700 dark:hover:bg-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
+						class="button-success"
 					>
 						💾 Update Member
 					</button>
-					<button
-						type="button"
-						@click="closeModal"
-						class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
-					>
+					<button type="button" @click="closeModal" class="button-secondary">
 						Close
 					</button>
 				</div>
@@ -1410,10 +1417,6 @@ const handleProfileImageChange = (event) => {
 	}
 };
 
-const confirmDeleteAdditionalField = async (key) => {
-	deleteAdditionalField(key);
-};
-
 const deleteAdditionalField = (key) => {
 	if (editableMember.value.additional_info) {
 		delete editableMember.value.additional_info[key];
@@ -1482,9 +1485,20 @@ const leaveToClass = computed(() => {
 </script>
 
 <style scoped>
-.form-input {
-	@apply mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200;
+.form-label {
+	@apply block text-sm;
+	color: var(--theme-text-on-primary-bg);
 }
+
+.form-label-xs {
+	@apply block text-xs font-medium mb-0.5;
+	color: var(--theme-text-on-primary-bg);
+}
+
+.text-on-primary-bg {
+	color: var(--theme-text-on-primary-bg);
+}
+
 .detail-field,
 .detail-field-editable {
 	/* This class is now for the wrapper in MemberDetailsModal */
@@ -1494,6 +1508,14 @@ const leaveToClass = computed(() => {
 /* Ensure the direct child (EditableField's root) of .ml-2.flex-grow takes up space */
 .ml-2.flex-grow > .editable-field-root {
 	width: 100%;
+}
+
+.icon-close {
+	color: var(--theme-text-on-primary-bg);
+	opacity: 0.8;
+}
+.icon-close:hover {
+	opacity: 1;
 }
 .toggle-checkbox {
 	@apply absolute block w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 dark:border-gray-500 appearance-none cursor-pointer transition-transform duration-200 ease-in-out;
@@ -1506,30 +1528,5 @@ const leaveToClass = computed(() => {
 }
 .toggle-checkbox:checked + .toggle-label {
 	@apply bg-indigo-500/70 dark:bg-indigo-400/70;
-}
-
-/* DatePicker styling */
-:deep(.mx-datepicker-popup) {
-	@apply dark:bg-slate-700 dark:text-gray-200;
-}
-:deep(.mx-calendar-header-label),
-:deep(.mx-calendar-weekday),
-:deep(.mx-calendar-date),
-:deep(.mx-time-column .mx-time-item),
-:deep(.mx-btn) {
-	@apply dark:text-gray-200;
-}
-:deep(.mx-calendar-date.today) {
-	@apply dark:text-indigo-400;
-}
-:deep(.mx-calendar-date:hover),
-:deep(.mx-time-column .mx-time-item:hover) {
-	@apply dark:bg-slate-600;
-}
-:deep(.mx-calendar-date.active) {
-	@apply dark:bg-indigo-500 dark:text-white;
-}
-:deep(.mx-btn-text) {
-	@apply dark:hover:text-indigo-300;
 }
 </style>

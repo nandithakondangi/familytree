@@ -10,14 +10,16 @@
 		<div
 			v-if="isVisible"
 			ref="contextMenuEl"
-			class="fixed z-[60] bg-indigo-600/80 dark:bg-indigo-700/80 backdrop-blur-md text-white rounded-lg shadow-xl py-2 w-56"
+			class="fixed z-[60] backdrop-blur-md rounded-lg shadow-xl py-2 w-56"
+			style="background-color: var(--theme-bg-primary)"
 			:style="menuStyle"
 			@click.stop
 		>
 			<!-- Section 1: Add Member -->
 			<div class="mb-1">
 				<h4
-					class="px-3 py-1 text-xs font-semibold text-indigo-200 dark:text-indigo-300 uppercase tracking-wider"
+					class="px-3 py-1 text-xs font-semibold uppercase tracking-wider"
+					style="color: var(--theme-text-subtle)"
 				>
 					Add New Member
 				</h4>
@@ -25,7 +27,7 @@
 					<li>
 						<button
 							@click="emitAction('add-member', 'SPOUSE')"
-							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							class="context-menu-item"
 						>
 							Add Spouse
 						</button>
@@ -33,7 +35,7 @@
 					<li>
 						<button
 							@click="emitAction('add-member', 'CHILD')"
-							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							class="context-menu-item"
 						>
 							Add Child
 						</button>
@@ -41,7 +43,7 @@
 					<li>
 						<button
 							@click="emitAction('add-member', 'PARENT')"
-							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							class="context-menu-item"
 						>
 							Add Parent
 						</button>
@@ -50,12 +52,13 @@
 			</div>
 
 			<!-- Separator -->
-			<hr class="border-indigo-400/50 dark:border-indigo-500/50 my-1 mx-2" />
+			<hr class="my-1 mx-2" style="border-color: var(--theme-border-color)" />
 
 			<!-- Section 2: Link Existing -->
 			<div>
 				<h4
-					class="px-3 py-1 text-xs font-semibold text-indigo-200 dark:text-indigo-300 uppercase tracking-wider"
+					class="px-3 py-1 text-xs font-semibold uppercase tracking-wider"
+					style="color: var(--theme-text-subtle)"
 				>
 					Link Existing Member
 				</h4>
@@ -63,7 +66,7 @@
 					<li>
 						<button
 							@click="emitAction('link-member', 'SPOUSE')"
-							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							class="context-menu-item"
 						>
 							Link with Spouse
 						</button>
@@ -71,7 +74,7 @@
 					<li>
 						<button
 							@click="emitAction('link-member', 'PARENT')"
-							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							class="context-menu-item"
 						>
 							Link with Parent
 						</button>
@@ -79,7 +82,7 @@
 					<li>
 						<button
 							@click="emitAction('link-member', 'CHILD')"
-							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							class="context-menu-item"
 						>
 							Link with Child
 						</button>
@@ -89,6 +92,17 @@
 		</div>
 	</Transition>
 </template>
+
+<style scoped>
+.context-menu-item {
+	@apply w-full text-left px-3 py-1.5 text-sm transition-colors;
+	color: var(--theme-text-on-primary-bg);
+}
+
+.context-menu-item:hover {
+	background-color: var(--theme-bg-primary-hover);
+}
+</style>
 
 <script setup>
 import { ref, watch, nextTick } from "vue";

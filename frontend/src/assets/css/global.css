@@ -1,0 +1,146 @@
+/* Example global.css or theme definition */
+:root {
+	/* Default Light Theme (e.g., Indigo Violet) */
+	--theme-bg-primary-rgb: 99, 102, 241; /* Indigo-500 */
+	--theme-bg-primary: rgba(var(--theme-bg-primary-rgb), 0.7);
+	--theme-bg-secondary-rgb: 238, 242, 255; /* Indigo-100 */
+	--theme-bg-secondary: rgba(var(--theme-bg-secondary-rgb), 0.8);
+	--theme-bg-tertiary-rgb: 224, 231, 255; /* Indigo-200 */
+	--theme-bg-tertiary: rgba(var(--theme-bg-tertiary-rgb), 0.6);
+
+	--theme-text-on-primary-bg: #111827; /* Almost black for high contrast on light primary */
+	--theme-text-secondary-on-primary-bg: #374151; /* Darker gray */
+	--theme-text-primary: #1f2937; /* General text on secondary/tertiary bg */
+	--theme-text-secondary: #6b7280;
+
+	--theme-accent-rgb: 79, 70, 229; /* Indigo-600 */
+	--theme-accent: rgb(var(--theme-accent-rgb));
+	--theme-accent-hover: #4338ca; /* Indigo-700 */
+	--theme-text-on-accent: #ffffff;
+
+	--theme-border-color-rgb: 209, 213, 219; /* Gray-300 */
+	--theme-border-color: rgba(var(--theme-border-color-rgb), 0.7);
+
+	--theme-input-bg-rgb: 255, 255, 255;
+	--theme-input-bg: rgba(var(--theme-input-bg-rgb), 0.7);
+	--theme-input-text: #111827;
+	--theme-input-border: rgba(var(--theme-border-color-rgb), 0.9);
+	--theme-input-placeholder: #9ca3af;
+
+	--theme-button-danger-bg: #ef4444; /* Red-500 */
+	--theme-button-danger-hover-bg: #dc2626; /* Red-600 */
+	--theme-button-danger-text: #ffffff;
+	--theme-button-success-bg: #22c55e; /* Green-500 */
+	--theme-button-success-hover-bg: #16a34a; /* Green-600 */
+	--theme-button-success-text: #ffffff;
+
+	--theme-icon-color: #6b7280; /* Gray-500 */
+	--theme-icon-hover-color: #111827; /* Gray-900 */
+	--theme-icon-danger-color: #f87171; /* Red-400 */
+	--theme-icon-danger-hover-color: #ef4444; /* Red-500 */
+
+	--theme-toggle-bg: rgba(
+		var(--theme-border-color-rgb),
+		0.8
+	); /* Gray-300 based */
+	--theme-toggle-thumb-bg: #ffffff;
+	--theme-toggle-border: rgba(var(--theme-border-color-rgb), 0.5);
+}
+/*
+  You might not need explicit .dark and .light rules here if all colors
+  are handled by the dynamic variables. However, it can be useful for
+  non-color related dark/light mode adjustments or as an additional layer.
+*/
+.dark {
+	--theme-bg-primary-rgb: 129, 140, 248; /* Indigo-400 */
+	--theme-bg-primary: rgba(var(--theme-bg-primary-rgb), 0.7);
+	--theme-bg-secondary-rgb: 67, 56, 202; /* Indigo-700 */
+	--theme-bg-secondary: rgba(var(--theme-bg-secondary-rgb), 0.8);
+	--theme-bg-tertiary-rgb: 55, 48, 163; /* Indigo-800 */
+	--theme-bg-tertiary: rgba(var(--theme-bg-tertiary-rgb), 0.6);
+
+	--theme-text-on-primary-bg: #f3f4f6; /* Light gray for high contrast on dark primary */
+	--theme-text-secondary-on-primary-bg: #d1d5db;
+	--theme-text-primary: #e5e7eb; /* General text on secondary/tertiary bg */
+	--theme-text-secondary: #9ca3af;
+
+	--theme-accent-rgb: 99, 102, 241; /* Indigo-500 */
+	--theme-accent: rgb(var(--theme-accent-rgb));
+	--theme-accent-hover: #818cf8; /* Indigo-400 */
+	--theme-text-on-accent: #ffffff;
+
+	--theme-border-color-rgb: 75, 85, 99; /* Gray-600 */
+	--theme-border-color: rgba(var(--theme-border-color-rgb), 0.7);
+
+	--theme-input-bg-rgb: 55, 65, 81; /* Slate-700 */
+	--theme-input-bg: rgba(var(--theme-input-bg-rgb), 0.7);
+	--theme-input-text: #f3f4f6;
+	--theme-input-border: rgba(var(--theme-border-color-rgb), 0.9);
+	--theme-input-placeholder: #6b7280;
+
+	--theme-icon-color: #9ca3af; /* Gray-400 */
+	--theme-icon-hover-color: #f3f4f6; /* Gray-100 */
+	--theme-icon-danger-color: #ef4444; /* Red-500 */
+	--theme-icon-danger-hover-color: #f87171; /* Red-400 */
+
+	--theme-toggle-bg: rgba(
+		var(--theme-border-color-rgb),
+		0.8
+	); /* Gray-600 based */
+	--theme-toggle-thumb-bg: #1f2937; /* Slate-800 */
+	--theme-toggle-border: rgba(var(--theme-border-color-rgb), 0.5);
+}
+
+/* Define .button-primary, .button-secondary, .input-field, .toggle-switch styles here globally or scoped */
+body {
+	background-color: var(--theme-bg-secondary, #e0e7ff); /* Fallback color */
+	color: var(--theme-text-primary, #1f2937); /* Fallback color */
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* General styles for buttons, inputs using CSS variables */
+.button-primary {
+	@apply px-4 py-2 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150 ease-in-out;
+	background-color: var(--theme-accent);
+	color: var(--theme-text-on-accent);
+	/* --theme-bg-primary is used for the modal background, so ring offset should match */
+	ring-offset-color: var(--theme-bg-primary);
+}
+.button-primary:hover {
+	background-color: var(--theme-accent-hover);
+}
+.button-primary:focus {
+	ring-color: var(--theme-accent);
+}
+
+.button-secondary {
+	@apply px-4 py-2 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 transition duration-150 ease-in-out;
+	background-color: var(--theme-bg-secondary);
+	color: var(--theme-text-primary);
+}
+.button-secondary:hover {
+	filter: brightness(0.95);
+}
+.button-secondary:focus {
+	ring-color: var(--theme-accent);
+}
+
+.input-field {
+	@apply rounded-md shadow-sm sm:text-sm p-2;
+	background-color: var(--theme-input-bg);
+	color: var(--theme-input-text);
+	border: 1px solid var(--theme-input-border);
+}
+.input-field::placeholder {
+	color: var(--theme-input-placeholder);
+}
+.input-field:focus {
+	@apply outline-none ring-2 ring-opacity-50;
+	border-color: var(--theme-accent);
+	ring-color: var(--theme-accent);
+}
+
+/* ... other global styles ... 
+Make sure this global.css is imported in your main.js after Tailwinds base styles if you want these to take precedence or define general defaults.
+
+*/

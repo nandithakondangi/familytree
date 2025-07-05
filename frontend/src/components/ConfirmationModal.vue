@@ -13,17 +13,22 @@
 			@click.self="handleCancel"
 		>
 			<div
-				class="relative bg-indigo-600/70 dark:bg-indigo-400/70 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-md w-full mx-4"
+				class="relative backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-md w-full mx-4"
+				style="background-color: var(--theme-bg-primary)"
 			>
 				<div
-					class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4"
+					class="flex justify-between items-center border-b pb-3 mb-4"
+					style="border-color: var(--theme-border-color)"
 				>
-					<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+					<h3
+						class="text-lg font-semibold"
+						style="color: var(--theme-text-on-primary-bg)"
+					>
 						{{ title }}
 					</h3>
 					<button
 						@click="handleCancel"
-						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+						class="icon-close transition-colors"
 						aria-label="Close modal"
 					>
 						<svg
@@ -44,25 +49,18 @@
 
 				<div class="mb-6">
 					<p
-						class="text-base text-gray-800 dark:text-gray-100 whitespace-pre-line"
+						class="text-base whitespace-pre-line"
+						style="color: var(--theme-text-on-primary-bg)"
 					>
 						{{ message }}
 					</p>
 				</div>
 
 				<div class="flex justify-end space-x-4">
-					<button
-						type="button"
-						@click="handleCancel"
-						class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
-					>
+					<button type="button" @click="handleCancel" class="button-secondary">
 						Cancel
 					</button>
-					<button
-						type="button"
-						@click="handleConfirm"
-						class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
-					>
+					<button type="button" @click="handleConfirm" class="button-primary">
 						Confirm
 					</button>
 				</div>
@@ -71,28 +69,37 @@
 	</Transition>
 </template>
 
+<style scoped>
+.icon-close {
+	color: var(--theme-icon-color);
+}
+.icon-close:hover {
+	color: var(--theme-icon-hover-color);
+}
+</style>
+
 <script setup>
-	import { defineProps, defineEmits } from "vue";
+import { defineProps, defineEmits } from "vue";
 
-	defineProps({
-		isVisible: Boolean,
-		title: {
-			type: String,
-			default: "Confirm Action",
-		},
-		message: {
-			type: String,
-			required: true,
-		},
-	});
+defineProps({
+	isVisible: Boolean,
+	title: {
+		type: String,
+		default: "Confirm Action",
+	},
+	message: {
+		type: String,
+		required: true,
+	},
+});
 
-	const emit = defineEmits(["confirm", "cancel"]);
+const emit = defineEmits(["confirm", "cancel"]);
 
-	const handleConfirm = () => {
-		emit("confirm");
-	};
+const handleConfirm = () => {
+	emit("confirm");
+};
 
-	const handleCancel = () => {
-		emit("cancel");
-	};
+const handleCancel = () => {
+	emit("cancel");
+};
 </script>

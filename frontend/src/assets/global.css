@@ -1,0 +1,33 @@
+/* global.css (or equivalent) */
+:root {
+	/* Fallback values in case store isn't initialized or theme is incomplete */
+	--theme-bg-primary: #6366f1; /* Indigo 500 as fallback */
+	--theme-bg-secondary: #e0e7ff; /* Indigo 100 as fallback */
+	--theme-text-primary: #1e293b; /* Slate 700 */
+	--theme-text-secondary: #64748b; /* Slate 500 */
+	--theme-text-on-primary-bg: #ffffff;
+	--theme-accent: #4f46e5;
+	--theme-accent-hover: #4338ca;
+	--theme-border-color: #d1d5db; /* Gray 300 as fallback */
+	--theme-input-bg: rgba(255, 255, 255, 0.7); /* Default white */
+	--theme-input-text: #334155; /* Slate 900 */
+}
+
+.dark {
+	--theme-bg-primary: #818cf8; /* Lighter indigo for dark mode */
+	--theme-bg-secondary: #312e81; /* Darker background */
+	--theme-text-primary: #f0f9ff; /* Sky 50 */
+	--theme-text-secondary: #94a3b8; /* Slate 400 */
+	--theme-text-on-primary-bg: #ffffff;
+	--theme-accent: #a5b4fc;
+	--theme-accent-hover: #818cf8;
+	--theme-border-color: #4b5563; /* Slate 500 for borders in dark mode */
+	--theme-input-bg: rgba(52, 51, 67, 0.7); /* Darker input background */
+	--theme-input-text: #e2e8f0;
+}
+
+body {
+	background-color: var(--theme-bg-secondary);
+	color: var(--theme-text-primary);
+	transition: background-color 0.3s ease, color 0.3s ease;
+}

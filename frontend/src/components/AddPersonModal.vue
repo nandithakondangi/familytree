@@ -12,12 +12,17 @@
 			class="fixed inset-0 overflow-y-auto h-full w-full z-50 flex justify-center items-center"
 		>
 			<div
-				class="relative bg-indigo-600/50 dark:bg-indigo-400/50 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 flex flex-col h-[65vh]"
+				class="relative backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 flex flex-col h-[65vh]"
+				style="background-color: var(--theme-bg-primary)"
 			>
 				<div
-					class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4"
+					class="flex justify-between items-center border-b pb-3 mb-4"
+					style="border-color: var(--theme-border-color)"
 				>
-					<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+					<h3
+						class="text-lg font-semibold"
+						style="color: var(--theme-text-on-primary-bg)"
+					>
 						Add New Family Member
 					</h3>
 					<button
@@ -25,7 +30,7 @@
 						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
 					>
 						<svg
-							class="h-6 w-6"
+							class="h-6 w-6 icon-close"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -55,7 +60,7 @@
 							/>
 							<div
 								@click="triggerImageUpload"
-								class="w-36 h-36 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-400 dark:border-gray-500 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors overflow-hidden"
+								class="image-upload-area w-36 h-36 rounded-full flex items-center justify-center cursor-pointer border-2 border-dashed transition-colors overflow-hidden"
 								title="Click to upload profile image"
 							>
 								<img
@@ -66,7 +71,7 @@
 								/>
 								<svg
 									v-else
-									class="w-16 h-16 text-gray-400 dark:text-gray-500"
+									class="w-16 h-16 image-placeholder-icon"
 									fill="currentColor"
 									viewBox="0 0 20 20"
 								>
@@ -81,48 +86,62 @@
 								v-if="profileImagePreview"
 								type="button"
 								@click="removeImage"
-								class="px-3 py-1 text-xs bg-red-500/80 hover:bg-red-600/80 text-white rounded-md transition-colors"
+								class="button-danger px-3 py-1 text-xs rounded-md transition-colors"
 							>
 								Remove Image
 							</button>
-							<p class="text-xs text-gray-600 dark:text-gray-400 text-center">
+							<p
+								class="text-xs text-center"
+								style="color: var(--theme-text-secondary-on-primary-bg)"
+							>
 								Optional: Click above to upload a profile picture.
 							</p>
 
 							<!-- Contextual Information if adding via relationship -->
 							<div
 								v-if="sourceNodeIdForRelationship"
-								class="mt-4 p-3 bg-indigo-500/20 dark:bg-indigo-800/30 rounded-md shadow w-full"
+								class="contextual-info-box mt-4 p-3 rounded-md shadow w-full"
 							>
 								<h4
-									class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 text-center"
+									class="text-sm font-semibold mb-2 text-center"
+									style="color: var(--theme-text-primary)"
 								>
 									Adding new member relative to:
 								</h4>
 								<div class="space-y-1 text-xs">
 									<p class="text-center">
-										<span class="font-medium text-gray-600 dark:text-gray-300"
+										<span
+											class="font-medium"
+											style="color: var(--theme-text-secondary)"
 											>Name:</span
 										>
-										<span class="text-gray-800 dark:text-gray-100 ml-1">{{
-											sourceMemberNameForRelationship || "N/A"
-										}}</span>
+										<span
+											class="ml-1"
+											style="color: var(--theme-text-primary)"
+											>{{ sourceMemberNameForRelationship || "N/A" }}</span
+										>
 									</p>
 									<p class="text-center">
-										<span class="font-medium text-gray-600 dark:text-gray-300"
+										<span
+											class="font-medium"
+											style="color: var(--theme-text-secondary)"
 											>ID:</span
 										>
-										<span class="text-gray-800 dark:text-gray-100 ml-1">{{
-											sourceNodeIdForRelationship
-										}}</span>
+										<span
+											class="ml-1"
+											style="color: var(--theme-text-primary)"
+											>{{ sourceNodeIdForRelationship }}</span
+										>
 									</p>
 									<p class="text-center">
 										<span class="font-medium text-gray-600 dark:text-gray-300"
 											>New Member will be their:</span
 										>
-										<span class="text-gray-800 dark:text-gray-100 ml-1">{{
-											formattedRelationshipType
-										}}</span>
+										<span
+											class="ml-1"
+											style="color: var(--theme-text-primary)"
+											>{{ formattedRelationshipType }}</span
+										>
 									</p>
 								</div>
 							</div>
@@ -134,9 +153,7 @@
 						>
 							<!-- Contextual Information if adding via relationship -->
 							<div>
-								<label
-									for="name"
-									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+								<label for="name" class="form-label"
 									>Name: <span class="text-red-500">*</span></label
 								>
 								<input
@@ -144,36 +161,28 @@
 									id="name"
 									v-model="form.name"
 									required
-									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									class="input-field mt-1 block w-full sm:text-sm"
 									placeholder="Full Name"
 								/>
 							</div>
 
 							<div>
-								<label
-									for="nicknames"
-									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-									>Nicknames:</label
-								>
+								<label for="nicknames" class="form-label">Nicknames:</label>
 								<input
 									type="text"
 									id="nicknames"
 									v-model="form.nicknames"
-									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									class="input-field mt-1 block w-full sm:text-sm"
 									placeholder="e.g., Johnny, Beth (comma-separated)"
 								/>
 							</div>
 
 							<div>
-								<label
-									for="gender"
-									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-									>Gender:</label
-								>
+								<label for="gender" class="form-label">Gender:</label>
 								<select
 									id="gender"
 									v-model="form.gender"
-									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+									class="input-field mt-1 block w-full sm:text-sm"
 								>
 									<option
 										v-for="option in genderOptions"
@@ -186,40 +195,36 @@
 							</div>
 
 							<div class="flex items-center justify-between">
-								<label
-									for="isDobKnown"
-									class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+								<label for="isDobKnown" class="form-label cursor-pointer"
 									>Is Date of Birth Known?</label
 								>
-								<div
-									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
-								>
+								<div class="toggle-switch-container">
 									<input
 										type="checkbox"
 										id="isDobKnown"
 										v-model="form.isDobKnown"
-										class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
+										class="toggle-checkbox-custom"
 									/>
-									<label
-										for="isDobKnown"
-										class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
-									></label>
+									<label for="isDobKnown" class="toggle-label-custom"></label>
 								</div>
 							</div>
 
 							<div
 								v-if="form.isDobKnown"
-								class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner"
+								class="space-y-3 p-4 rounded-md shadow-inner"
+								style="background-color: var(--theme-bg-tertiary)"
 							>
 								<!-- DOB Fields (Gregorian, Traditional) -->
 								<h4
-									class="text-md font-semibold text-gray-700 dark:text-gray-300"
+									class="text-md font-semibold"
+									style="color: var(--theme-text-primary)"
 								>
 									Date of Birth Details:
 								</h4>
 								<div>
 									<label
 										class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+										style="color: var(--theme-text-primary)"
 										>Gregorian DOB:</label
 									>
 									<date-picker
@@ -233,8 +238,8 @@
 										placeholder="YYYY-MM-DD"
 										:editable="true"
 										:disabled-date="disableFutureDates"
-										input-class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-										popup-class="dark:bg-slate-700"
+										input-class="input-field mt-1 block w-full sm:text-sm"
+										popup-class="datepicker-popup-theme"
 										class="w-full"
 										:clearable="true"
 									/>
@@ -243,12 +248,13 @@
 									<!-- Traditional DOB fields -->
 									<label
 										class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+										style="color: var(--theme-text-primary)"
 										>Traditional DOB:</label
 									>
 									<div class="flex space-x-3">
 										<select
 											v-model="form.traditionalDob.tamilMonth"
-											class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											class="input-field block w-1/2 sm:text-sm"
 										>
 											<option
 												v-for="option in TamilMonthOptions"
@@ -260,7 +266,7 @@
 										</select>
 										<select
 											v-model="form.traditionalDob.tamilStar"
-											class="block w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+											class="input-field block w-1/2 sm:text-sm"
 										>
 											<option
 												v-for="option in TamilStarOptions"
@@ -275,55 +281,51 @@
 							</div>
 
 							<div class="flex items-center justify-between">
-								<label
-									for="isPersonAlive"
-									class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+								<label for="isPersonAlive" class="form-label cursor-pointer"
 									>This person is alive</label
 								>
-								<div
-									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
-								>
+								<div class="toggle-switch-container">
 									<input
 										type="checkbox"
 										id="isPersonAlive"
 										v-model="form.isPersonAlive"
-										class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
+										class="toggle-checkbox-custom"
 									/>
 									<label
 										for="isPersonAlive"
-										class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
+										class="toggle-label-custom"
 									></label>
 								</div>
 							</div>
 
 							<div
 								v-if="!form.isPersonAlive"
-								class="space-y-3 p-4 bg-slate-300/50 dark:bg-slate-200/40 rounded-md shadow-inner"
+								class="space-y-3 p-4 rounded-md shadow-inner"
+								style="background-color: var(--theme-bg-tertiary)"
 							>
 								<!-- DOD Fields -->
 								<h4
-									class="text-md font-semibold text-gray-700 dark:text-gray-300"
+									class="text-md font-semibold"
+									style="color: var(--theme-text-primary)"
 								>
 									Date of Death Details:
 								</h4>
 								<div class="flex items-center justify-between">
 									<label
 										for="isDodKnownToggle"
-										class="block text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+										class="form-label cursor-pointer"
 										>Is Date of Death Known?</label
 									>
-									<div
-										class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
-									>
+									<div class="toggle-switch-container">
 										<input
 											type="checkbox"
 											id="isDodKnownToggle"
 											v-model="form.isDodKnown"
-											class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
+											class="toggle-checkbox-custom"
 										/>
 										<label
 											for="isDodKnownToggle"
-											class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
+											class="toggle-label-custom"
 										></label>
 									</div>
 								</div>
@@ -332,6 +334,7 @@
 									<div>
 										<label
 											class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+											style="color: var(--theme-text-primary)"
 											>Gregorian DoD:</label
 										>
 										<date-picker
@@ -345,8 +348,8 @@
 											placeholder="YYYY-MM-DD"
 											:editable="true"
 											:disabled-date="disableFutureDates"
-											input-class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
-											popup-class="dark:bg-slate-700"
+											input-class="input-field mt-1 block w-full sm:text-sm"
+											popup-class="datepicker-popup-theme"
 											class="w-full"
 											:clearable="true"
 										/>
@@ -355,12 +358,13 @@
 										<!-- Traditional DOD fields -->
 										<label
 											class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+											style="color: var(--theme-text-primary)"
 											>Traditional DoD:</label
 										>
 										<div class="grid grid-cols-3 gap-3">
 											<select
 												v-model="form.traditionalDod.tamilMonth"
-												class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+												class="input-field block w-full sm:text-sm"
 											>
 												<option
 													v-for="option in TamilMonthOptions"
@@ -372,7 +376,7 @@
 											</select>
 											<select
 												v-model="form.traditionalDod.paksham"
-												class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+												class="input-field block w-full sm:text-sm"
 											>
 												<option
 													v-for="option in PakshamOptions"
@@ -384,7 +388,7 @@
 											</select>
 											<select
 												v-model="form.traditionalDod.thithi"
-												class="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+												class="input-field block w-full sm:text-sm"
 											>
 												<option
 													v-for="option in ThithiOptions"
@@ -401,10 +405,7 @@
 
 							<!-- Additional Information Section -->
 							<div class="space-y-2 pt-2">
-								<label
-									class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-									>Additional Information:</label
-								>
+								<label class="form-label">Additional Information:</label>
 								<div
 									v-for="(field, index) in form.dynamicFields"
 									:key="index"
@@ -414,19 +415,19 @@
 										type="text"
 										v-model="field.key"
 										placeholder="Field Name"
-										class="mt-1 block w-2/5 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										class="input-field mt-1 block w-2/5 sm:text-sm"
 									/>
 									<input
 										type="text"
 										v-model="field.value"
 										placeholder="Value"
-										class="mt-1 block w-2/5 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
+										class="input-field mt-1 block w-2/5 sm:text-sm"
 									/>
 									<button
 										type="button"
 										@click="removeDynamicField(index)"
 										title="Remove field"
-										class="p-1.5 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-full hover:bg-red-100 dark:hover:bg-red-700/50 transition-colors"
+										class="button-icon-danger p-1.5 rounded-full transition-colors"
 									>
 										<svg
 											class="w-4 h-4"
@@ -444,7 +445,7 @@
 								<button
 									type="button"
 									@click="addDynamicField"
-									class="mt-2 px-3 py-1.5 text-sm bg-green-500/80 hover:bg-green-600/80 text-white font-medium rounded-md hover:bg-green-600 transition-colors flex items-center"
+									class="button-success mt-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center"
 								>
 									<svg
 										class="w-4 h-4 mr-1"
@@ -466,19 +467,10 @@
 					<div
 						class="flex justify-end space-x-4 mt-auto pt-4 border-t border-gray-300/70 dark:border-gray-600/70"
 					>
-						<button
-							type="button"
-							@click="closeModal"
-							class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
-						>
+						<button class="button-secondary" type="button" @click="closeModal">
 							X Cancel
 						</button>
-						<button
-							type="submit"
-							class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
-						>
-							💾 Save Member
-						</button>
+						<button class="button-primary" type="submit">💾 Save Member</button>
 					</div>
 				</form>
 			</div>
@@ -956,20 +948,150 @@ export default {
 </script>
 
 <style scoped>
-/* Custom styles for the toggle switch (existing) */
-.toggle-checkbox {
-	transition: right 0.2s ease-in-out, border-color 0.2s ease-in-out;
+/* Form labels */
+.form-label {
+	@apply block text-sm font-medium;
+	color: var(--theme-text-on-primary-bg);
 }
-.toggle-checkbox:checked {
-	right: 0;
+
+/* Input fields, select */
+.input-field {
+	@apply rounded-md shadow-sm sm:text-sm p-2;
+	background-color: var(--theme-input-bg);
+	color: var(--theme-input-text);
+	border: 1px solid var(--theme-input-border);
 }
-.toggle-label {
-	transition: background-color 0.2s ease-in-out;
+.input-field::placeholder {
+	color: var(--theme-input-placeholder);
 }
-.toggle-checkbox:checked + .toggle-label {
-	background-color: #4f46e5; /* indigo-600 */
+.input-field:focus {
+	@apply outline-none ring-2 ring-opacity-50;
+	border-color: var(--theme-accent);
+	ring-color: var(--theme-accent);
+}
+
+/* Datepicker popup custom class */
+:global(.datepicker-popup-theme) {
+	background-color: var(--theme-bg-secondary) !important;
+	border: 1px solid var(--theme-border-color) !important;
+	color: var(--theme-text-primary) !important;
+}
+:global(.datepicker-popup-theme .mx-calendar-header-label),
+:global(.datepicker-popup-theme .mx-calendar-weekday),
+:global(.datepicker-popup-theme .mx-calendar-date),
+:global(.datepicker-popup-theme .mx-time-column .mx-time-item),
+:global(.datepicker-popup-theme .mx-btn) {
+	color: var(--theme-text-primary) !important;
+}
+:global(.datepicker-popup-theme .mx-calendar-date.today) {
+	color: var(--theme-accent) !important;
+}
+:global(.datepicker-popup-theme .mx-calendar-date:hover),
+:global(.datepicker-popup-theme .mx-time-column .mx-time-item:hover) {
+	background-color: rgba(var(--theme-accent-rgb), 0.2) !important;
+}
+:global(.datepicker-popup-theme .mx-calendar-date.active) {
+	background-color: var(--theme-accent) !important;
+	color: var(--theme-text-on-accent) !important;
+}
+:global(.datepicker-popup-theme .mx-btn-text:hover) {
+	color: var(--theme-accent-hover) !important;
+}
+
+/* Toggle Switch */
+.toggle-switch-container {
+	@apply relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in;
+}
+.toggle-checkbox-custom {
+	@apply absolute block w-5 h-5 rounded-full appearance-none cursor-pointer transition-transform duration-200 ease-in-out;
+	background-color: var(--theme-toggle-thumb-bg);
+	border: 2px solid var(--theme-toggle-border);
+	top: 2px;
+	left: 2px;
+}
+.toggle-checkbox-custom:checked {
+	@apply translate-x-full;
+	border-color: var(--theme-accent);
+}
+.toggle-label-custom {
+	@apply block overflow-hidden h-6 w-11 rounded-full cursor-pointer transition-colors duration-200 ease-in-out;
+	background-color: var(--theme-toggle-bg);
+}
+.toggle-checkbox-custom:checked + .toggle-label-custom {
+	background-color: var(--theme-accent);
+}
+
+/* Buttons */
+.button-primary {
+	@apply px-4 py-2 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition duration-150 ease-in-out;
+	background-color: var(--theme-accent);
+	color: var(--theme-text-on-accent);
+	ring-offset-color: var(--theme-bg-primary); /* For focus ring */
+}
+.button-primary:hover {
+	background-color: var(--theme-accent-hover);
+}
+.button-primary:focus {
+	ring-color: var(--theme-accent);
+}
+
+.button-secondary {
+	@apply px-4 py-2 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 transition duration-150 ease-in-out;
+	background-color: var(--theme-bg-secondary);
+	color: var(--theme-text-primary);
+}
+.button-secondary:hover {
+	filter: brightness(0.95); /* Or define a specific hover background */
+}
+.button-secondary:focus {
+	ring-color: var(--theme-accent);
 }
 
 /* Ensure enough height for scrollable content if form grows very long */
 /* The parent .fixed inset-0 already has overflow-y-auto */
+</style>
+
+<style>
+/* Global or non-scoped for Tailwind overrides if needed, or for datepicker if :deep doesn't work well */
+.button-danger {
+	background-color: var(--theme-button-danger-bg);
+	color: var(--theme-button-danger-text);
+}
+.button-danger:hover {
+	background-color: var(--theme-button-danger-hover-bg);
+}
+.button-success {
+	background-color: var(--theme-button-success-bg);
+	color: var(--theme-button-success-text);
+}
+.button-success:hover {
+	background-color: var(--theme-button-success-hover-bg);
+}
+.button-icon-danger {
+	color: var(--theme-icon-danger-color);
+}
+.button-icon-danger:hover {
+	color: var(--theme-icon-danger-hover-color);
+	background-color: rgba(var(--theme-accent-rgb), 0.1); /* Subtle hover bg */
+}
+.icon-close {
+	color: var(--theme-icon-color);
+}
+.icon-close:hover {
+	color: var(--theme-icon-hover-color);
+}
+.image-upload-area {
+	background-color: var(--theme-bg-secondary);
+	border-color: var(--theme-border-color);
+}
+.image-upload-area:hover {
+	border-color: var(--theme-accent);
+}
+.image-placeholder-icon {
+	color: var(--theme-text-secondary);
+}
+.contextual-info-box {
+	background-color: rgba(var(--theme-accent-rgb), 0.15);
+	border: 1px solid rgba(var(--theme-accent-rgb), 0.3);
+}
 </style>

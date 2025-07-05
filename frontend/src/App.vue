@@ -1,10 +1,18 @@
 <template>
 	<div
+		ref="appRoot"
 		id="app"
 		class="flex flex-col h-screen bg-gray-200 dark:bg-slate-900 font-sans font-light"
 	>
 		<header
-			class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 dark:from-purple-700/80 dark:to-indigo-700/80 backdrop-blur-md text-white p-4 shadow-lg flex items-center"
+			class="relative z-20 backdrop-blur-md text-white p-4 shadow-lg flex items-center"
+			style="
+				background-image: linear-gradient(
+					to right,
+					var(--theme-header-gradient-from),
+					var(--theme-header-gradient-to)
+				);
+			"
 		>
 			<button
 				@click="toggleSidebar"
@@ -29,61 +37,83 @@
 			<h1
 				class="text-2xl font-medium text-center flex-grow ml-[-2.5rem] sm:ml-0"
 			>
-				Family Tree Viewer
+				Family Tree Visualizer
 			</h1>
-			<button
-				@click="toggleTheme"
-				class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors ml-auto"
-				aria-label="Toggle theme"
-				:title="
-					currentTheme === 'dark'
-						? 'Switch to light theme'
-						: 'Switch to dark theme'
-				"
-			>
-				<svg
-					v-if="currentTheme === 'dark'"
-					class="h-6 w-6"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+			<div class="relative ml-auto flex items-center space-x-2">
+				<!-- Theme Selector Button -->
+				<button
+					ref="themeToggleButton"
+					@click="toggleThemeSelector"
+					class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+					aria-label="Select theme"
+					title="Select theme"
 				>
-					<circle cx="12" cy="12" r="5" />
-					<line x1="12" y1="1" x2="12" y2="3" />
-					<line x1="12" y1="21" x2="12" y2="23" />
-					<line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-					<line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-					<line x1="1" y1="12" x2="3" y2="12" />
-					<line x1="21" y1="12" x2="23" y2="12" />
-					<line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-					<line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-				</svg>
-				<svg
-					v-else
-					class="h-6 w-6"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						class="h-6 w-6"
+					>
+						<path
+							d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.38 0 2.69-.28 3.89-.78.6-.25.91-.86.75-1.47s-.86-.91-1.47-.75A7.912 7.912 0 0112 20c-4.41 0-8-3.59-8-8s3.59-8 8-8c1.55 0 2.98.44 4.23 1.2.54.33 1.24.13 1.57-.4.33-.54.13-1.24-.4-1.57A9.957 9.957 0 0012 2zm8.5 6c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5S21.33 8 20.5 8zM12 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-4.5 3.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm9 0c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"
+						/>
+					</svg>
+				</button>
+
+				<button
+					@click="toggleLightDarkMode"
+					class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+					aria-label="Toggle theme"
+					:title="
+						themeStore.currentMode === 'dark'
+							? 'Switch to light theme'
+							: 'Switch to dark theme'
+					"
 				>
-					<path
+					<svg
+						v-if="themeStore.currentMode === 'dark'"
+						class="h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
 						stroke-linecap="round"
 						stroke-linejoin="round"
+					>
+						<circle cx="12" cy="12" r="5" />
+						<line x1="12" y1="1" x2="12" y2="3" />
+						<line x1="12" y1="21" x2="12" y2="23" />
+						<line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+						<line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+						<line x1="1" y1="12" x2="3" y2="12" />
+						<line x1="21" y1="12" x2="23" y2="12" />
+						<line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+						<line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+					</svg>
+					<svg
+						v-else
+						class="h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
 						stroke-width="2"
-						d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-					/>
-				</svg>
-			</button>
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+						/>
+					</svg>
+				</button>
+			</div>
 			<!-- <div class="w-14"></div> Spacer to balance the hamburger button for true title centering -->
 		</header>
 
 		<div
-			class="flex flex-grow overflow-hidden p-1"
+			class="relative z-10 flex flex-grow overflow-hidden p-1"
 			:class="{
 				'blur-sm filter transition-filter duration-300 ease-in-out':
 					isAddPersonModalVisible ||
@@ -131,7 +161,14 @@
 		</div>
 
 		<footer
-			class="bg-gradient-to-r from-purple-600/60 to-indigo-600/60 dark:from-purple-700/60 dark:to-indigo-700/60 backdrop-blur-md p-2 text-sm text-gray-200 shadow-lg"
+			class="backdrop-blur-md p-2 text-sm text-gray-200 shadow-lg"
+			style="
+				background-image: linear-gradient(
+					to right,
+					var(--theme-footer-gradient-from),
+					var(--theme-footer-gradient-to)
+				);
+			"
 		>
 			<StatusDisplay />
 		</footer>
@@ -186,6 +223,38 @@
 			@close="closeLinkMemberModal"
 			@link="handleLinkMembers"
 		/>
+
+		<!-- Global Theme Selector Dropdown -->
+		<Transition
+			enter-active-class="transition ease-out duration-100"
+			enter-from-class="transform opacity-0 scale-95"
+			enter-to-class="transform opacity-100 scale-100"
+			leave-active-class="transition ease-in duration-75"
+			leave-from-class="transform opacity-100 scale-100"
+			leave-to-class="transform opacity-0 scale-95"
+		>
+			<div
+				v-if="isThemeSelectorVisible"
+				ref="themeSelectorBar"
+				class="theme-selector-bar fixed w-auto min-w-[120px] p-2 rounded-lg shadow-xl flex items-center justify-center space-x-2 z-50"
+				:style="themeSelectorPosition"
+			>
+				<button
+					v-for="themeName in availableThemeNames"
+					:key="themeName"
+					@click="selectTheme(themeName)"
+					class="theme-circle w-6 h-6 rounded-full cursor-pointer border-2 transition-all duration-150 ease-in-out focus:outline-none"
+					:style="{
+						backgroundColor: getThemeDisplayColor(themeName),
+						borderColor:
+							themeStore.currentThemeName === themeName
+								? 'var(--theme-accent)'
+								: 'transparent',
+					}"
+					:title="formatThemeName(themeName)"
+				></button>
+			</div>
+		</Transition>
 	</div>
 </template>
 
@@ -198,15 +267,18 @@ import ConfirmationModal from "./components/ConfirmationModal.vue"; // Import th
 import MemberDetailsModal from "./components/MemberDetailsModal.vue";
 import ContextMenu from "./components/ContextMenu.vue";
 import LinkMemberModal from "./components/LinkMemberModal.vue";
+import { mapStores } from "pinia";
+import { useThemeStore } from "./stores/themes.js";
+import { themes as themeDefinitions } from "./assets/themes.js";
 
 export default {
 	name: "App",
 	components: {
 		Sidebar,
 		GraphView,
-		ConfirmationModal, // Register the confirmation modal
 		StatusDisplay,
 		AddPersonModal, // Register the modal
+		ConfirmationModal, // Register the confirmation modal
 		MemberDetailsModal,
 		ContextMenu,
 		LinkMemberModal,
@@ -235,8 +307,6 @@ export default {
 			addPersonModalRelationshipType: null, // For adding via context menu
 			// Controls visibility of the main sidebar
 			isSidebarOpen: true, // Sidebar starts open by default
-			// Theme state
-			currentTheme: "light", // 'light' or 'dark'
 			// Confirmation Modal State
 			isConfirmModalVisible: false,
 			confirmModalMessage: "",
@@ -259,6 +329,9 @@ export default {
 				relationshipType: null,
 				potentialTargets: [], // [{id: '...', name: '...'}]
 			},
+			// Theme Selector state
+			isThemeSelectorVisible: false,
+			themeSelectorPosition: { top: "0px", left: "0px" },
 		};
 	},
 	provide() {
@@ -272,7 +345,8 @@ export default {
 			isDataLoaded: () => this.isDataLoaded,
 			memberIdToEdit: () => this.memberIdToEdit,
 			triggerGraphRender: () => this.triggerGraphRender,
-			currentTheme: () => this.currentTheme, // Add this line
+			currentThemeName: () => this.themeStore.currentThemeName, // Provide the theme name
+			currentThemeMode: () => this.themeStore.currentMode,
 
 			// Methods to update state (these would often trigger backend calls)
 			updateStatus: this.updateStatus,
@@ -293,19 +367,27 @@ export default {
 			handleAddRelationship: this.handleAddRelationship, // Add this line
 		};
 	},
-	created() {
-		// Load theme from localStorage or default to 'light'
-		const savedTheme = localStorage.getItem("theme");
-		if (savedTheme) {
-			// TODO: Add listener for clicks outside context menu to close it
-			this.currentTheme = savedTheme;
-		}
-		this.applyTheme();
+	computed: {
+		...mapStores(useThemeStore), // Makes themeStore available as this.themeStore
+		availableThemeNames() {
+			return this.themeStore.availableThemes;
+		},
 	},
 	watch: {
-		currentTheme() {
-			this.applyTheme();
-			this.triggerReRender(); // Trigger re-render when theme changes
+		isThemeSelectorVisible(newValue) {
+			if (newValue) {
+				document.addEventListener(
+					"click",
+					this.handleClickOutsideThemeSelector,
+					true,
+				);
+			} else {
+				document.removeEventListener(
+					"click",
+					this.handleClickOutsideThemeSelector,
+					true,
+				);
+			}
 		},
 		isContextMenuVisible(isVisible) {
 			if (isVisible) {
@@ -373,16 +455,8 @@ export default {
 		toggleSidebar() {
 			this.isSidebarOpen = !this.isSidebarOpen;
 		},
-		toggleTheme() {
-			this.currentTheme = this.currentTheme === "light" ? "dark" : "light";
-			localStorage.setItem("theme", this.currentTheme);
-		},
-		applyTheme() {
-			if (this.currentTheme === "dark") {
-				document.documentElement.classList.add("dark");
-			} else {
-				document.documentElement.classList.remove("dark");
-			}
+		toggleLightDarkMode() {
+			this.themeStore.toggleMode();
 		},
 
 		// Placeholder methods for dialogs and context menu actions
@@ -692,6 +766,60 @@ export default {
 				this.closeContextMenu();
 			}
 		},
+		// Theme Selector Methods
+		async toggleThemeSelector() {
+			if (this.isThemeSelectorVisible) {
+				this.isThemeSelectorVisible = false;
+				return;
+			}
+
+			const button = this.$refs.themeToggleButton;
+			if (button) {
+				const rect = button.getBoundingClientRect();
+				// Set initial position with opacity 0 to prevent flicker while we measure it
+				this.themeSelectorPosition = {
+					top: `${rect.bottom + 8}px`,
+					left: "0px",
+					opacity: 0,
+				};
+				this.isThemeSelectorVisible = true;
+
+				await this.$nextTick(); // Wait for the element to be in the DOM
+
+				const selector = this.$refs.themeSelectorBar;
+				const selectorWidth = selector ? selector.offsetWidth : 120; // Fallback width
+				this.themeSelectorPosition = {
+					top: `${rect.bottom + 8}px`,
+					left: `${rect.right - selectorWidth}px`,
+					opacity: 1,
+					"backdrop-filter": "blur(10px)",
+					"background-color": "var(--theme-bg-secondary)",
+				};
+			}
+		},
+		selectTheme(themeName) {
+			this.themeStore.setThemeName(themeName);
+			this.isThemeSelectorVisible = false; // Close selector after selection
+		},
+		getThemeDisplayColor(themeName) {
+			return themeDefinitions[themeName]?.displayColor || "#cccccc"; // Fallback color
+		},
+		formatThemeName(themeKey) {
+			// Simple formatter: IndigoViolet -> Indigo Violet
+			if (!themeKey) return "";
+			return themeKey.replace(/([A-Z])/g, " $1").trim();
+		},
+		handleClickOutsideThemeSelector(event) {
+			if (
+				this.isThemeSelectorVisible &&
+				this.$refs.themeSelectorBar &&
+				!this.$refs.themeSelectorBar.contains(event.target) &&
+				this.$refs.themeToggleButton &&
+				!this.$refs.themeToggleButton.contains(event.target)
+			) {
+				this.isThemeSelectorVisible = false;
+			}
+		},
 	},
 };
 </script>
@@ -751,5 +879,10 @@ body {
 
 .dark * {
 	scrollbar-color: rgba(148, 163, 184, 0.4) transparent; /* thumb color for dark mode, track color (transparent) */
+}
+
+/* Additional styles for theme selector if needed */
+.theme-circle:hover {
+	transform: scale(1.15);
 }
 </style>

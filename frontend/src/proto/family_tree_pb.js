@@ -101,7 +101,7 @@ if (goog.DEBUG && !COMPILED) {
  * @constructor
  */
 proto.family_tree.FamilyTree = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.family_tree.FamilyTree.repeatedFields_, null);
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.family_tree.FamilyTree, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -159,8 +159,8 @@ proto.family_tree.FamilyMember.toObject = function(includeInstance, msg) {
     dateOfDeath: (f = msg.getDateOfDeath()) && proto_utils_pb.GregorianDate.toObject(includeInstance, f),
     traditionalDateOfDeath: (f = msg.getTraditionalDateOfDeath()) && proto_utils_pb.TraditionalDate.toObject(includeInstance, f),
     gender: jspb.Message.getFieldWithDefault(msg, 9, 0),
-    birthFamilyUnitId: jspb.Message.getFieldWithDefault(msg, 10, 0),
-    marriageFamilyUnitId: jspb.Message.getFieldWithDefault(msg, 11, 0),
+    birthFamilyUnitId: jspb.Message.getFieldWithDefault(msg, 10, ""),
+    acquiredFamilyUnitId: jspb.Message.getFieldWithDefault(msg, 11, ""),
     weddingDate: (f = msg.getWeddingDate()) && proto_utils_pb.GregorianDate.toObject(includeInstance, f),
     additionalInfoMap: (f = msg.getAdditionalInfoMap()) ? f.toObject(includeInstance, undefined) : []
   };
@@ -240,12 +240,12 @@ proto.family_tree.FamilyMember.deserializeBinaryFromReader = function(msg, reade
       msg.setGender(value);
       break;
     case 10:
-      var value = /** @type {number} */ (reader.readInt64());
+      var value = /** @type {string} */ (reader.readString());
       msg.setBirthFamilyUnitId(value);
       break;
     case 11:
-      var value = /** @type {number} */ (reader.readInt64());
-      msg.setMarriageFamilyUnitId(value);
+      var value = /** @type {string} */ (reader.readString());
+      msg.setAcquiredFamilyUnitId(value);
       break;
     case 12:
       var value = new proto_utils_pb.GregorianDate;
@@ -354,16 +354,16 @@ proto.family_tree.FamilyMember.serializeBinaryToWriter = function(message, write
       f
     );
   }
-  f = /** @type {number} */ (jspb.Message.getField(message, 10));
+  f = /** @type {string} */ (jspb.Message.getField(message, 10));
   if (f != null) {
-    writer.writeInt64(
+    writer.writeString(
       10,
       f
     );
   }
-  f = /** @type {number} */ (jspb.Message.getField(message, 11));
+  f = /** @type {string} */ (jspb.Message.getField(message, 11));
   if (f != null) {
-    writer.writeInt64(
+    writer.writeString(
       11,
       f
     );
@@ -659,16 +659,16 @@ proto.family_tree.FamilyMember.prototype.setGender = function(value) {
 
 
 /**
- * optional int64 birth_family_unit_id = 10;
- * @return {number}
+ * optional string birth_family_unit_id = 10;
+ * @return {string}
  */
 proto.family_tree.FamilyMember.prototype.getBirthFamilyUnitId = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 10, 0));
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 10, ""));
 };
 
 
 /**
- * @param {number} value
+ * @param {string} value
  * @return {!proto.family_tree.FamilyMember} returns this
  */
 proto.family_tree.FamilyMember.prototype.setBirthFamilyUnitId = function(value) {
@@ -695,19 +695,19 @@ proto.family_tree.FamilyMember.prototype.hasBirthFamilyUnitId = function() {
 
 
 /**
- * optional int64 marriage_family_unit_id = 11;
- * @return {number}
+ * optional string acquired_family_unit_id = 11;
+ * @return {string}
  */
-proto.family_tree.FamilyMember.prototype.getMarriageFamilyUnitId = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 11, 0));
+proto.family_tree.FamilyMember.prototype.getAcquiredFamilyUnitId = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 11, ""));
 };
 
 
 /**
- * @param {number} value
+ * @param {string} value
  * @return {!proto.family_tree.FamilyMember} returns this
  */
-proto.family_tree.FamilyMember.prototype.setMarriageFamilyUnitId = function(value) {
+proto.family_tree.FamilyMember.prototype.setAcquiredFamilyUnitId = function(value) {
   return jspb.Message.setField(this, 11, value);
 };
 
@@ -716,7 +716,7 @@ proto.family_tree.FamilyMember.prototype.setMarriageFamilyUnitId = function(valu
  * Clears the field making it undefined.
  * @return {!proto.family_tree.FamilyMember} returns this
  */
-proto.family_tree.FamilyMember.prototype.clearMarriageFamilyUnitId = function() {
+proto.family_tree.FamilyMember.prototype.clearAcquiredFamilyUnitId = function() {
   return jspb.Message.setField(this, 11, undefined);
 };
 
@@ -725,7 +725,7 @@ proto.family_tree.FamilyMember.prototype.clearMarriageFamilyUnitId = function() 
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.family_tree.FamilyMember.prototype.hasMarriageFamilyUnitId = function() {
+proto.family_tree.FamilyMember.prototype.hasAcquiredFamilyUnitId = function() {
   return jspb.Message.getField(this, 11) != null;
 };
 
@@ -1128,16 +1128,12 @@ proto.family_tree.FamilyUnit.deserializeBinaryFromReader = function(msg, reader)
       msg.setId(value);
       break;
     case 2:
-      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
-      for (var i = 0; i < values.length; i++) {
-        msg.addParentIds(values[i]);
-      }
+      var value = /** @type {string} */ (reader.readString());
+      msg.addParentIds(value);
       break;
     case 3:
-      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
-      for (var i = 0; i < values.length; i++) {
-        msg.addChildIds(values[i]);
-      }
+      var value = /** @type {string} */ (reader.readString());
+      msg.addChildIds(value);
       break;
     case 4:
       var value = /** @type {string} */ (reader.readString());
@@ -1187,14 +1183,14 @@ proto.family_tree.FamilyUnit.serializeBinaryToWriter = function(message, writer)
   }
   f = message.getParentIdsList();
   if (f.length > 0) {
-    writer.writePackedInt64(
+    writer.writeRepeatedString(
       2,
       f
     );
   }
   f = message.getChildIdsList();
   if (f.length > 0) {
-    writer.writePackedInt64(
+    writer.writeRepeatedString(
       3,
       f
     );
@@ -1232,16 +1228,16 @@ proto.family_tree.FamilyUnit.prototype.setId = function(value) {
 
 
 /**
- * repeated int64 parent_ids = 2;
- * @return {!Array<number>}
+ * repeated string parent_ids = 2;
+ * @return {!Array<string>}
  */
 proto.family_tree.FamilyUnit.prototype.getParentIdsList = function() {
-  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 2));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
 };
 
 
 /**
- * @param {!Array<number>} value
+ * @param {!Array<string>} value
  * @return {!proto.family_tree.FamilyUnit} returns this
  */
 proto.family_tree.FamilyUnit.prototype.setParentIdsList = function(value) {
@@ -1250,7 +1246,7 @@ proto.family_tree.FamilyUnit.prototype.setParentIdsList = function(value) {
 
 
 /**
- * @param {number} value
+ * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.family_tree.FamilyUnit} returns this
  */
@@ -1269,16 +1265,16 @@ proto.family_tree.FamilyUnit.prototype.clearParentIdsList = function() {
 
 
 /**
- * repeated int64 child_ids = 3;
- * @return {!Array<number>}
+ * repeated string child_ids = 3;
+ * @return {!Array<string>}
  */
 proto.family_tree.FamilyUnit.prototype.getChildIdsList = function() {
-  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 3));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
 };
 
 
 /**
- * @param {!Array<number>} value
+ * @param {!Array<string>} value
  * @return {!proto.family_tree.FamilyUnit} returns this
  */
 proto.family_tree.FamilyUnit.prototype.setChildIdsList = function(value) {
@@ -1287,7 +1283,7 @@ proto.family_tree.FamilyUnit.prototype.setChildIdsList = function(value) {
 
 
 /**
- * @param {number} value
+ * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.family_tree.FamilyUnit} returns this
  */
@@ -1346,13 +1342,6 @@ proto.family_tree.FamilyUnit.prototype.clearAdditionalInfoMap = function() {
 
 
 
-/**
- * List of repeated fields within this message type.
- * @private {!Array<number>}
- * @const
- */
-proto.family_tree.FamilyTree.repeatedFields_ = [3];
-
 
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
@@ -1386,8 +1375,7 @@ proto.family_tree.FamilyTree.toObject = function(includeInstance, msg) {
   var f, obj = {
     membersMap: (f = msg.getMembersMap()) ? f.toObject(includeInstance, proto.family_tree.FamilyMember.toObject) : [],
     relationshipsMap: (f = msg.getRelationshipsMap()) ? f.toObject(includeInstance, proto.family_tree.Relationships.toObject) : [],
-    familyUnitsList: jspb.Message.toObjectList(msg.getFamilyUnitsList(),
-    proto.family_tree.FamilyUnit.toObject, includeInstance)
+    familyUnitsMap: (f = msg.getFamilyUnitsMap()) ? f.toObject(includeInstance, proto.family_tree.FamilyUnit.toObject) : []
   };
 
   if (includeInstance) {
@@ -1437,9 +1425,10 @@ proto.family_tree.FamilyTree.deserializeBinaryFromReader = function(msg, reader)
          });
       break;
     case 3:
-      var value = new proto.family_tree.FamilyUnit;
-      reader.readMessage(value,proto.family_tree.FamilyUnit.deserializeBinaryFromReader);
-      msg.addFamilyUnits(value);
+      var value = msg.getFamilyUnitsMap();
+      reader.readMessage(value, function(message, reader) {
+        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.family_tree.FamilyUnit.deserializeBinaryFromReader, "", new proto.family_tree.FamilyUnit());
+         });
       break;
     default:
       reader.skipField();
@@ -1478,13 +1467,9 @@ proto.family_tree.FamilyTree.serializeBinaryToWriter = function(message, writer)
   if (f && f.getLength() > 0) {
     f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.family_tree.Relationships.serializeBinaryToWriter);
   }
-  f = message.getFamilyUnitsList();
-  if (f.length > 0) {
-    writer.writeRepeatedMessage(
-      3,
-      f,
-      proto.family_tree.FamilyUnit.serializeBinaryToWriter
-    );
+  f = message.getFamilyUnitsMap(true);
+  if (f && f.getLength() > 0) {
+    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.family_tree.FamilyUnit.serializeBinaryToWriter);
   }
 };
 
@@ -1534,41 +1519,25 @@ proto.family_tree.FamilyTree.prototype.clearRelationshipsMap = function() {
 
 
 /**
- * repeated FamilyUnit family_units = 3;
- * @return {!Array<!proto.family_tree.FamilyUnit>}
+ * map<string, FamilyUnit> family_units = 3;
+ * @param {boolean=} opt_noLazyCreate Do not create the map if
+ * empty, instead returning `undefined`
+ * @return {!jspb.Map<string,!proto.family_tree.FamilyUnit>}
  */
-proto.family_tree.FamilyTree.prototype.getFamilyUnitsList = function() {
-  return /** @type{!Array<!proto.family_tree.FamilyUnit>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.family_tree.FamilyUnit, 3));
+proto.family_tree.FamilyTree.prototype.getFamilyUnitsMap = function(opt_noLazyCreate) {
+  return /** @type {!jspb.Map<string,!proto.family_tree.FamilyUnit>} */ (
+      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
+      proto.family_tree.FamilyUnit));
 };
 
 
 /**
- * @param {!Array<!proto.family_tree.FamilyUnit>} value
- * @return {!proto.family_tree.FamilyTree} returns this
-*/
-proto.family_tree.FamilyTree.prototype.setFamilyUnitsList = function(value) {
-  return jspb.Message.setRepeatedWrapperField(this, 3, value);
-};
-
-
-/**
- * @param {!proto.family_tree.FamilyUnit=} opt_value
- * @param {number=} opt_index
- * @return {!proto.family_tree.FamilyUnit}
- */
-proto.family_tree.FamilyTree.prototype.addFamilyUnits = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 3, opt_value, proto.family_tree.FamilyUnit, opt_index);
-};
-
-
-/**
- * Clears the list making it empty but non-null.
+ * Clears values from the map. The map will be non-null.
  * @return {!proto.family_tree.FamilyTree} returns this
  */
-proto.family_tree.FamilyTree.prototype.clearFamilyUnitsList = function() {
-  return this.setFamilyUnitsList([]);
-};
+proto.family_tree.FamilyTree.prototype.clearFamilyUnitsMap = function() {
+  this.getFamilyUnitsMap().clear();
+  return this;};
 
 
 goog.object.extend(exports, proto.family_tree);

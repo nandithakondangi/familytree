@@ -13,17 +13,22 @@
 			@click.self="closeModal"
 		>
 			<div
-				class="relative bg-indigo-600/70 dark:bg-indigo-400/70 backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4"
+				class="relative backdrop-blur-lg rounded-xl shadow-2xl p-6 max-w-lg w-full mx-4"
+				style="background-color: var(--theme-bg-primary)"
 			>
 				<div
-					class="flex justify-between items-center border-b border-gray-300/70 dark:border-gray-600/70 pb-3 mb-4"
+					class="flex justify-between items-center border-b pb-3 mb-4"
+					style="border-color: var(--theme-border-color)"
 				>
-					<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+					<h3
+						class="text-lg font-semibold"
+						style="color: var(--theme-text-on-primary-bg)"
+					>
 						Link to Existing Member
 					</h3>
 					<button
 						@click="closeModal"
-						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+						class="icon-close transition-colors"
 						aria-label="Close modal"
 					>
 						<svg
@@ -44,40 +49,30 @@
 
 				<form @submit.prevent="handleLink" class="space-y-4">
 					<div>
-						<label
-							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-							>Source Member:</label
-						>
+						<label class="form-label">Source Member:</label>
 						<input
 							type="text"
 							:value="sourceMemberName"
 							disabled
-							class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-gray-100 dark:bg-slate-700 dark:text-gray-400 cursor-not-allowed p-2"
+							class="input-field-disabled mt-1 block w-full sm:text-sm p-2"
 						/>
 					</div>
 					<div>
-						<label
-							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-							>Relationship Type:</label
-						>
+						<label class="form-label">Relationship Type:</label>
 						<input
 							type="text"
 							:value="relationshipTypeDisplay"
 							disabled
-							class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm sm:text-sm bg-gray-100 dark:bg-slate-700 dark:text-gray-400 cursor-not-allowed p-2"
+							class="input-field-disabled mt-1 block w-full sm:text-sm p-2"
 						/>
 					</div>
 					<div>
-						<label
-							for="targetMember"
-							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-							>Target Member:</label
-						>
+						<label for="targetMember" class="form-label">Target Member:</label>
 						<select
 							id="targetMember"
 							v-model="selectedTargetId"
 							required
-							class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200 p-2"
+							class="input-field mt-1 block w-full sm:text-sm p-2"
 						>
 							<option disabled value="">Please select a member</option>
 							<option
@@ -91,19 +86,13 @@
 					</div>
 
 					<div
-						class="flex justify-end space-x-4 pt-4 border-t border-gray-300/70 dark:border-gray-600/70"
+						class="flex justify-end space-x-4 pt-4 border-t"
+						style="border-color: var(--theme-border-color)"
 					>
-						<button
-							type="button"
-							@click="closeModal"
-							class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
-						>
+						<button type="button" @click="closeModal" class="button-secondary">
 							Cancel
 						</button>
-						<button
-							type="submit"
-							class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
-						>
+						<button type="submit" class="button-primary">
 							🔗 Link Members
 						</button>
 					</div>
@@ -112,6 +101,29 @@
 		</div>
 	</Transition>
 </template>
+
+<style scoped>
+.form-label {
+	@apply block text-sm font-medium;
+	color: var(--theme-text-on-primary-bg);
+}
+
+.input-field-disabled {
+	@apply rounded-md shadow-sm cursor-not-allowed;
+	background-color: rgba(var(--theme-input-bg-rgb), 0.5);
+	color: rgba(var(--theme-input-text-rgb), 0.7);
+	border: 1px solid rgba(var(--theme-border-color-rgb), 0.5);
+}
+
+.icon-close {
+	color: var(--theme-icon-color);
+}
+.icon-close:hover {
+	color: var(--theme-icon-hover-color);
+}
+/* Assuming .input-field, .button-primary, .button-secondary are defined globally */
+/* If not, you would need to add their definitions here or in a global CSS file. */
+</style>
 
 <script setup>
 import { ref, computed, watch } from "vue";

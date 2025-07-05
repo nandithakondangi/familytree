@@ -9,13 +9,17 @@
 		></iframe>
 		<div
 			v-if="isLoading"
-			class="absolute inset-0 bg-white/50 dark:bg-slate-800/60 backdrop-blur-md flex items-center justify-center rounded-xl"
+			class="absolute inset-0 backdrop-blur-md flex items-center justify-center rounded-xl"
+			style="background-color: var(--theme-bg-overlay)"
 		>
 			<div class="flex flex-col items-center">
 				<div
-					class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500/90 dark:border-indigo-400/90"
+					class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
+					style="border-color: var(--theme-accent)"
 				></div>
-				<p class="mt-4 text-gray-700 dark:text-gray-300">Loading graph...</p>
+				<p class="mt-4" style="color: var(--theme-text-primary)">
+					Loading graph...
+				</p>
 			</div>
 		</div>
 	</div>
@@ -35,7 +39,8 @@ export default {
 		const showNodeContextMenu = inject("showNodeContextMenu");
 		const handleNodeSingleClickFromApp = inject("handleNodeSingleClick");
 		const updateStatus = inject("updateStatus");
-		const currentTheme = inject("currentTheme"); // Inject currentTheme
+		const currentThemeMode = inject("currentThemeMode"); // Injects 'light' or 'dark'
+		const currentThemeName = inject("currentThemeName"); // Injects 'indigoViolet', 'oceanBlue', etc.
 
 		const isLoading = ref(false); // Reactive state for loading indicator
 		const graphHtml = ref(""); // Stores HTML from backend (renamed from themedGraphHtml)
@@ -76,6 +81,9 @@ export default {
 		const fetchGraphHtml = () => {
 			iframeKey.value++;
 			const themeQueryParam = currentTheme ? `?theme=${currentTheme()}` : "";
+			// const themeQueryParam = `?theme=${
+			// 	currentThemeName()?.value || "indigoViolet"
+			// }&theme_mode=${currentThemeMode()?.value || "light"}`;
 			fetch(`/api/v1/graph/render${themeQueryParam}`) // Add theme to API call
 				.then((response) => {
 					if (!response.ok) {
