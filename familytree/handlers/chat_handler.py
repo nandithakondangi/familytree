@@ -33,7 +33,7 @@ class ChatHandler:
         )
         self.run_config = RunConfig(streaming_mode=StreamingMode.SSE, max_llm_calls=10)
 
-    def _get_or_create_session(
+    async def _get_or_create_session(
         self, conversation_id: str | None
     ) -> tuple[str, Session]:
         """
@@ -65,7 +65,7 @@ class ChatHandler:
                 )
         return conversation_id, session
 
-    async def call_agent_aync(
+    async def call_agent_async(
         self, query: str, conversation_id: str | None
     ) -> tuple[str, str]:
         """
@@ -78,7 +78,7 @@ class ChatHandler:
         Returns:
             str: The final response from the agent team.
         """
-        conversation_id, session = self._get_or_create_session(conversation_id)
+        conversation_id, session = await self._get_or_create_session(conversation_id)
 
         content = types.Content(
             role="user",  # pyrefly: ignore

@@ -32,7 +32,7 @@ async def send_message(
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
 
     logger.info(f"Received query: {request.query}")
-    conversation_id, response_text = family_handler.ask_about_family(
+    conversation_id, response_text = await family_handler.ask_about_family(
         request.query, request.conversation_id
     )
 
