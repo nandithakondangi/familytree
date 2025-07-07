@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import FileResponse, JSONResponse
@@ -10,9 +9,6 @@ PYTHON_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_PROJECT_DIR = os.path.dirname(PYTHON_DIR)
 FRONTEND_DIST_DIR = os.path.join(BASE_PROJECT_DIR, "frontend", "dist")
 INDEX_HTML_FILE = os.path.join(FRONTEND_DIST_DIR, "index.html")
-
-sys.path.append(BASE_PROJECT_DIR)
-sys.path.append(PYTHON_DIR)
 
 from familytree.exceptions import FamilyTreeBaseError  # noqa: E402
 from familytree.models.base_model import (  # noqa: E402

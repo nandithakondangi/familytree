@@ -1,5 +1,5 @@
 import re
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -709,3 +709,33 @@ def test_delete_relationship_with_inverse(loaded_handler):
 
     assert not graph.has_edge(source_id, target_id)
     assert not graph.has_edge(target_id, source_id)
+
+
+@pytest.mark.asyncio
+async def test_ask_about_family():
+    """
+    Tests that ask_about_family correctly calls the chat handler and returns its response.
+    """
+    # Arrange
+    handler = FamilyTreeHandler()
+
+    # Mock the chat_handler's async method to avoid making a real API call
+    expected_response = ("conv_xyz", "This is a mocked response.")
+    handler.chat_handler.call_agent_async = AsyncMock(return_value=expected_response)
+
+    test_query = "Who is Ron's father?"
+    test_conv_id = "conv_abc"
+
+    # Act
+    result_conv_id, result_text = await handler.ask_about_family(
+        test_query, test_conv_id
+    )
+
+    # Assert
+    # Verify that the underlying chat handler method was called with the correct arguments
+    handler.chat_handler.call_agent_async.assert_awaited_once_with(
+        test_query, test_conv_id
+    )
+
+    # Verify that the method returned the mocked response
+    assert (result_conv_id, result_text) == expected_response
