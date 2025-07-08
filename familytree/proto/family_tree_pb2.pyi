@@ -5,10 +5,10 @@ isort:skip_file
 
 import builtins
 import collections.abc
+import familytree.proto.utils_pb2
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
-import proto.utils_pb2
 import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
@@ -51,21 +51,21 @@ class FamilyMember(google.protobuf.message.Message):
     id: builtins.str
     name: builtins.str
     alive: builtins.bool
-    gender: proto.utils_pb2.Gender.ValueType
+    gender: familytree.proto.utils_pb2.Gender.ValueType
     birth_family_unit_id: builtins.str
     acquired_family_unit_id: builtins.str
     @property
     def nicknames(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
-    def date_of_birth(self) -> proto.utils_pb2.GregorianDate: ...
+    def date_of_birth(self) -> familytree.proto.utils_pb2.GregorianDate: ...
     @property
-    def traditional_date_of_birth(self) -> proto.utils_pb2.TraditionalDate: ...
+    def traditional_date_of_birth(self) -> familytree.proto.utils_pb2.TraditionalDate: ...
     @property
-    def date_of_death(self) -> proto.utils_pb2.GregorianDate: ...
+    def date_of_death(self) -> familytree.proto.utils_pb2.GregorianDate: ...
     @property
-    def traditional_date_of_death(self) -> proto.utils_pb2.TraditionalDate: ...
+    def traditional_date_of_death(self) -> familytree.proto.utils_pb2.TraditionalDate: ...
     @property
-    def wedding_date(self) -> proto.utils_pb2.GregorianDate: ...
+    def wedding_date(self) -> familytree.proto.utils_pb2.GregorianDate: ...
     @property
     def additional_info(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
     def __init__(
@@ -74,15 +74,15 @@ class FamilyMember(google.protobuf.message.Message):
         id: builtins.str = ...,
         name: builtins.str = ...,
         nicknames: collections.abc.Iterable[builtins.str] | None = ...,
-        date_of_birth: proto.utils_pb2.GregorianDate | None = ...,
-        traditional_date_of_birth: proto.utils_pb2.TraditionalDate | None = ...,
+        date_of_birth: familytree.proto.utils_pb2.GregorianDate | None = ...,
+        traditional_date_of_birth: familytree.proto.utils_pb2.TraditionalDate | None = ...,
         alive: builtins.bool | None = ...,
-        date_of_death: proto.utils_pb2.GregorianDate | None = ...,
-        traditional_date_of_death: proto.utils_pb2.TraditionalDate | None = ...,
-        gender: proto.utils_pb2.Gender.ValueType = ...,
+        date_of_death: familytree.proto.utils_pb2.GregorianDate | None = ...,
+        traditional_date_of_death: familytree.proto.utils_pb2.TraditionalDate | None = ...,
+        gender: familytree.proto.utils_pb2.Gender.ValueType = ...,
         birth_family_unit_id: builtins.str | None = ...,
         acquired_family_unit_id: builtins.str | None = ...,
-        wedding_date: proto.utils_pb2.GregorianDate | None = ...,
+        wedding_date: familytree.proto.utils_pb2.GregorianDate | None = ...,
         additional_info: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_acquired_family_unit_id", b"_acquired_family_unit_id", "_alive", b"_alive", "_birth_family_unit_id", b"_birth_family_unit_id", "_wedding_date", b"_wedding_date", "acquired_family_unit_id", b"acquired_family_unit_id", "alive", b"alive", "birth_family_unit_id", b"birth_family_unit_id", "date_of_birth", b"date_of_birth", "date_of_death", b"date_of_death", "traditional_date_of_birth", b"traditional_date_of_birth", "traditional_date_of_death", b"traditional_date_of_death", "wedding_date", b"wedding_date"]) -> builtins.bool: ...

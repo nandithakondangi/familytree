@@ -1,43 +1,39 @@
-import pytest
+from unittest.mock import patch
 
+from google.adk.agents.run_config import RunConfig, StreamingMode
+
+from familytree.ai import family_tree_assistant
 from familytree.handlers.chat_handler import ChatHandler
 
 
-class TestChatHandler:
-    def test_init(self):
-        """
-        Tests that the ChatHandler initializes with default empty attributes.
-        """
-        handler = ChatHandler()
-        assert handler.system_prompt_path == "", "system_prompt_path should be empty"
-        assert handler.api_key == "", "api_key should be empty"
+@patch("familytree.handlers.chat_handler.Runner")
+@patch("familytree.handlers.chat_handler.InMemorySessionService")
+def test_chat_handler_init(mock_session_service, mock_runner):
+    """Tests that the ChatHandler initializes correctly."""
+    # Arrange
+    mock_session_service_instance = mock_session_service.return_value
+    mock_runner_instance = mock_runner.return_value
 
-    def test_initialize_gemini_2_5_flash_not_implemented(self):
-        """
-        Tests that initialize_gemini_2_5_flash (pass) does not raise an error.
-        """
-        handler = ChatHandler()
-        try:
-            handler.initialize_gemini_2_5_flash()
-        except Exception as e:
-            pytest.fail(f"initialize_gemini_2_5_flash raised an exception: {e}")
+    # Act
+    handler = ChatHandler()
 
-    def test_get_gemini_response_not_implemented(self):
-        """
-        Tests that get_gemini_response (pass) does not raise an error.
-        """
-        handler = ChatHandler()
-        try:
-            handler.get_gemini_response("test message")
-        except Exception as e:
-            pytest.fail(f"get_gemini_response raised an exception: {e}")
+    # Assert
+    assert handler.app_name == "Family Genie"
+    assert handler.user_id == "user"
+    assert handler.family_tree_assistant is family_tree_assistant
 
-    def test_load_system_prompt_not_implemented(self):
-        """
-        Tests that _load_system_prompt (pass) does not raise an error.
-        """
-        handler = ChatHandler()
-        try:
-            handler._load_system_prompt()
-        except Exception as e:
-            pytest.fail(f"_load_system_prompt raised an exception: {e}")
+    # Check that SessionService and Runner were initialized correctly
+    mock_session_service.assert_called_once()
+    assert handler.session_service is mock_session_service_instance
+
+    mock_runner.assert_called_once_with(
+        app_name="Family Genie",
+        agent=family_tree_assistant,
+        session_service=mock_session_service_instance,
+    )
+    assert handler.runner is mock_runner_instance
+
+    # Check RunConfig
+    assert isinstance(handler.run_config, RunConfig)
+    assert handler.run_config.streaming_mode == StreamingMode.SSE
+    assert handler.run_config.max_llm_calls == 10

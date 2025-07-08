@@ -1,6 +1,7 @@
 syntax = "proto3";
 package family_tree;
-import "proto/utils.proto";
+
+import "familytree/proto/utils.proto";
 
 
 // Family member information. Each node in the family tree will be stored as a FamilyMember
