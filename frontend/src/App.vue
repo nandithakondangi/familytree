@@ -463,7 +463,7 @@ export default {
 				const memberData = memberResponse.member_info;
 				console.log(`Fetched member details for ${nodeId}:`, memberData);
 
-				// The backend sends protobuf JSON, ensure it's in a good state for the modal
+				// The backend sends standard JSON, ensure it's in a good state for the modal
 				// e.g., nicknamesList to nicknames
 				if (memberData.nicknamesList) {
 					memberData.nicknames = memberData.nicknamesList;
@@ -519,7 +519,7 @@ export default {
 			this.updateStatus(`Updating ${updatedMemberData.name}...`);
 			try {
 				// TODO: Implement backend API call to update member
-				// Ensure updatedMemberData is in the format your backend expects (protobuf JSON)
+				// Ensure updatedMemberData is in the format your backend expects (standard JSON)
 				const response = await fetch(`/api/v1/member/${updatedMemberData.id}`, {
 					// Assuming ID is present
 					method: "PUT", // or PATCH
