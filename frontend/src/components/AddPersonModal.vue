@@ -490,16 +490,6 @@
 import { reactive, watch, computed, inject, ref } from "vue";
 import DatePicker from "vue-datepicker-next";
 import "vue-datepicker-next/index.css";
-import { FamilyMember } from "../proto/family_tree_pb";
-import {
-	GregorianDate as ProtoGregorianDate,
-	TraditionalDate as ProtoTraditionalDate,
-	Gender as ProtoGender,
-	TamilMonth as ProtoTamilMonth,
-	TamilStar as ProtoTamilStar,
-	Paksham as ProtoPaksham,
-	Thithi as ProtoThithi,
-} from "../proto/utils_pb";
 
 export default {
 	name: "AddPersonModal",
@@ -535,7 +525,66 @@ export default {
 	},
 	emits: ["close", "save"],
 	setup(props, { emit }) {
+		// --- Start of Refactor: Hardcoded Enums ---
+		// Since we are no longer importing from Protobuf, we define the enum-like
+		// options as constants. The `value` should be the string representation
+		// that the backend expects.
+		const GENDER_OPTIONS = [
+			{ value: "GENDER_UNKNOWN", text: "Unknown" },
+			{ value: "MALE", text: "Male" },
+			{ value: "FEMALE", text: "Female" },
+			{ value: "OTHER", text: "Other" },
+		];
+
+		const TAMIL_MONTH_OPTIONS = [
+			{ value: "TAMIL_MONTH_UNKNOWN", text: "Unknown" },
+			{ value: "CHITHIRAI", text: "Chithirai" },
+			{ value: "VAIKASI", text: "Vaikasi" },
+			{ value: "AANI", text: "Aani" },
+			{ value: "AADI", text: "Aadi" },
+			{ value: "AAVANI", text: "Aavani" },
+			{ value: "PURATTASI", text: "Purattasi" },
+			{ value: "AIPPASI", text: "Aippasi" },
+			{ value: "KARTHIGAI", text: "Karthigai" },
+			{ value: "MARGAZHI", text: "Margazhi" },
+			{ value: "THAI", text: "Thai" },
+			{ value: "MASI", text: "Masi" },
+			{ value: "PANGUNI", text: "Panguni" },
+		];
+
+		const TAMIL_STAR_OPTIONS = [
+			{ value: "TAMIL_STAR_UNKNOWN", text: "Unknown" },
+			{ value: "ASHWINI", text: "Ashwini" },
+			{ value: "BARANI", text: "Barani" },
+			{ value: "KRITHIGAI", text: "Krithigai" },
+			{ value: "ROHINI", text: "Rohini" },
+			{ value: "MIRUGASEERISHAM", text: "Mirugaseerisham" },
+			{ value: "THIRUVATHIRAI", text: "Thiruvathirai" },
+			{ value: "PUNARPOOSAM", text: "Punarpoosam" },
+			{ value: "POOSAM", text: "Poosam" },
+			{ value: "AAYILYAM", text: "Aayilyam" },
+			{ value: "MAGAM", text: "Magam" },
+			{ value: "POORAM", text: "Pooram" },
+			{ value: "UTHIRAM", text: "Uthiram" },
+			{ value: "HASTHAM", text: "Hastham" },
+			{ value: "CHITTHIRAI", text: "Chitthirai" },
+			{ value: "SWATHI", text: "Swathi" },
+			{ value: "VISAGAM", text: "Visagam" },
+			{ value: "ANUSHAM", text: "Anusham" },
+			{ value: "KETTAI", text: "Kettai" },
+			{ value: "MOOLAM", text: "Moolam" },
+			{ value: "POORADAM", text: "Pooradam" },
+			{ value: "UTHIRADAM", text: "Uthiradam" },
+			{ value: "THIRUVONAM", text: "Thiruvonam" },
+			{ value: "AVITTAM", text: "Avittam" },
+			{ value: "SATHAYAM", text: "Sathayam" },
+			{ value: "POORATTADHI", text: "Poorattadhi" },
+			{ value: "UTHIRATTADHI", text: "Uthirattadhi" },
+			{ value: "REVATHI", text: "Revathi" }
+		]
+
 		const updateStatus = inject("updateStatus");
+
 		const form = reactive({
 			name: "",
 			nicknames: "",
@@ -569,15 +618,7 @@ export default {
 			return date > new Date(new Date().setHours(23, 59, 59, 999)); // Allow today
 		};
 
-		const genderOptions = computed(() => {
-			return Object.keys(ProtoGender).map((key) => {
-				const text = key.replace("GENDER_", "").replace("_", "").toUpperCase();
-				return {
-					value: key,
-					text: text === "UNKNOWN" ? "GENDER UNKNOWN" : text,
-				};
-			});
-		});
+		const genderOptions = computed(() => GENDER_OPTIONS);
 
 		const relationshipTypeMap = {
 			SPOUSE: "SPOUSE",
@@ -585,45 +626,39 @@ export default {
 			CHILD: "PARENT_TO_CHILD",
 		};
 
-		const TamilMonthOptions = computed(() => {
-			return Object.keys(ProtoTamilMonth).map((key) => {
-				const text = key
-					.replace("_UNKNOWN", "")
-					.replace("_", " ")
-					.toUpperCase();
-				return { value: key, text: text };
-			});
-		});
+		const TamilMonthOptions = computed(() => TAMIL_MONTH_OPTIONS);
 
-		const TamilStarOptions = computed(() => {
-			return Object.keys(ProtoTamilStar).map((key) => {
-				const text = key
-					.replace("_UNKNOWN", "")
-					.replace("_", " ")
-					.toUpperCase();
-				return { value: key, text: text };
-			});
-		});
+		const TamilStarOptions = computed(() => TAMIL_STAR_OPTIONS);
 
-		const PakshamOptions = computed(() => {
-			return Object.keys(ProtoPaksham).map((key) => {
-				const text = key
-					.replace("_UNKNOWN", "")
-					.replace("_", " ")
-					.toUpperCase();
-				return { value: key, text: text };
-			});
-		});
+		const PAKSHAM_OPTIONS = [
+			{ value: "PAKSHAM_UNKNOWN", text: "Unknown" },
+			{ value: "KRISHNA", text: "Krishna" },
+			{ value: "SHUKLA", text: "Shukla" }
+		];
 
-		const ThithiOptions = computed(() => {
-			return Object.keys(ProtoThithi).map((key) => {
-				const text = key
-					.replace("_UNKNOWN", "")
-					.replace("_", " ")
-					.toUpperCase();
-				return { value: key, text: text };
-			});
-		});
+		const THITHI_OPTIONS = [
+			{ value: "THITHI_UNKNOWN", text: "Unknown" },
+			{ value: "PRATHAMAI", text: "Prathamai" },
+			{ value: "DWITHIYAI", text: "Dwithiyai" },
+			{ value: "THRITHIYAI", text: "Thrithiyai" },
+			{ value: "CHATHURTHI", text: "Chathurthi" },
+			{ value: "PANCHAMI", text: "Panchami" },
+			{ value: "SASHTI", text: "Sashti" },
+			{ value: "SAPTAMI", text: "Saptami" },
+			{ value: "ASHTAMI", text: "Ashtami" },
+			{ value: "NAVAMI", text: "Navami" },
+			{ value: "DASAMI", text: "Dasami" },
+			{ value: "EKADASI", text: "Ekadasi" },
+			{ value: "DWADASI", text: "Dwadasi" },
+			{ value: "THRAYODASI", text: "Thrayodasi" },
+			{ value: "CHATHURDASI", text: "Chathurdasi" },
+			{ value: "AMAVASYA", text: "Amavasya" },
+			{ value: "POURNAMI", text: "Pournami" }
+		];
+
+		const PakshamOptions = computed(() => PAKSHAM_OPTIONS);
+
+		const ThithiOptions = computed(() => THITHI_OPTIONS);
 
 		const formattedRelationshipType = computed(() => {
 			if (!props.relationshipTypeForNewMember) return "";
@@ -697,47 +732,35 @@ export default {
 				return;
 			}
 
-			const familyMemberMessage = new FamilyMember();
-			familyMemberMessage.setName(form.name.trim());
-			familyMemberMessage.setNicknamesList(
-				form.nicknames
+			const familyMemberMessage = {
+				name: form.name.trim(),
+				nicknames: form.nicknames
 					.split(",")
 					.map((name) => name.trim())
 					.filter((name) => name),
-			);
-			familyMemberMessage.setGender(ProtoGender[form.gender]);
-			familyMemberMessage.setAlive(form.isPersonAlive);
+				gender: form.gender,
+				alive: form.isPersonAlive
+			};
 
 			if (form.isDobKnown) {
 				const dob = parseDateString(form.gregorianDobString);
 				if (dob) {
-					const gregorianDobMessage = new ProtoGregorianDate();
-					gregorianDobMessage.setYear(dob.year);
-					gregorianDobMessage.setMonth(dob.month);
-					gregorianDobMessage.setDate(dob.day);
-					familyMemberMessage.setDateOfBirth(gregorianDobMessage);
+					familyMemberMessage.dateOfBirth = {
+						year: dob.year,
+						month: dob.month,
+						date: dob.day
+					};
 				}
 				if (props.isIndianCulture) {
-					const traditionalDobMessage = new ProtoTraditionalDate();
+					const traditionalDob = {};
 					if (form.traditionalDob.tamilMonth !== "TAMIL_MONTH_UNKNOWN") {
-						traditionalDobMessage.setMonth(
-							ProtoTamilMonth[form.traditionalDob.tamilMonth],
-						);
+						traditionalDob.month = form.traditionalDob.tamilMonth;
 					}
 					if (form.traditionalDob.tamilStar !== "TAMIL_STAR_UNKNOWN") {
-						traditionalDobMessage.setStar(
-							ProtoTamilStar[form.traditionalDob.tamilStar],
-						);
+						traditionalDob.star = form.traditionalDob.tamilStar;
 					}
-					if (
-						traditionalDobMessage.getMonth() !==
-							ProtoTamilMonth.TAMIL_MONTH_UNKNOWN ||
-						traditionalDobMessage.getStar() !==
-							ProtoTamilStar.TAMIL_STAR_UNKNOWN
-					) {
-						familyMemberMessage.setTraditionalDateOfBirth(
-							traditionalDobMessage,
-						);
+					if (Object.keys(traditionalDob).length > 0) {
+						familyMemberMessage.traditionalDateOfBirth = traditionalDob;
 					}
 				}
 			}
@@ -745,83 +768,45 @@ export default {
 			if (!form.isPersonAlive && form.isDodKnown) {
 				const dod = parseDateString(form.gregorianDodString);
 				if (dod) {
-					const gregorianDodMessage = new ProtoGregorianDate();
-					gregorianDodMessage.setYear(dod.year);
-					gregorianDodMessage.setMonth(dod.month);
-					gregorianDodMessage.setDate(dod.day);
-					familyMemberMessage.setDateOfDeath(gregorianDodMessage);
+					familyMemberMessage.dateOfDeath = {
+						year: dod.year,
+						month: dod.month,
+						date: dod.day
+					};
 				}
 				if (props.isIndianCulture) {
-					const traditionalDodMessage = new ProtoTraditionalDate();
+					const traditionalDod = {};
 					if (form.traditionalDod.tamilMonth !== "TAMIL_MONTH_UNKNOWN") {
-						traditionalDodMessage.setMonth(
-							ProtoTamilMonth[form.traditionalDod.tamilMonth],
-						);
+						traditionalDod.month = form.traditionalDod.tamilMonth;
 					}
 					if (form.traditionalDod.paksham !== "PAKSHAM_UNKNOWN") {
-						traditionalDodMessage.setPaksham(
-							ProtoPaksham[form.traditionalDod.paksham],
-						);
+						traditionalDod.paksham = form.traditionalDod.paksham;
 					}
 					if (form.traditionalDod.thithi !== "THITHI_UNKNOWN") {
-						traditionalDodMessage.setThithi(
-							ProtoThithi[form.traditionalDod.thithi],
-						);
+						traditionalDod.thithi = form.traditionalDod.thithi;
 					}
-					if (
-						traditionalDodMessage.getMonth() !==
-							ProtoTamilMonth.TAMIL_MONTH_UNKNOWN ||
-						traditionalDodMessage.getPaksham() !==
-							ProtoPaksham.PAKSHAM_UNKNOWN ||
-						traditionalDodMessage.getThithi() !== ProtoThithi.THITHI_UNKNOWN
-					) {
-						familyMemberMessage.setTraditionalDateOfDeath(
-							traditionalDodMessage,
-						);
+					if (Object.keys(traditionalDod).length > 0) {
+						familyMemberMessage.traditionalDateOfDeath = traditionalDod;
 					}
 				}
 			}
 
-			// Prepare additionalInfo map for protobuf
-			const finalAdditionalInfoObject = {};
+			// Prepare additionalInfo map
+			const additionalInfo = {};
 			if (profileImagePreview.value) {
-				finalAdditionalInfoObject["profilePictureBase64"] =
-					profileImagePreview.value;
+				additionalInfo["profilePictureBase64"] = profileImagePreview.value;
 			}
 			form.dynamicFields.forEach((field) => {
 				if (field.key && field.key.trim() !== "") {
-					finalAdditionalInfoObject[field.key.trim()] = field.value;
+					additionalInfo[field.key.trim()] = field.value;
 				}
 			});
 
-			const additionalInfoProtoMap = familyMemberMessage.getAdditionalInfoMap();
-			for (const [key, value] of Object.entries(finalAdditionalInfoObject)) {
-				additionalInfoProtoMap.set(key, value);
-			}
-
-			const memberProtoJson = familyMemberMessage.toObject();
-
-			if (
-				Object.prototype.hasOwnProperty.call(memberProtoJson, "nicknamesList")
-			) {
-				memberProtoJson.nicknames = memberProtoJson.nicknamesList;
-				delete memberProtoJson.nicknamesList;
-			}
-
-			// Ensure additionalInfo is a direct object for Python backend
-			memberProtoJson.additionalInfo = finalAdditionalInfoObject;
-			if (
-				Object.prototype.hasOwnProperty.call(
-					memberProtoJson,
-					"additionalInfoMap",
-				)
-			) {
-				delete memberProtoJson.additionalInfoMap; // Clean up if toObject() created this
-			}
+			familyMemberMessage.additionalInfo = additionalInfo;
 
 			const request_data = {
 				infer_relationships: props.inferRelationshipsEnabled,
-				new_member_data: memberProtoJson,
+				new_member_data: familyMemberMessage,
 			};
 
 			if (

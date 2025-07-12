@@ -161,7 +161,7 @@
 											class="form-input"
 										>
 											<option
-												v-for="option in genderOptions"
+												v-for="option in GENDER_OPTIONS"
 												:key="option.value"
 												:value="option.value"
 											>
@@ -307,7 +307,7 @@
 															class="form-input text-sm"
 														>
 															<option
-																v-for="option in TamilMonthOptions"
+																v-for="option in TAMIL_MONTH_OPTIONS"
 																:key="option.value"
 																:value="option.value"
 															>
@@ -320,7 +320,7 @@
 															class="form-input text-sm"
 														>
 															<option
-																v-for="option in TamilStarOptions"
+																v-for="option in TAMIL_STAR_OPTIONS"
 																:key="option.value"
 																:value="option.value"
 															>
@@ -445,7 +445,7 @@
 															class="form-input text-sm"
 														>
 															<option
-																v-for="option in TamilMonthOptions"
+																v-for="option in TAMIL_MONTH_OPTIONS"
 																:key="option.value"
 																:value="option.value"
 															>
@@ -460,7 +460,7 @@
 															class="form-input text-sm"
 														>
 															<option
-																v-for="option in PakshamOptions"
+																v-for="option in PAKSHAM_OPTIONS"
 																:key="option.value"
 																:value="option.value"
 															>
@@ -475,7 +475,7 @@
 															class="form-input text-sm"
 														>
 															<option
-																v-for="option in ThithiOptions"
+																v-for="option in THITHI_OPTIONS"
 																:key="option.value"
 																:value="option.value"
 															>
@@ -565,7 +565,7 @@
 											class="form-input text-sm"
 										>
 											<option
-												v-for="option in TamilMonthOptions"
+												v-for="option in TAMIL_MONTH_OPTIONS"
 												:key="option.value"
 												:value="option.value"
 											>
@@ -578,7 +578,7 @@
 											class="form-input text-sm"
 										>
 											<option
-												v-for="option in PakshamOptions"
+												v-for="option in PAKSHAM_OPTIONS"
 												:key="option.value"
 												:value="option.value"
 											>
@@ -591,7 +591,7 @@
 											class="form-input text-sm"
 										>
 											<option
-												v-for="option in ThithiOptions"
+												v-for="option in THITHI_OPTIONS"
 												:key="option.value"
 												:value="option.value"
 											>
@@ -787,13 +787,87 @@ import {
 import DatePicker from "vue-datepicker-next";
 import "vue-datepicker-next/index.css";
 import EditableField from "./EditableField.vue";
-import {
-	Gender as ProtoGender,
-	TamilMonth as ProtoTamilMonth,
-	TamilStar as ProtoTamilStar,
-	Paksham as ProtoPaksham,
-	Thithi as ProtoThithi,
-} from "../proto/utils_pb";
+
+// Constants for enums (replacing Proto* imports)
+const GENDER_OPTIONS = [
+	{ value: "GENDER_UNKNOWN", text: "Unknown" },
+	{ value: "MALE", text: "Male" },
+	{ value: "FEMALE", text: "Female" },
+	{ value: "OTHER", text: "Other" }
+];
+
+const TAMIL_MONTH_OPTIONS = [
+	{ value: "TAMIL_MONTH_UNKNOWN", text: "Unknown" },
+	{ value: "CHITHIRAI", text: "Chithirai" },
+	{ value: "VAIKASI", text: "Vaikasi" },
+	{ value: "AANI", text: "Aani" },
+	{ value: "AADI", text: "Aadi" },
+	{ value: "AAVANI", text: "Aavani" },
+	{ value: "PURATTASI", text: "Purattasi" },
+	{ value: "IYPASI", text: "Iypasi" },
+	{ value: "KARTHIGAI", text: "Karthigai" },
+	{ value: "MARGAZHI", text: "Margazhi" },
+	{ value: "THAI", text: "Thai" },
+	{ value: "MAASI", text: "Maasi" },
+	{ value: "PANGUNI", text: "Panguni" }
+];
+
+const TAMIL_STAR_OPTIONS = [
+	{ value: "TAMIL_STAR_UNKNOWN", text: "Unknown" },
+	{ value: "ASHWINI", text: "Ashwini" },
+	{ value: "BARANI", text: "Barani" },
+	{ value: "KRITHIGAI", text: "Krithigai" },
+	{ value: "ROHINI", text: "Rohini" },
+	{ value: "MIRUGASEERISHAM", text: "Mirugaseerisham" },
+	{ value: "THIRUVATHIRAI", text: "Thiruvathirai" },
+	{ value: "PUNARPOOSAM", text: "Punarpoosam" },
+	{ value: "POOSAM", text: "Poosam" },
+	{ value: "AAYILYAM", text: "Aayilyam" },
+	{ value: "MAGAM", text: "Magam" },
+	{ value: "POORAM", text: "Pooram" },
+	{ value: "UTHIRAM", text: "Uthiram" },
+	{ value: "HASTHAM", text: "Hastham" },
+	{ value: "CHITTHIRAI", text: "Chitthirai" },
+	{ value: "SWATHI", text: "Swathi" },
+	{ value: "VISAGAM", text: "Visagam" },
+	{ value: "ANUSHAM", text: "Anusham" },
+	{ value: "KETTAI", text: "Kettai" },
+	{ value: "MOOLAM", text: "Moolam" },
+	{ value: "POORADAM", text: "Pooradam" },
+	{ value: "UTHIRADAM", text: "Uthiradam" },
+	{ value: "THIRUVONAM", text: "Thiruvonam" },
+	{ value: "AVITTAM", text: "Avittam" },
+	{ value: "SATHAYAM", text: "Sathayam" },
+	{ value: "POORATTADHI", text: "Poorattadhi" },
+	{ value: "UTHIRATTADHI", text: "Uthirattadhi" },
+	{ value: "REVATHI", text: "Revathi" }
+];
+
+const PAKSHAM_OPTIONS = [
+	{ value: "PAKSHAM_UNKNOWN", text: "Unknown" },
+	{ value: "KRISHNA", text: "Krishna" },
+	{ value: "SHUKLA", text: "Shukla" }
+];
+
+const THITHI_OPTIONS = [
+	{ value: "THITHI_UNKNOWN", text: "Unknown" },
+	{ value: "PRATHAMAI", text: "Prathamai" },
+	{ value: "DWITHIYAI", text: "Dwithiyai" },
+	{ value: "THRITHIYAI", text: "Thrithiyai" },
+	{ value: "CHATHURTHI", text: "Chathurthi" },
+	{ value: "PANCHAMI", text: "Panchami" },
+	{ value: "SASHTI", text: "Sashti" },
+	{ value: "SAPTAMI", text: "Saptami" },
+	{ value: "ASHTAMI", text: "Ashtami" },
+	{ value: "NAVAMI", text: "Navami" },
+	{ value: "DASAMI", text: "Dasami" },
+	{ value: "EKADASI", text: "Ekadasi" },
+	{ value: "DWADASI", text: "Dwadasi" },
+	{ value: "THRAYODASI", text: "Thrayodasi" },
+	{ value: "CHATHURDASI", text: "Chathurdasi" },
+	{ value: "AMAVASYA", text: "Amavasya" },
+	{ value: "POURNAMI", text: "Pournami" }
+];
 
 const props = defineProps({
 	isVisible: Boolean,
@@ -898,19 +972,28 @@ const traditionalDod_Dedicated = reactive({
 	thithi: "THITHI_UNKNOWN",
 });
 
-const genderOptions = computed(() => {
-	return Object.keys(ProtoGender).map((key) => {
-		const text = key.replace("GENDER_", "").replace("_", " ").toUpperCase();
-		return {
-			value: ProtoGender[key],
-			text: text === "UNKNOWN" ? "GENDER UNKNOWN" : text,
-		};
-	});
+const genderOptions = computed(() => GENDER_OPTIONS);
+
+const TamilMonthOptions = computed(() => TAMIL_MONTH_OPTIONS);
+
+const TamilStarOptions = computed(() => TAMIL_STAR_OPTIONS);
+
+const PakshamOptions = computed(() => PAKSHAM_OPTIONS);
+
+const ThithiOptions = computed(() => THITHI_OPTIONS);
+
+const displayGender = computed(() => {
+	if (!editableMember.value || typeof editableMember.value.gender !== "string") {
+		return "N/A";
+	}
+
+	const genderOption = GENDER_OPTIONS.find(opt => opt.value === editableMember.value.gender);
+	return genderOption ? genderOption.text : "N/A";
 });
 
 const tamilMonthMap = Object.fromEntries(
-	Object.entries(ProtoTamilMonth).map(([key, value]) => [
-		value,
+	Object.entries(TAMIL_MONTH_OPTIONS).map(([key, value]) => [
+		value.value,
 		key
 			.replace("TAMIL_MONTH_", "")
 			.replace("_UNKNOWN", "Unknown")
@@ -918,8 +1001,8 @@ const tamilMonthMap = Object.fromEntries(
 	]),
 );
 const tamilStarMap = Object.fromEntries(
-	Object.entries(ProtoTamilStar).map(([key, value]) => [
-		value,
+	Object.entries(TAMIL_STAR_OPTIONS).map(([key, value]) => [
+		value.value,
 		key
 			.replace("TAMIL_STAR_", "")
 			.replace("_UNKNOWN", "Unknown")
@@ -927,8 +1010,8 @@ const tamilStarMap = Object.fromEntries(
 	]),
 );
 const pakshamMap = Object.fromEntries(
-	Object.entries(ProtoPaksham).map(([key, value]) => [
-		value,
+	Object.entries(PAKSHAM_OPTIONS).map(([key, value]) => [
+		value.value,
 		key
 			.replace("PAKSHAM_", "")
 			.replace("_UNKNOWN", "Unknown")
@@ -936,51 +1019,11 @@ const pakshamMap = Object.fromEntries(
 	]),
 );
 const thithiMap = Object.fromEntries(
-	Object.entries(ProtoThithi).map(([key, value]) => [
-		value,
+	Object.entries(THITHI_OPTIONS).map(([key, value]) => [
+		value.value,
 		key.replace("THITHI_", "").replace("_UNKNOWN", "Unknown").replace("_", " "),
 	]),
 );
-
-const TamilStarOptions = computed(() => {
-	return Object.keys(ProtoTamilStar).map((key) => ({
-		value: key,
-		text: key
-			.replace("TAMIL_STAR_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	}));
-});
-
-const TamilMonthOptions = computed(() => {
-	return Object.keys(ProtoTamilMonth).map((key) => ({
-		value: key,
-		text: key
-			.replace("TAMIL_MONTH_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	}));
-});
-
-const PakshamOptions = computed(() => {
-	return Object.keys(ProtoPaksham).map((key) => ({
-		value: key,
-		text: key
-			.replace("PAKSHAM_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	}));
-});
-
-const ThithiOptions = computed(() => {
-	return Object.keys(ProtoThithi).map((key) => ({
-		value: key,
-		text: key
-			.replace("THITHI_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	}));
-});
 
 const disableFutureDates = (date) => {
 	return date > new Date(new Date().setHours(23, 59, 59, 999)); // Allow today
@@ -1134,23 +1177,6 @@ const otherAdditionalFields = computed(() => {
 	return fields;
 });
 
-const displayGender = computed(() => {
-	// Ensure editableMember.value and its gender property exist and gender is a string
-	if (
-		!editableMember.value ||
-		typeof editableMember.value.gender !== "string"
-	) {
-		return "N/A";
-	}
-
-	const memberGenderStringKey = editableMember.value.gender.toUpperCase();
-	let numericGenderValue = ProtoGender[memberGenderStringKey];
-	const genderEntry = genderOptions.value.find(
-		(opt) => opt.value === numericGenderValue,
-	);
-	return genderEntry ? genderEntry.text : "N/A";
-});
-
 function formatDate(dateObj) {
 	if (!dateObj || !dateObj.year || !dateObj.month || !dateObj.date)
 		return "N/A";
@@ -1163,34 +1189,34 @@ function formatDate(dateObj) {
 function formatTraditionalDate(tradDateObj, type) {
 	if (!tradDateObj) return "";
 	let parts = [];
-	if (
-		tradDateObj.month &&
-		tamilMonthMap[ProtoTamilMonth[tradDateObj.month]] &&
-		tamilMonthMap[ProtoTamilMonth[tradDateObj.month]] !== 0
-	)
-		parts.push(tamilMonthMap[ProtoTamilMonth[tradDateObj.month]]);
 
-	if (
-		type === "dob" &&
-		tradDateObj.star &&
-		tamilStarMap[ProtoTamilStar[tradDateObj.star]] &&
-		tamilStarMap[ProtoTamilStar[tradDateObj.star]] !== 0
-	)
-		parts.push(tamilStarMap[ProtoTamilStar[tradDateObj.star]]);
+	if (tradDateObj.month) {
+		const monthOption = TAMIL_MONTH_OPTIONS.find(opt => opt.value === tradDateObj.month);
+		if (monthOption && monthOption.value !== "TAMIL_MONTH_UNKNOWN") {
+			parts.push(monthOption.text);
+		}
+	}
+
+	if (type === "dob" && tradDateObj.star) {
+		const starOption = TAMIL_STAR_OPTIONS.find(opt => opt.value === tradDateObj.star);
+		if (starOption && starOption.value !== "TAMIL_STAR_UNKNOWN") {
+			parts.push(starOption.text);
+		}
+	}
 
 	if (type === "dod") {
-		if (
-			tradDateObj.paksham &&
-			pakshamMap[ProtoPaksham[tradDateObj.paksham]] &&
-			pakshamMap[ProtoPaksham[tradDateObj.paksham]] !== 0
-		)
-			parts.push(pakshamMap[ProtoPaksham[tradDateObj.paksham]]);
-		if (
-			tradDateObj.thithi &&
-			thithiMap[ProtoThithi[tradDateObj.thithi]] &&
-			thithiMap[ProtoThithi[tradDateObj.thithi]] !== 0
-		)
-			parts.push(thithiMap[ProtoThithi[tradDateObj.thithi]]);
+		if (tradDateObj.paksham) {
+			const pakshamOption = PAKSHAM_OPTIONS.find(opt => opt.value === tradDateObj.paksham);
+			if (pakshamOption && pakshamOption.value !== "PAKSHAM_UNKNOWN") {
+				parts.push(pakshamOption.text);
+			}
+		}
+		if (tradDateObj.thithi) {
+			const thithiOption = THITHI_OPTIONS.find(opt => opt.value === tradDateObj.thithi);
+			if (thithiOption && thithiOption.value !== "THITHI_UNKNOWN") {
+				parts.push(thithiOption.text);
+			}
+		}
 	}
 	return parts.join(", ");
 }
@@ -1228,7 +1254,7 @@ const toggleEdit = (fieldName) => {
 		} else if (fieldName === "gender") {
 			// editableMember.value.gender is a string like "MALE"
 			const stringKey = String(editableMember.value.gender).toUpperCase();
-			editValues.gender = ProtoGender[stringKey] ?? ProtoGender.GENDER_UNKNOWN;
+			editValues.gender = GENDER_OPTIONS.find(opt => opt.value === stringKey)?.value;
 		} else {
 			editValues[fieldName] = editableMember.value[fieldName];
 		}
@@ -1238,9 +1264,7 @@ const toggleEdit = (fieldName) => {
 			typeof editableMember.value.gender === "string"
 		) {
 			editValues.gender =
-				ProtoGender[editableMember.value.gender.toUpperCase()] ??
-				ProtoGender["GENDER_" + editableMember.value.gender.toUpperCase()] ??
-				ProtoGender.GENDER_UNKNOWN;
+				GENDER_OPTIONS.find(opt => opt.value === editableMember.value.gender.toUpperCase())?.value;
 		}
 		// The previous complex logic for gender string to numeric conversion was removed here.
 		// It's now handled directly in toggleEdit for gender.
@@ -1268,11 +1292,8 @@ const saveField = (fieldName, newValue) => {
 	} else if (fieldName === "gender") {
 		// editValues.gender holds the numeric enum value from the select
 		// We need to find the string key (e.g., "MALE") for that numeric value
-		const numericGender = parseInt(newValue, 10); // Ensure it's a number
-		const stringKey = Object.keys(ProtoGender).find(
-			(key) => ProtoGender[key] === numericGender,
-		);
-		editableMember.value.gender = stringKey || "GENDER_UNKNOWN";
+		const numericGender = GENDER_OPTIONS.find(opt => opt.value === newValue)?.value;
+		editableMember.value.gender = numericGender || "GENDER_UNKNOWN";
 	} else if (fieldName === "alive") {
 		editableMember.value.alive = newValue;
 		if (!newValue && wasAliveWhenModalOpened.value) {
