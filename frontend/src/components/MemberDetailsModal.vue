@@ -47,7 +47,7 @@
 				<div class="flex-1 flex flex-col md:flex-row md:space-x-6 min-h-0">
 					<!-- Left Pane: Image and Basic Info -->
 					<div
-						olass="w-full md:w-1/3 flex flex-col items-center py-4 space-y-3"
+						class="w-full md:w-1/3 flex flex-col items-center py-4 space-y-3"
 						v-if="editableMember.id"
 					>
 						<div class="relative group">
