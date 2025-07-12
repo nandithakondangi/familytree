@@ -46,3 +46,9 @@ frontend/pnpm-debug.log* # Originally pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+frontend/*storybook.log
+frontend/storybook-static
+# Storybook build output
+frontend/storybook-static/
+frontend/.storybook/cache/
+frontend/.cache/

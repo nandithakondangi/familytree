@@ -943,7 +943,9 @@ export default {
 <style scoped>
 /* Custom styles for the toggle switch (existing) */
 .toggle-checkbox {
-	transition: right 0.2s ease-in-out, border-color 0.2s ease-in-out;
+	transition:
+		right 0.2s ease-in-out,
+		border-color 0.2s ease-in-out;
 }
 .toggle-checkbox:checked {
 	right: 0;

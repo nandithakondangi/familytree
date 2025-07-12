@@ -229,11 +229,11 @@
 										(editableMember.traditional_date_of_birth.month ||
 											editableMember.traditional_date_of_birth.star)
 											? ' (' +
-											  formatTraditionalDate(
+												formatTraditionalDate(
 													editableMember.traditional_date_of_birth,
 													'dob',
-											  ) +
-											  ')'
+												) +
+												')'
 											: ''
 									}`"
 									fieldName="dob"
@@ -361,11 +361,11 @@
 											editableMember.traditional_date_of_death.paksham ||
 											editableMember.traditional_date_of_death.thithi)
 											? ' (' +
-											  formatTraditionalDate(
+												formatTraditionalDate(
 													editableMember.traditional_date_of_death,
 													'dod',
-											  ) +
-											  ')'
+												) +
+												')'
 											: ''
 									}`"
 									fieldName="dod"

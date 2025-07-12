@@ -1,50 +1,68 @@
 {
-	"name": "frontend",
-	"version": "0.1.0",
-	"private": true,
-	"scripts": {
-		"serve": "vue-cli-service serve",
-		"build": "vue-cli-service build",
-		"lint": "vue-cli-service lint"
-	},
-	"dependencies": {
-		"core-js": "^3.8.3",
-		"vue": "^3.2.13",
-		"vue-datepicker-next": "^1.0.3"
-	},
-	"devDependencies": {
-		"@babel/core": "^7.12.16",
-		"@babel/eslint-parser": "^7.12.16",
-		"@tailwindcss/typography": "^0.5.16",
-		"@vue/cli-plugin-babel": "~5.0.0",
-		"@vue/cli-plugin-eslint": "~5.0.0",
-		"@vue/cli-service": "~5.0.0",
-		"autoprefixer": "^10.4.21",
-		"eslint": "^7.32.0",
-		"eslint-config-prettier": "^10.1.5",
-		"eslint-plugin-vue": "^8.0.3",
-		"postcss": "^8.5.3",
-		"prettier": "^3.0.0-alpha.6",
-		"tailwindcss": "^3.4.17"
-	},
-	"eslintConfig": {
-		"root": true,
-		"env": {
-			"node": true
-		},
-		"extends": [
-			"plugin:vue/vue3-essential",
-			"eslint:recommended"
-		],
-		"parserOptions": {
-			"parser": "@babel/eslint-parser"
-		},
-		"rules": {}
-	},
-	"browserslist": [
-		"> 1%",
-		"last 2 versions",
-		"not dead",
-		"not ie 11"
-	]
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "core-js": "^3.8.3",
+    "pinia": "^3.0.3",
+    "vue": "^3.2.13",
+    "vue-datepicker-next": "^1.0.3"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.28.0",
+    "@chromatic-com/storybook": "^4.0.1",
+    "@storybook/addon-a11y": "^9.0.16",
+    "@storybook/addon-docs": "^9.0.16",
+    "@storybook/addon-onboarding": "^9.0.16",
+    "@storybook/addon-themes": "^9.0.16",
+    "@storybook/addon-vitest": "^9.0.16",
+    "@storybook/vue3-vite": "^9.0.16",
+    "@tailwindcss/typography": "^0.5.16",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitest/browser": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-storybook": "^9.0.16",
+    "eslint-plugin-vue": "^10.3.0",
+    "playwright": "^1.54.1",
+    "postcss": "^8.5.3",
+    "prettier": "^3.0.0-alpha.6",
+    "storybook": "^9.0.16",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.0.0",
+    "vitest": "^3.2.4"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/vue3-recommended",
+      "eslint:recommended",
+      "prettier"
+    ],
+    "parser": "vue-eslint-parser",
+    "parserOptions": {
+      "ecmaVersion": "latest",
+      "sourceType": "module",
+      "parser": "@babel/eslint-parser"
+    },
+    "rules": {}
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
 }
