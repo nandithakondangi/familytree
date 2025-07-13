@@ -1,9 +1,9 @@
-import GlassButton from "./GlassButton.vue";
+import GlassyButton from "./GlassyButton.vue";
 
 // More on how to set up stories at: https://storybook.js.org/docs/vue/writing-stories/introduction
 export default {
-	title: "UI/GlassButton",
-	component: GlassButton,
+	title: "UI/GlassyButton",
+	component: GlassyButton,
 	tags: ["autodocs"],
 	argTypes: {
 		// Slot content control
@@ -13,7 +13,7 @@ export default {
 			name: "slotContent", // Rename for clarity in controls panel
 		},
 		// Prop controls
-		color: {
+		themeColor: {
 			control: { type: "select" },
 			options: ["blue", "indigo", "green", "orange", "yellow", "danger"],
 			description: "The color theme of the button.",
@@ -25,12 +25,12 @@ export default {
 	},
 	// Use a render function to pass props and slot content via args
 	render: (args) => ({
-		components: { GlassButton },
+		components: { GlassyButton },
 		setup() {
 			return { args };
 		},
 		template:
-			'<GlassButton :color="args.color" :disabled="args.disabled">{{ args.slotContent }}</GlassButton>',
+			'<GlassyButton :themeColor="args.themeColor" :disabled="args.disabled">{{ args.slotContent }}</GlassyButton>',
 	}),
 };
 
@@ -38,7 +38,7 @@ export default {
 export const Primary = {
 	args: {
 		slotContent: "Interactive Button",
-		color: "blue",
+		themeColor: "blue",
 		disabled: false,
 	},
 };
@@ -46,16 +46,16 @@ export const Primary = {
 // Story to display all color variants
 export const AllColors = {
 	render: () => ({
-		components: { GlassButton },
+		components: { GlassyButton },
 		setup() {
 			const colors = ["blue", "indigo", "green", "orange", "yellow", "danger"];
 			return { colors };
 		},
 		template: `
       <div class="flex flex-wrap items-center gap-4">
-        <GlassButton v-for="color in colors" :key="color" :color="color">
+        <GlassyButton v-for="color in colors" :key="color" :themeColor="color">
           {{ color.charAt(0).toUpperCase() + color.slice(1) }}
-        </GlassButton>
+        </GlassyButton>
       </div>
     `,
 	}),
@@ -63,7 +63,7 @@ export const AllColors = {
 	argTypes: {
 		slotContent: { table: { disable: true } },
 		default: { table: { disable: true } },
-		color: { table: { disable: true } },
+		themeColor: { table: { disable: true } },
 		disabled: { table: { disable: true } },
 	},
 };
@@ -73,7 +73,7 @@ export const Disabled = {
 	args: {
 		slotContent: "Disabled Button",
 		disabled: true,
-		color: "blue",
+		themeColor: "blue",
 	},
 };
 
@@ -81,21 +81,21 @@ export const Disabled = {
 export const WithIcon = {
 	args: {
 		slotContent: "Save Changes",
-		color: "green",
+		themeColor: "green",
 		disabled: false,
 	},
 	render: (args) => ({
-		components: { GlassButton },
+		components: { GlassyButton },
 		setup() {
 			return { args };
 		},
 		template: `
-      <GlassButton :color="args.color" :disabled="args.disabled">
+      <GlassyButton :themeColor="args.themeColor" :disabled="args.disabled">
         <span class="flex items-center justify-center">
           💾
           <span class="ml-2">{{ args.slotContent }}</span>
         </span>
-      </GlassButton>
+      </GlassyButton>
     `,
 	}),
 };

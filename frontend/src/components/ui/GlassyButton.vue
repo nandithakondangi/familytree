@@ -6,9 +6,7 @@
 		</span>
 
 		<!-- Permanent shine effect that intensifies on hover to create a bulging look -->
-		<div
-			class="absolute inset-0 h-full w-full rounded-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300"
-		></div>
+		<div :class="shineEffectClasses"></div>
 	</button>
 </template>
 
@@ -16,9 +14,9 @@
 import { computed } from "vue";
 
 const props = defineProps({
-	color: {
+	themeColor: {
 		type: String,
-		default: "blue", // e.g., 'blue', 'purple', 'green'
+		default: "indigo",
 		validator: (value) =>
 			["blue", "indigo", "green", "orange", "yellow", "danger"].includes(value),
 	},
@@ -53,8 +51,18 @@ const enabledStateClasses =
 const disabledStateClasses = "opacity-50 cursor-not-allowed";
 
 const buttonClasses = computed(() => {
-	const color = colorVariantClasses[props.color] || colorVariantClasses.blue;
+	const color = colorVariantClasses[props.themeColor] || colorVariantClasses.indigo;
 	const state = props.disabled ? disabledStateClasses : enabledStateClasses;
 	return `${baseClasses} ${color} ${state}`;
 });
+
+const shineEffectClasses = computed(() => `
+	absolute inset-0 h-full w-full 
+	rounded-full 
+	bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] 
+	from-white/40 to-transparent 
+	opacity-60 
+	group-hover:opacity-90 
+	transition-opacity duration-300
+`);
 </script>
