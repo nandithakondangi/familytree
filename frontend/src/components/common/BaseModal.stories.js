@@ -1,5 +1,5 @@
 import BaseModal from "./BaseModal.vue";
-import GlassButton from "../ui/GlassButton.vue";
+import GlassyButton from "../ui/GlassyButton.vue";
 
 export default {
 	title: "COMMON/BaseModal",
@@ -80,7 +80,7 @@ export default {
 };
 
 const Template = (args) => ({
-	components: { BaseModal, GlassButton },
+	components: { BaseModal, GlassyButton },
 	setup() {
 		return { args };
 	},
@@ -110,8 +110,8 @@ const Template = (args) => ({
       </template>
 
       <template #footer v-if="args.footerSlot">
-        <GlassButton color="green" @click="args.onClose">Confirm</GlassButton>
-        <GlassButton color="danger" @click="args.onClose">Cancel</GlassButton>
+        <GlassyButton themeColor="green" @click="args.onClose">Confirm</GlassyButton>
+        <GlassyButton themeColor="danger" @click="args.onClose">Cancel</GlassyButton>
       </template>
     </BaseModal>
   `,
