@@ -1,0 +1,193 @@
+<template>
+	<TransitionRoot appear :show="show" as="template">
+		<Dialog as="div" @close="closeModal" class="relative z-50">
+			<TransitionChild
+				as="div"
+				:class="['fixed inset-0 backdrop-blur-md', colorClasses.backdrop]"
+				enter="duration-300 ease-out"
+				enter-from="opacity-0"
+				enter-to="opacity-100"
+				leave="duration-200 ease-in"
+				leave-from="opacity-100"
+				leave-to="opacity-0"
+			/>
+
+			<!-- Full-screen container to center the panel -->
+			<div class="fixed inset-0 overflow-hidden">
+				<TransitionChild
+					as="div"
+					class="flex h-full w-full items-center justify-center p-4 text-center overflow-y-auto"
+					enter="transition-modal-enter"
+					:enter-from="animationClasses.enterFrom"
+					:enter-to="animationClasses.enterTo"
+					leave="transition-modal-leave"
+					:leave-from="animationClasses.leaveFrom"
+					:leave-to="animationClasses.leaveTo"
+				>
+					<DialogPanel
+							:class="[
+								'relative w-full transform overflow-hidden rounded-2xl p-4 text-left align-middle shadow-2xl transition-all',
+								'border border-white/20 backdrop-blur-xl',
+								maxWidthClass,
+								colorClasses.panel,
+							]"
+						>
+						<!-- Permanent shine effect for a glassy look -->
+						<div
+							class="pointer-events-none absolute inset-0 h-full w-full rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white/30 to-transparent opacity-40"
+						></div>
+
+						<div class="relative">
+							<DialogTitle
+								v-if="$slots.header"
+								as="h3"
+								:class="['text-xl font-semibold leading-6', colorClasses.header]"
+							>
+								<slot name="header"></slot>
+							</DialogTitle>
+
+							<div :class="['mt-4 text-sm', colorClasses.body]">
+								<!-- Single Panel Layout -->
+								<div v-if="panelLayout === 'single'">
+									<div
+										class="rounded-2xl shadow-lg p-2 border border-white/20"
+									>
+										<slot></slot>
+									</div>
+								</div>
+								<!-- Double Panel Layout -->
+								<div v-else-if="panelLayout === 'double'" class="grid grid-cols-1 md:grid-cols-5 gap-1">
+									<div
+										class="md:col-span-2 rounded-2xl shadow-lg p-2 border border-white/20"
+									>
+										<slot name="left-panel"></slot>
+									</div>
+									<div class="md:col-span-3 rounded-2xl shadow-lg p-2 border border-white/20">
+										<slot name="right-panel"></slot>
+									</div>
+								</div>
+							</div>
+
+							<div v-if="$slots.footer" class="mt-6 flex justify-end space-x-4">
+								<slot name="footer"></slot>
+							</div>
+						</div>
+					</DialogPanel>
+				</TransitionChild>
+			</div>
+		</Dialog>
+	</TransitionRoot>
+</template>
+
+<script setup>
+import { computed } from "vue";
+import {
+	TransitionRoot,
+	TransitionChild,
+	Dialog,
+	DialogPanel,
+	DialogTitle,
+} from "@headlessui/vue";
+import { useExpandFromCenterAnimation } from "@/composables/animations/useExpandFromCenterAnimation";
+import { useDropFromTopAnimation } from "@/composables/animations/useDropFromTopAnimation";
+import { useRiseFromBottomAnimation } from "@/composables/animations/useRiseFromBottomAnimation";
+
+const props = defineProps({
+	show: {
+		type: Boolean,
+		default: false,
+	},
+	maxWidth: {
+		type: String,
+		default: "md",
+		validator: (value) => ["sm", "md", "lg", "xl", "2xl"].includes(value),
+	},
+	color: {
+		type: String,
+		default: "default",
+		validator: (value) =>
+			["default", "blue", "indigo", "green", "orange", "yellow", "danger"].includes(value),
+	},
+	panelLayout: {
+		type: String,
+		default: "single",
+		validator: (value) => ["single", "double"].includes(value),
+	},
+	animationType: {
+		type: String,
+		default: "expand-from-center",
+		validator: (value) => ["expand-from-center", "drop-from-top", "rise-from-bottom"].includes(value),
+	},
+});
+
+const emit = defineEmits(["close"]);
+
+function closeModal() {
+	emit("close");
+}
+
+const maxWidthClass = computed(() => {
+	return {
+		sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", xl: "max-w-xl", "2xl": "max-w-2xl",
+	}[props.maxWidth];
+});
+
+const animationClasses = computed(() => {
+	switch (props.animationType) {
+		case "drop-from-top":
+			return useDropFromTopAnimation();
+		case "rise-from-bottom":
+			return useRiseFromBottomAnimation();
+		case "expand-from-center":
+		default:
+			return useExpandFromCenterAnimation();
+	}
+});
+
+const colorClasses = computed(() => {
+	return {
+		default: {
+			backdrop: "bg-gray-500/20 dark:bg-black/20",
+			panel: "bg-white/60 dark:bg-gray-900/60",
+			header: "text-gray-900 dark:text-gray-50",
+			body: "text-gray-800 dark:text-gray-300",
+		},
+		blue: {
+			backdrop: "bg-blue-300/20 dark:bg-blue-950/20",
+			panel: "bg-blue-200/50 dark:bg-blue-900/50",
+			header: "text-blue-900 dark:text-blue-100",
+			body: "text-blue-800 dark:text-blue-200",
+		},
+		indigo: {
+			backdrop: "bg-indigo-300/20 dark:bg-indigo-950/20",
+			panel: "bg-indigo-200/50 dark:bg-indigo-900/50",
+			header: "text-indigo-900 dark:text-indigo-100",
+			body: "text-indigo-800 dark:text-indigo-200",
+		},
+		green: {
+			backdrop: "bg-green-300/20 dark:bg-green-950/20",
+			panel: "bg-green-200/50 dark:bg-green-900/50",
+			header: "text-green-900 dark:text-green-100",
+			body: "text-green-800 dark:text-green-200",
+		},
+		orange: {
+			backdrop: "bg-orange-300/20 dark:bg-orange-950/20",
+			panel: "bg-orange-200/50 dark:bg-orange-900/50",
+			header: "text-orange-900 dark:text-orange-100",
+			body: "text-orange-800 dark:text-orange-200",
+		},
+		yellow: {
+			backdrop: "bg-yellow-300/20 dark:bg-yellow-950/20",
+			panel: "bg-yellow-200/50 dark:bg-yellow-900/50",
+			header: "text-yellow-900 dark:text-yellow-100",
+			body: "text-yellow-800 dark:text-yellow-200",
+		},
+		danger: {
+			backdrop: "bg-red-300/20 dark:bg-red-950/20",
+			panel: "bg-red-200/50 dark:bg-red-900/50",
+			header: "text-red-900 dark:text-red-100",
+			body: "text-red-800 dark:text-red-200",
+		},
+	}[props.color];
+});
+</script>
