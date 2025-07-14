@@ -16,6 +16,7 @@
 			<div class="fixed inset-0 overflow-hidden">
 				<TransitionChild
 					as="div"
+					:style="panelStyle"
 					class="flex h-full w-full items-center justify-center p-4 text-center overflow-y-auto"
 					enter="transition-modal-enter"
 					:enter-from="animationClasses.enterFrom"
@@ -26,7 +27,7 @@
 				>
 					<DialogPanel
 							:class="[
-								'relative w-full transform overflow-hidden rounded-2xl p-4 text-left align-middle shadow-2xl transition-all',
+								'relative w-full overflow-hidden rounded-2xl p-4 text-left align-middle shadow-2xl transition-all',
 								'border border-white/20 backdrop-blur-xl',
 								maxWidthClass,
 								colorClasses.panel,
@@ -88,7 +89,7 @@ import {
 	DialogPanel,
 	DialogTitle,
 } from "@headlessui/vue";
-import { useExpandFromCenterAnimation } from "@/composables/animations/useExpandFromCenterAnimation";
+import { useExpandAnimation } from "@/composables/animations/useExpandAnimation";
 import { useDropFromTopAnimation } from "@/composables/animations/useDropFromTopAnimation";
 import { useRiseFromBottomAnimation } from "@/composables/animations/useRiseFromBottomAnimation";
 
@@ -116,7 +117,11 @@ const props = defineProps({
 	animationType: {
 		type: String,
 		default: "expand-from-center",
-		validator: (value) => ["expand-from-center", "drop-from-top", "rise-from-bottom"].includes(value),
+		validator: (value) => ["expand-from-center", "drop-from-top", "rise-from-bottom", "expand-from-click"].includes(value),
+	},
+	clickPosition: {
+		type: Object,
+		default: null, // Expected: { x: number, y: number }
 	},
 });
 
@@ -138,10 +143,22 @@ const animationClasses = computed(() => {
 			return useDropFromTopAnimation();
 		case "rise-from-bottom":
 			return useRiseFromBottomAnimation();
+		case "expand-from-click": // This animation uses the same classes as expand-from-center, but a different transform-origin
+			// falls through
 		case "expand-from-center":
 		default:
-			return useExpandFromCenterAnimation();
+			return useExpandAnimation();
 	}
+});
+
+const panelStyle = computed(() => {
+	if (props.animationType === 'expand-from-click' && props.clickPosition) {
+		// The click position is relative to the viewport. We need to apply it as the transform origin.
+		return {
+			transformOrigin: `${props.clickPosition.x}px ${props.clickPosition.y}px`,
+		};
+	}
+	return {};
 });
 
 const colorClasses = computed(() => {

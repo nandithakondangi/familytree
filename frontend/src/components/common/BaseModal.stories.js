@@ -1,3 +1,4 @@
+import  { ref } from "vue";
 import BaseModal from "./BaseModal.vue";
 import GlassyButton from "../ui/GlassyButton.vue";
 
@@ -34,7 +35,7 @@ export default {
 		},
 		animationType: {
 			control: { type: "select" },
-			options: ["expand-from-center", "drop-from-top", "rise-from-bottom"],
+			options: ["expand-from-center", "drop-from-top", "rise-from-bottom", "expand-from-click"],
 			description: "Sets the open/close animation.",
 			table: { category: "Props", defaultValue: { summary: "expand-from-center" } },
 		},
@@ -180,3 +181,73 @@ RiseFromBotton.args = {
 	headerSlot: "Rise From Bottom Animation",
 	defaultSlot: "This modal demonstrates the 'rise-from-bottom' animation with the splash effect.",
 };
+
+export const ExpandFromClick = (args) => ({
+	components: { BaseModal, GlassyButton },
+	setup() {
+		const isModalOpen = ref(false);
+		const clickPos = ref({ x: 0, y: 0 });
+
+		const openModal = (event) => {
+			clickPos.value = { x: event.clientX, y: event.clientY };
+			isModalOpen.value = true;
+		};
+
+		const closeModal = () => {
+			isModalOpen.value = false;
+		};
+
+		return { args, isModalOpen, clickPos, openModal, closeModal };
+	},
+	template: `
+    <div @click="openModal" class="h-screen w-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-400 dark:border-gray-600 cursor-pointer">
+      <div class="text-center p-8 pointer-events-none">
+        <h2 class="text-2xl font-bold text-gray-700 dark:text-gray-300">Click Anywhere</h2>
+        <p class="text-gray-500 dark:text-gray-400">Click anywhere in this box to open the modal from that position.</p>
+      </div>
+      <BaseModal
+        :show="isModalOpen"
+        :maxWidth="args.maxWidth"
+        :color="args.color"
+        animationType="expand-from-click"
+        :clickPosition="clickPos"
+        :panelLayout="args.panelLayout"
+        @close="closeModal"
+      >
+        <template #header v-if="args.headerSlot">
+        	{{ args.headerSlot }}
+      	</template>
+      
+      	<!-- Default slot for single panel layout -->
+      	<p>{{ args.defaultSlot }}</p>
+      
+      	<!-- Named slots for double panel layout -->
+      	<template #left-panel>
+       		<p>{{ args.leftPanelSlot }}</p>
+      	</template>
+      	<template #right-panel>
+        	<p>{{ args.rightPanelSlot }}</p>
+      	</template>
+
+      	<template #footer v-if="args.footerSlot">
+        	<GlassyButton themeColor="blue" @click="closeModal">Got it!</GlassyButton>
+      	</template>
+      </BaseModal>
+    </div>
+  `,
+});
+
+ExpandFromClick.args = {
+	...Default.args,
+	show: false, // Start with modal hidden for this interactive story
+	headerSlot: "Expanding From Your Click",
+	defaultSlot: "This modal animates out directly from the point where you clicked.",
+};
+
+ExpandFromClick.parameters = {
+	controls: {
+		// We control these via the interactive wrapper, so hide them from the controls panel
+		exclude: ['show', 'onClose', 'clickPosition', 'animationType'],
+	},
+};
+
