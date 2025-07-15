@@ -21,11 +21,17 @@ export default {
 			description: "Controls the visibility of the modal.",
 			table: { category: "Props", defaultValue: { summary: "false" } },
 		},
-		maxWidth: {
+		width: {
 			control: { type: "select" },
-			options: ["sm", "md", "lg", "xl", "2xl"],
+			options: ["narrow", "wide"],
 			description: "Sets the max-width of the modal.",
-			table: { category: "Props", defaultValue: { summary: "md" } },
+			table: { category: "Props", defaultValue: { summary: "narrow" } },
+		},
+		height: {
+			control: { type: "select" },
+			options: ["short", "medium", "tall"],
+			description: "Sets the max-height of the modal.",
+			table: { category: "Props", defaultValue: { summary: "short" } },
 		},
 		color: {
 			control: { type: "select" },
@@ -89,7 +95,8 @@ const Template = (args) => ({
     <!-- The modal is rendered directly. Control visibility with the 'show' prop in the controls panel. -->
     <BaseModal
       :show="args.show"
-      :maxWidth="args.maxWidth"
+      :width="args.width"
+	  :height="args.height"
       :color="args.color"
 	  :animationType="args.animationType"
       :panelLayout="args.panelLayout"
@@ -121,7 +128,8 @@ const Template = (args) => ({
 export const Default = Template.bind({});
 Default.args = {
 	show: true,
-	maxWidth: "md",
+	width: "narrow",
+	height: "medium",
 	color: "default",
 	animationType: "expand-from-center",
 	panelLayout: "single",
@@ -145,7 +153,8 @@ DangerTheme.args = {
 export const DoublePanel = Template.bind({});
 DoublePanel.args = {
 	...Default.args,
-	maxWidth: "2xl",
+	width: "wide",
+	height: "tall",
 	color: "indigo",
 	panelLayout: "double",
 	headerSlot: "Compare Information",
@@ -154,10 +163,26 @@ DoublePanel.args = {
 	rightPanelSlot: "This panel could contain details about the 'target' member or new information to be added. For example, details about Jane Smith, born 1982. She will be linked as the spouse.",
 };
 
+export const WithLongContent = Template.bind({});
+WithLongContent.args = {
+	...Default.args,
+	panelLayout: "single",
+	width: "narrow",
+	height: "tall",
+	color: "blue",
+	animationType: "drop-from-top",
+	defaultSlot: `
+    <p>${"This is some long content. ".repeat(100)}</p>
+    <p>${"More content to ensure scrolling. ".repeat(50)}</p>
+  `,
+};
+WithLongContent.storyName = "With Scrollable Content";
+
 export const WithoutFooter = Template.bind({});
 WithoutFooter.args = {
 	...Default.args,
 	panelLayout: "single",
+	height: "short",
 	color: "blue",
 	headerSlot: "Informational Message",
 	defaultSlot: "This is a simple notification modal without any action buttons in the footer.",
@@ -168,6 +193,7 @@ export const DropFromTop = Template.bind({});
 DropFromTop.args = {
 	...Default.args,
 	animationType: "drop-from-top",
+	height: "medium",
 	color: "green",
 	headerSlot: "Drop From Top Animation",
 	defaultSlot: "This modal demonstrates the 'drop-from-top' animation with the splash effect.",
@@ -207,7 +233,8 @@ export const ExpandFromClick = (args) => ({
       </div>
       <BaseModal
         :show="isModalOpen"
-        :maxWidth="args.maxWidth"
+        :width="args.width"
+		:height="args.height"
         :color="args.color"
         animationType="expand-from-click"
         :clickPosition="clickPos"

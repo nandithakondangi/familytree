@@ -27,9 +27,10 @@
 				>
 					<DialogPanel
 							:class="[
-								'relative w-full overflow-hidden rounded-2xl p-4 text-left align-middle shadow-2xl transition-all',
+								'relative flex w-full flex-col overflow-hidden rounded-2xl p-4 text-left align-middle shadow-2xl transition-all',
 								'border border-white/20 backdrop-blur-xl',
-								maxWidthClass,
+								widthClass,
+								heightClass,
 								colorClasses.panel,
 							]"
 						>
@@ -38,38 +39,34 @@
 							class="pointer-events-none absolute inset-0 h-full w-full rounded-2xl bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-white/30 to-transparent opacity-40"
 						></div>
 
-						<div class="relative">
+						<div class="relative flex flex-grow flex-col min-h-0">
+							<!-- The header of the modal -->
 							<DialogTitle
 								v-if="$slots.header"
 								as="h3"
-								:class="['text-xl font-semibold leading-6', colorClasses.header]"
+								:class="['flex-shrink-0 text-xl font-semibold leading-6', colorClasses.header]"
 							>
 								<slot name="header"></slot>
 							</DialogTitle>
 
-							<div :class="['mt-4 text-sm', colorClasses.body]">
+							<!-- The main content area, which will grow and scroll -->
+							<div :class="['mt-4 flex-grow flex flex-col text-sm min-h-0', colorClasses.body]">
 								<!-- Single Panel Layout -->
-								<div v-if="panelLayout === 'single'">
-									<div
-										class="rounded-2xl shadow-lg p-2 border border-white/20"
-									>
-										<slot></slot>
-									</div>
-								</div>
+								<GlassyScrollContainer v-if="panelLayout === 'single'">
+									<slot></slot>
+								</GlassyScrollContainer>
 								<!-- Double Panel Layout -->
-								<div v-else-if="panelLayout === 'double'" class="grid grid-cols-1 md:grid-cols-5 gap-1">
-									<div
-										class="md:col-span-2 rounded-2xl shadow-lg p-2 border border-white/20"
-									>
+								<div v-else-if="panelLayout === 'double'" class="grid grid-cols-1 gap-1 md:grid-cols-5 flex-grow flex-col min-h-0">
+									<GlassyScrollContainer class="md:col-span-2">
 										<slot name="left-panel"></slot>
-									</div>
-									<div class="md:col-span-3 rounded-2xl shadow-lg p-2 border border-white/20">
+									</GlassyScrollContainer>
+									<GlassyScrollContainer class="md:col-span-3">
 										<slot name="right-panel"></slot>
-									</div>
+									</GlassyScrollContainer>
 								</div>
 							</div>
 
-							<div v-if="$slots.footer" class="mt-6 flex justify-end space-x-4">
+							<div v-if="$slots.footer" class="mt-4 flex flex-shrink-0 justify-end space-x-4">
 								<slot name="footer"></slot>
 							</div>
 						</div>
@@ -89,6 +86,7 @@ import {
 	DialogPanel,
 	DialogTitle,
 } from "@headlessui/vue";
+import GlassyScrollContainer from "@/components/ui/GlassyScrollContainer.vue";
 import { useExpandAnimation } from "@/composables/animations/useExpandAnimation";
 import { useDropFromTopAnimation } from "@/composables/animations/useDropFromTopAnimation";
 import { useRiseFromBottomAnimation } from "@/composables/animations/useRiseFromBottomAnimation";
@@ -98,10 +96,15 @@ const props = defineProps({
 		type: Boolean,
 		default: false,
 	},
-	maxWidth: {
+	width: {
 		type: String,
-		default: "md",
-		validator: (value) => ["sm", "md", "lg", "xl", "2xl"].includes(value),
+		default: "narrow",
+		validator: (value) => ["narrow", "wide"].includes(value),
+	},
+	height: {
+		type: String,
+		default: "short",
+		validator: (value) => ["short", "medium", "tall"].includes(value),
 	},
 	color: {
 		type: String,
@@ -131,10 +134,18 @@ function closeModal() {
 	emit("close");
 }
 
-const maxWidthClass = computed(() => {
+const widthClass = computed(() => {
 	return {
-		sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", xl: "max-w-xl", "2xl": "max-w-2xl",
-	}[props.maxWidth];
+		narrow: "max-w-md", wide: "max-w-2xl",
+	}[props.width];
+});
+
+const heightClass = computed(() => {
+	return {
+		short: "h-[30vh]",
+		medium: "h-[45vh]",
+		tall: "h-[75vh]",
+	}[props.height];
 });
 
 const animationClasses = computed(() => {
