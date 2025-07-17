@@ -35,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, useSlots } from 'vue';
+import { ref, onMounted, computed, useSlots, watch } from 'vue';
 import GlassyTabPanel from '@/components/ui/GlassyTabPanel.vue';
 import GlassyTabSwitcher from '@/components/ui/GlassyTabSwitcher.vue';
 
@@ -51,12 +51,10 @@ onMounted(() => {
     console.log(tabs.value);
 });
 
-function setActiveTab(index) {
-    prevTabIndex.value = activeTabIndex.value;
-    activeTabIndex.value = index;
-}
-
-
+// Add watch to update prevTabIndex when activeTabIndex changes
+watch(activeTabIndex, (newVal, oldVal) => {
+    prevTabIndex.value = oldVal;
+});
 
 const transitionDirection = computed(() => {
     return activeTabIndex.value > prevTabIndex.value ? 'right' : 'left';
