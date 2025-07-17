@@ -27,6 +27,7 @@ export default {
 			],
 		},
 	},
+	tags: ["autodocs"]
 };
 
 const Template = (args) => ({

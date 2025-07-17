@@ -21,6 +21,7 @@ export default {
 	parameters: {
 		layout: 'centered',
 	},
+	tags: ["autodocs"],
 };
 
 // Base template for stories that use simple text/HTML content

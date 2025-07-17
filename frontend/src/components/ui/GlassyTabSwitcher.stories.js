@@ -10,7 +10,8 @@ export default {
       options: ['blue', 'indigo', 'green', 'orange', 'yellow', 'danger'],
       defaultValue: 'indigo'
     }
-  }
+  },
+  tags: ["autodocs"]
 };
 
 const Template = (args) => ({
