@@ -13,7 +13,6 @@
 					</span>
 					<button
 						v-if="editTrigger === 'button'"
-						@click.stop="emitToggleEdit"
 						:class="
 							[
 								'p-1 text-sky-600 dark:text-sky-300 hover:text-sky-800 dark:hover:text-sky-100 ml-1 shrink-0',
@@ -24,6 +23,7 @@
 							].concat(displayModeEditButtonLayoutClasses)
 						"
 						title="Edit"
+						@click.stop="emitToggleEdit"
 					>
 						<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 							<path
@@ -38,15 +38,15 @@
 			<div :class="['w-full', inputContainerClassToUse]">
 				<div class="w-full">
 					<slot
-						:internalValue="internalValue"
-						:updateInternalValue="updateInternalValue"
+						:internal-value="internalValue"
+						:update-internal-value="updateInternalValue"
 					>
 						<input
+							ref="inputRef"
 							type="text"
 							:value="internalValue"
-							@input="updateInternalValue($event.target.value)"
 							class="form-input-editable"
-							ref="inputRef"
+							@input="updateInternalValue($event.target.value)"
 							@keydown.enter.prevent="onSave"
 							@keydown.esc.prevent="onCancel"
 						/>
@@ -61,9 +61,9 @@
 					}"
 				>
 					<button
-						@click="onSave"
 						class="p-1 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
 						title="Save"
+						@click="onSave"
 					>
 						<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 							<path
@@ -74,9 +74,9 @@
 						</svg>
 					</button>
 					<button
-						@click="onCancel"
 						class="p-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-200"
 						title="Cancel"
+						@click="onCancel"
 					>
 						<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 							<path

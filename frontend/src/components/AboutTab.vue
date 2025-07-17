@@ -1,7 +1,7 @@
 <template>
   <div class="prose prose-sm dark:prose-invert max-w-none p-2 text-gray-800 dark:text-gray-300">
     <h2 class="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">About This Software</h2>
-    <div v-html="aboutContent" class="font-medium text-justify">
+    <div class="font-medium text-justify" v-html="aboutContent">
       </div>
   </div>
 </template>

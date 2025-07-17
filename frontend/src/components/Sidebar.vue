@@ -1,48 +1,58 @@
 <template>
   <div class="flex flex-col h-full">
     <div class="relative flex items-center justify-around bg-white/40 dark:bg-slate-700/60 backdrop-blur-md shadow-lg rounded-full p-1 mb-4">
-      <div class="absolute top-1 left-0 bottom-1 bg-indigo-500/70 dark:bg-indigo-300/60 rounded-full transition-all duration-50 ease-in-out"
+      <div
+class="absolute top-1 left-0 bottom-1 bg-indigo-500/70 dark:bg-indigo-300/60 rounded-full transition-all duration-50 ease-in-out"
         :style="indicatorStyle"></div>
 
-      <button ref="manageTabButton" @click="activeTab = 'manage'" :class="[
+      <button
+ref="manageTabButton" :class="[
         'relative z-10 flex-1 py-2 px-4 text-center text-sm font-medium rounded-full transition-colors duration-300 ease-in-out flex items-center justify-center'
-      ]">
-        <span :class="[
+      ]" @click="activeTab = 'manage'">
+        <span
+:class="[
           'ml-1',
           'overflow-hidden',
           'transition-all duration-50 ease-in-out',
           activeTab === 'manage' ? 'opacity-100 max-w-[1.5rem]' : 'opacity-0 max-w-0' // Use a fixed max-width for icon
-        ]">🌳</span> <span :class="[
+        ]">🌳</span> <span
+:class="[
           'ml-1',
           'overflow-hidden', // Add for text
           'transition-all duration-50 ease-in-out', // text-gray-700 dark:text-gray-300
           activeTab === 'manage' ? 'opacity-100 max-w-xs font-bold text-indigo-700 dark:text-indigo-700' : 'opacity-80 max-w-xs text-gray-600 dark:text-gray-300 hover:text-indigo-400 dark:hover:text-indigo-300 hover:font-bold'
         ]">Manage</span>
       </button>
-      <button ref="chatTabButton" @click="activeTab = 'chat'" :class="[
+      <button
+ref="chatTabButton" :class="[
         'relative z-10 flex-1 py-2 px-4 text-center text-sm font-medium rounded-full transition-colors duration-300 ease-in-out flex items-center justify-center'
-      ]">
-        <span :class="[
+      ]" @click="activeTab = 'chat'">
+        <span
+:class="[
           'ml-1',
           'overflow-hidden',
           'transition-all duration-50 ease-in-out',
           activeTab === 'chat' ? 'opacity-100 max-w-[1.5rem]' : 'opacity-0 max-w-0' // Use a fixed max-width for icon
-        ]">💬</span> <span :class="[
+        ]">💬</span> <span
+:class="[
           'ml-1',
           'overflow-hidden', // Add for text
           'transition-all duration-50 ease-in-out', // text-gray-700 dark:text-gray-300
           activeTab === 'chat' ? 'opacity-100 max-w-xs font-bold text-indigo-700 dark:text-indigo-700' : 'opacity-80 max-w-xs text-gray-600 hover:text-indigo-400 dark:text-gray-400 dark:hover:text-indigo-300 hover:font-bold'
         ]">Chat</span>
       </button>
-      <button ref="aboutTabButton" @click="activeTab = 'about'" :class="[
+      <button
+ref="aboutTabButton" :class="[
         'relative z-10 flex-1 py-2 px-4 text-center text-sm font-medium rounded-full transition-colors duration-300 ease-in-out flex items-center justify-center'
-      ]">
-        <span :class="[
+      ]" @click="activeTab = 'about'">
+        <span
+:class="[
           'ml-1',
           'overflow-hidden',
           'transition-all duration-50 ease-in-out', // Standardize duration
           activeTab === 'about' ? 'opacity-100 max-w-[1.5rem]' : 'opacity-0 max-w-0' // Use a fixed max-width for icon
-        ]">ℹ️</span> <span :class="[
+        ]">ℹ️</span> <span
+:class="[
           'ml-1',
           'overflow-hidden', // Add for text
           'transition-all duration-50 ease-in-out', // text-gray-700 dark:text-gray-300

@@ -22,9 +22,9 @@
 						{{ title }}
 					</h3>
 					<button
-						@click="handleCancel"
 						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
 						aria-label="Close modal"
+						@click="handleCancel"
 					>
 						<svg
 							class="h-6 w-6"
@@ -53,15 +53,15 @@
 				<div class="flex justify-end space-x-4">
 					<button
 						type="button"
-						@click="handleCancel"
 						class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
+						@click="handleCancel"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
-						@click="handleConfirm"
 						class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
+						@click="handleConfirm"
 					>
 						Confirm
 					</button>

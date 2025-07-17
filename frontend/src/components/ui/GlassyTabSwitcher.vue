@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useThemeStore } from "@/store/theme";
 
 const props = defineProps({
@@ -64,7 +64,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:activeIndex']);
+
 
 const themeStore = useThemeStore();
 const tabRefs = ref([]);
@@ -93,7 +93,7 @@ const bubbleStyle = computed(() => {
 
   const activeEl = tabRefs.value[props.activeIndex];
   const { offsetLeft, clientWidth } = activeEl;
-  const isMovingRight = props.activeIndex > prevActiveIndex.value;
+  
 
   return {
     left: `${offsetLeft}px`,
@@ -106,7 +106,7 @@ const bubbleStyle = computed(() => {
 });
 
 // Update prev index for animation direction
-watch(() => props.activeIndex, (newVal) => {
+watch(() => props.activeIndex, () => {
   prevActiveIndex.value = props.activeIndex;
 });
 </script>

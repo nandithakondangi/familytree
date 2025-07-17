@@ -1,10 +1,10 @@
-import type { Meta, StoryFn } from "@storybook/vue3";
+
 import { ref } from "vue";
 import GlassyToggle from "./GlassyToggle.vue";
 import { useThemeStore } from "@/store/theme";
 
 // ----- default export with metadata ----- //
-const meta: Meta<typeof GlassyToggle> = {
+const meta = {
     title: "UI/GlassyToggle",
     component: GlassyToggle,
     argTypes: {
@@ -33,7 +33,7 @@ const meta: Meta<typeof GlassyToggle> = {
 export default meta;
 
 // ----- Template definition ----- //
-const Template: StoryFn<typeof GlassyToggle> = (args) => ({
+const Template = (args) => ({
     components: { GlassyToggle },
     setup() {
         return { args };
@@ -52,7 +52,7 @@ Disabled.args = {
     disabled: true,
 };
 
-export const ColorVariants: StoryFn<typeof GlassyToggle> = () => ({
+export const ColorVariants = () => ({
     components: { GlassyToggle },
     template: `
     <div class="space-y-4">
@@ -70,7 +70,7 @@ export const ColorVariants: StoryFn<typeof GlassyToggle> = () => ({
     },
 });
 
-export const Sizes: StoryFn<typeof GlassyToggle> = () => ({
+export const Sizes = () => ({
     components: { GlassyToggle },
     template: `
     <div class="flex flex-col space-y-4">

@@ -22,9 +22,9 @@
 						Link to Existing Member
 					</h3>
 					<button
-						@click="closeModal"
 						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
 						aria-label="Close modal"
+						@click="closeModal"
 					>
 						<svg
 							class="h-6 w-6"
@@ -42,7 +42,7 @@
 					</button>
 				</div>
 
-				<form @submit.prevent="handleLink" class="space-y-4">
+				<form class="space-y-4" @submit.prevent="handleLink">
 					<div>
 						<label
 							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -95,8 +95,8 @@
 					>
 						<button
 							type="button"
-							@click="closeModal"
 							class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
+							@click="closeModal"
 						>
 							Cancel
 						</button>

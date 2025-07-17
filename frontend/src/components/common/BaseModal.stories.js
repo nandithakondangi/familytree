@@ -1,7 +1,6 @@
-import  { ref } from "vue";
+import { ref } from "vue";
 import BaseModal from "./BaseModal.vue";
 import GlassyButton from "../ui/GlassyButton.vue";
-import { useThemeStore } from "@/store/theme";
 
 export default {
 	title: "COMMON/BaseModal",

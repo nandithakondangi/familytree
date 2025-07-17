@@ -1,6 +1,6 @@
 <template>
 	<TransitionRoot appear :show="show" as="template">
-		<Dialog as="div" @close="closeModal" class="relative z-50">
+		<Dialog as="div" class="relative z-50" @close="closeModal">
 			<TransitionChild
 				as="div"
 				:class="['fixed inset-0 backdrop-blur-md', colorClasses.backdrop]"

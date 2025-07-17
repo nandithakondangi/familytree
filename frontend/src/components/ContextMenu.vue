@@ -24,24 +24,24 @@
 				<ul>
 					<li>
 						<button
-							@click="emitAction('add-member', 'SPOUSE')"
 							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							@click="emitAction('add-member', 'SPOUSE')"
 						>
 							Add Spouse
 						</button>
 					</li>
 					<li>
 						<button
-							@click="emitAction('add-member', 'CHILD')"
 							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							@click="emitAction('add-member', 'CHILD')"
 						>
 							Add Child
 						</button>
 					</li>
 					<li>
 						<button
-							@click="emitAction('add-member', 'PARENT')"
 							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							@click="emitAction('add-member', 'PARENT')"
 						>
 							Add Parent
 						</button>
@@ -62,24 +62,24 @@
 				<ul>
 					<li>
 						<button
-							@click="emitAction('link-member', 'SPOUSE')"
 							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							@click="emitAction('link-member', 'SPOUSE')"
 						>
 							Link with Spouse
 						</button>
 					</li>
 					<li>
 						<button
-							@click="emitAction('link-member', 'PARENT')"
 							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							@click="emitAction('link-member', 'PARENT')"
 						>
 							Link with Parent
 						</button>
 					</li>
 					<li>
 						<button
-							@click="emitAction('link-member', 'CHILD')"
 							class="w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-500/70 dark:hover:bg-indigo-600/70 transition-colors"
+							@click="emitAction('link-member', 'CHILD')"
 						>
 							Link with Child
 						</button>

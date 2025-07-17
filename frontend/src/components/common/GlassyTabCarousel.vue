@@ -23,8 +23,8 @@
 		<!-- Tab Switcher -->
 		<div class="mt-4">
 			<GlassyTabSwitcher
+				v-model:active-index="activeTabIndex"
 				:tabs="tabs.map(tab => ({ title: tab.props.title }))"
-				v-model:activeIndex="activeTabIndex"
 				:theme-color="tabs[activeTabIndex]?.props.themeColor || 'indigo'"
 			/>
 		</div>
