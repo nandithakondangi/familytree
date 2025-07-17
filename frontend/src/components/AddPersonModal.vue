@@ -21,8 +21,8 @@
 						Add New Family Member
 					</h3>
 					<button
-						@click="closeModal"
 						class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+						@click="closeModal"
 					>
 						<svg
 							class="h-6 w-6"
@@ -40,23 +40,23 @@
 					</button>
 				</div>
 
-				<form @submit.prevent="saveMember" class="flex-1 flex flex-col min-h-0">
+				<form class="flex-1 flex flex-col min-h-0" @submit.prevent="saveMember">
 					<div class="flex-1 flex flex-col md:flex-row md:space-x-6 min-h-0">
 						<!-- Left Pane: Image Upload -->
 						<div
 							class="w-full md:w-1/3 flex flex-col items-center space-y-3 py-4"
 						>
 							<input
-								type="file"
 								ref="imageInputRef"
-								@change="handleImageUpload"
+								type="file"
 								class="hidden"
 								accept="image/*"
+								@change="handleImageUpload"
 							/>
 							<div
-								@click="triggerImageUpload"
 								class="w-36 h-36 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-400 dark:border-gray-500 hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors overflow-hidden"
 								title="Click to upload profile image"
+								@click="triggerImageUpload"
 							>
 								<img
 									v-if="profileImagePreview"
@@ -80,8 +80,8 @@
 							<button
 								v-if="profileImagePreview"
 								type="button"
-								@click="removeImage"
 								class="px-3 py-1 text-xs bg-red-500/80 hover:bg-red-600/80 text-white rounded-md transition-colors"
+								@click="removeImage"
 							>
 								Remove Image
 							</button>
@@ -140,9 +140,9 @@
 									>Name: <span class="text-red-500">*</span></label
 								>
 								<input
-									type="text"
 									id="name"
 									v-model="form.name"
+									type="text"
 									required
 									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
 									placeholder="Full Name"
@@ -156,9 +156,9 @@
 									>Nicknames:</label
 								>
 								<input
-									type="text"
 									id="nicknames"
 									v-model="form.nicknames"
+									type="text"
 									class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
 									placeholder="e.g., Johnny, Beth (comma-separated)"
 								/>
@@ -195,9 +195,9 @@
 									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
 								>
 									<input
-										type="checkbox"
 										id="isDobKnown"
 										v-model="form.isDobKnown"
+										type="checkbox"
 										class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
 									/>
 									<label
@@ -224,9 +224,6 @@
 									>
 									<date-picker
 										:value="form.gregorianDobString"
-										@update:value="
-											(value) => handleDateUpdate('gregorianDobString', value)
-										"
 										type="date"
 										format="YYYY-MM-DD"
 										value-type="format"
@@ -237,6 +234,9 @@
 										popup-class="dark:bg-slate-700"
 										class="w-full"
 										:clearable="true"
+										@update:value="
+											(value) => handleDateUpdate('gregorianDobString', value)
+										"
 									/>
 								</div>
 								<div v-if="isIndianCulture">
@@ -284,9 +284,9 @@
 									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
 								>
 									<input
-										type="checkbox"
 										id="isPersonAlive"
 										v-model="form.isPersonAlive"
+										type="checkbox"
 										class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
 									/>
 									<label
@@ -316,9 +316,9 @@
 										class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
 									>
 										<input
-											type="checkbox"
 											id="isDodKnownToggle"
 											v-model="form.isDodKnown"
+											type="checkbox"
 											class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white dark:bg-slate-800 border-4 appearance-none cursor-pointer"
 										/>
 										<label
@@ -336,9 +336,6 @@
 										>
 										<date-picker
 											:value="form.gregorianDodString"
-											@update:value="
-												(value) => handleDateUpdate('gregorianDodString', value)
-											"
 											type="date"
 											format="YYYY-MM-DD"
 											value-type="format"
@@ -349,6 +346,9 @@
 											popup-class="dark:bg-slate-700"
 											class="w-full"
 											:clearable="true"
+											@update:value="
+												(value) => handleDateUpdate('gregorianDodString', value)
+											"
 										/>
 									</div>
 									<div v-if="isIndianCulture">
@@ -411,22 +411,22 @@
 									class="flex items-center space-x-2"
 								>
 									<input
-										type="text"
 										v-model="field.key"
+										type="text"
 										placeholder="Field Name"
 										class="mt-1 block w-2/5 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
 									/>
 									<input
-										type="text"
 										v-model="field.value"
+										type="text"
 										placeholder="Value"
 										class="mt-1 block w-2/5 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-indigo-500 dark:focus:ring-indigo-400 sm:text-sm bg-white/70 dark:bg-slate-700/70 dark:text-gray-200"
 									/>
 									<button
 										type="button"
-										@click="removeDynamicField(index)"
 										title="Remove field"
 										class="p-1.5 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-full hover:bg-red-100 dark:hover:bg-red-700/50 transition-colors"
+										@click="removeDynamicField(index)"
 									>
 										<svg
 											class="w-4 h-4"
@@ -443,8 +443,8 @@
 								</div>
 								<button
 									type="button"
-									@click="addDynamicField"
 									class="mt-2 px-3 py-1.5 text-sm bg-green-500/80 hover:bg-green-600/80 text-white font-medium rounded-md hover:bg-green-600 transition-colors flex items-center"
+									@click="addDynamicField"
 								>
 									<svg
 										class="w-4 h-4 mr-1"
@@ -468,8 +468,8 @@
 					>
 						<button
 							type="button"
-							@click="closeModal"
 							class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
+							@click="closeModal"
 						>
 							X Cancel
 						</button>
@@ -488,6 +488,7 @@
 
 <script>
 import { reactive, watch, computed, inject, ref } from "vue";
+import { addFamilyMember } from "@/services/familyTreeApi";
 import DatePicker from "vue-datepicker-next";
 import "vue-datepicker-next/index.css";
 
@@ -818,28 +819,7 @@ export default {
 					relationshipTypeMap[props.relationshipTypeForNewMember];
 			}
 
-			fetch("/api/v1/manage/add_family_member", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(request_data),
-			})
-				.then((response) => {
-					if (!response.ok) {
-						return response
-							.json()
-							.then((errBody) => {
-								throw new Error(
-									errBody.detail || `Server error: ${response.status}`,
-								);
-							})
-							.catch(() => {
-								throw new Error(
-									`Server error: ${response.status} ${response.statusText}`,
-								);
-							});
-					}
-					return response.json();
-				})
+			addFamilyMember(request_data)
 				.then((data) => {
 					updateStatus(data.message || "Person added successfully!", 5000);
 					emit("save", data);

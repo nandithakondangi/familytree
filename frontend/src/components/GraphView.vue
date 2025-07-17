@@ -23,6 +23,7 @@
 
 <script>
 import { inject, watch, ref, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { fetchGraphHtml as fetchGraphHtmlFromApi, fetchGraphInteractionScript } from "@/services/familyTreeApi";
 
 export default {
 	name: "GraphView",
@@ -53,18 +54,11 @@ export default {
 
 		const fetchInteractionScript = async () => {
 			try {
-				// Path relative to public folder
-				const response = await fetch("/scripts/pyvis_interaction_script.js");
-				if (!response.ok) {
-					throw new Error(
-						`Failed to fetch interaction script: ${response.status} ${response.statusText}`, // Keep: Error details
-					);
-				}
-				interactionScriptContent.value = await response.text();
+				interactionScriptContent.value = await fetchGraphInteractionScript();
 			} catch (error) {
 				console.error(
 					"[GraphView] Error fetching interaction script:",
-					error, // Keep: Essential error log
+					error,
 				);
 				updateStatus("Error loading graph interaction logic.", 7000);
 				interactionScriptContent.value =
@@ -73,39 +67,17 @@ export default {
 		};
 
 		// Function to fetch graph HTML from backend
-		const fetchGraphHtml = () => {
+		const fetchGraphHtml = async () => {
 			iframeKey.value++;
-			const themeQueryParam = currentTheme ? `?theme=${currentTheme()}` : "";
-			fetch(`/api/v1/graph/render${themeQueryParam}`) // Add theme to API call
-				.then((response) => {
-					if (!response.ok) {
-						return response
-							.json()
-							.then((errorData) => {
-								throw new Error(
-									errorData.detail || `Server error: ${response.status}`,
-								);
-							})
-							.catch(() => {
-								throw new Error(
-									`Server error: ${response.status} ${response.statusText}`,
-								);
-							});
-					}
-					return response.json();
-				})
-				.then((data) => {
-					graphHtml.value =
-						data.graph_html ||
-						'<p style="text-align:center; padding-top: 20px;">No graph data received.</p>';
-				})
-				.catch((error) => {
-					console.error("Error fetching graph HTML:", error);
-					updateStatus(`Error loading graph: ${error.message}`, 7000); // Keep: User-facing status update
-					graphHtml.value = // Directly set graphHtml with error message
-						'<p style="color: red; text-align: center; margin-top: 50px;">Failed to load graph.</p>';
-					isLoading.value = false;
-				});
+			try {
+				graphHtml.value = await fetchGraphHtmlFromApi(currentTheme());
+			} catch (error) {
+				console.error("Error fetching graph HTML:", error);
+				updateStatus(`Error loading graph: ${error.message}`, 7000);
+				graphHtml.value = '<p style="color: red; text-align: center; margin-top: 50px;">Failed to load graph.</p>';
+			} finally {
+				isLoading.value = false;
+			}
 		};
 
 		const onIframeLoad = () => {
@@ -157,9 +129,8 @@ export default {
 				return;
 			}
 
-			const iframeRect = graphIframeRef.value?.getBoundingClientRect();
-			let screenX, screenY;
-			let iframeRelativeX, iframeRelativeY;
+			      let screenX, screenY;
+      let iframeRelativeX, iframeRelativeY;
 
 			// Determine the source of coordinates based on event type
 			if (

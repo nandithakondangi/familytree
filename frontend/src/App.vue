@@ -7,10 +7,10 @@
 			class="bg-gradient-to-r from-purple-600/80 to-indigo-600/80 dark:from-purple-700/80 dark:to-indigo-700/80 backdrop-blur-md text-white p-4 shadow-lg flex items-center"
 		>
 			<button
-				@click="toggleSidebar"
 				class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors mr-4"
 				aria-label="Toggle sidebar"
 				:title="isSidebarOpen ? 'Collape Menu' : 'Expand Menu'"
+				@click="toggleSidebar"
 			>
 				<svg
 					class="h-6 w-6"
@@ -32,7 +32,6 @@
 				Family Tree Viewer
 			</h1>
 			<button
-				@click="toggleTheme"
 				class="p-2 rounded-md hover:bg-white/20 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors ml-auto"
 				aria-label="Toggle theme"
 				:title="
@@ -40,6 +39,7 @@
 						? 'Switch to light theme'
 						: 'Switch to dark theme'
 				"
+				@click="toggleTheme"
 			>
 				<svg
 					v-if="currentTheme === 'dark'"
@@ -138,19 +138,19 @@
 
 		<!-- Global Add Person Modal -->
 		<AddPersonModal
-			:isVisible="isAddPersonModalVisible"
-			:isIndianCulture="isIndianCulture"
-			:sourceNodeIdForRelationship="addPersonModalSourceNodeId"
-			:sourceMemberNameForRelationship="addPersonModalSourceMemberName"
-			:relationshipTypeForNewMember="addPersonModalRelationshipType"
-			:inferRelationshipsEnabled="inferRelationshipsEnabled"
+			:is-visible="isAddPersonModalVisible"
+			:is-indian-culture="isIndianCulture"
+			:source-node-id-for-relationship="addPersonModalSourceNodeId"
+			:source-member-name-for-relationship="addPersonModalSourceMemberName"
+			:relationship-type-for-new-member="addPersonModalRelationshipType"
+			:infer-relationships-enabled="inferRelationshipsEnabled"
 			@close="closeAddPersonModal"
 			@save="handlePersonAdded"
 		/>
 
 		<!-- Global Confirmation Modal -->
 		<ConfirmationModal
-			:isVisible="isConfirmModalVisible"
+			:is-visible="isConfirmModalVisible"
 			:message="confirmModalMessage"
 			:title="confirmModalTitle"
 			@confirm="handleConfirm"
@@ -158,9 +158,9 @@
 		/>
 		<!-- Global Member Details Modal -->
 		<MemberDetailsModal
-			:isVisible="isMemberDetailsModalVisible"
+			:is-visible="isMemberDetailsModalVisible"
 			:member="currentMemberDetails"
-			:clickPosition="clickPositionForModal"
+			:click-position="clickPositionForModal"
 			@close="closeMemberDetailsModal"
 			@update-member="handleMemberUpdate"
 		/>
@@ -169,20 +169,20 @@
 
 		<ContextMenu
 			ref="contextMenuComponentRef"
-			:isVisible="isContextMenuVisible"
+			:is-visible="isContextMenuVisible"
 			:position="contextMenuPosition"
-			:sourceNodeId="contextMenuSourceNodeId"
+			:source-node-id="contextMenuSourceNodeId"
 			@action="handleContextMenuAction"
 		/>
 
 		<!-- Global Link Member Modal -->
 
 		<LinkMemberModal
-			:isVisible="isLinkMemberModalVisible"
-			:sourceNodeId="linkMemberModalData.sourceNodeId"
-			:sourceMemberName="linkMemberModalData.sourceMemberName"
-			:relationshipType="linkMemberModalData.relationshipType"
-			:potentialTargets="linkMemberModalData.potentialTargets"
+			:is-visible="isLinkMemberModalVisible"
+			:source-node-id="linkMemberModalData.sourceNodeId"
+			:source-member-name="linkMemberModalData.sourceMemberName"
+			:relationship-type="linkMemberModalData.relationshipType"
+			:potential-targets="linkMemberModalData.potentialTargets"
 			@close="closeLinkMemberModal"
 			@link="handleLinkMembers"
 		/>
@@ -210,6 +210,38 @@ export default {
 		MemberDetailsModal,
 		ContextMenu,
 		LinkMemberModal,
+	},
+	provide() {
+		// Provide reactive data and methods to descendant components
+		return {
+			// State
+			statusMessage: () => this.statusMessage,
+			isIndianCulture: () => this.isIndianCulture,
+			inferRelationshipsEnabled: () => this.inferRelationshipsEnabled,
+			loadedFileName: () => this.loadedFileName,
+			isDataLoaded: () => this.isDataLoaded,
+			memberIdToEdit: () => this.memberIdToEdit,
+			triggerGraphRender: () => this.triggerGraphRender,
+			currentTheme: () => this.currentTheme, // Add this line
+
+			// Methods to update state (these would often trigger backend calls)
+			updateStatus: this.updateStatus,
+			updateCultureSetting: this.updateCultureSetting,
+			updateInferRelationshipsSetting: this.updateInferRelationshipsSetting,
+			setLoadedFileName: this.setLoadedFileName,
+			setDataLoaded: this.setDataLoaded,
+			setMemberIdToEdit: this.setMemberIdToEdit,
+			triggerReRender: this.triggerReRender,
+			// Placeholder for opening dialogs (handled by parent App or global state)
+			openAddPersonDialog: this.openAddPersonDialog,
+			openEditPersonDialog: this.openEditPersonDialog,
+			showNodeContextMenu: this.showNodeContextMenu, // For right-click
+			handleDeleteMember: this.handleDeleteMember, // For delete action
+			handleNodeSingleClick: this.handleNodeSingleClick, // For single-click action
+			handleConnectToExisting: this.handleConnectToExisting, // For connect action
+			openConfirmModal: this.openConfirmModal, // Provide confirmation modal opener
+			handleAddRelationship: this.handleAddRelationship, // Add this line
+		};
 	},
 	// You can add global data or methods here if needed
 	data() {
@@ -261,47 +293,6 @@ export default {
 			},
 		};
 	},
-	provide() {
-		// Provide reactive data and methods to descendant components
-		return {
-			// State
-			statusMessage: () => this.statusMessage,
-			isIndianCulture: () => this.isIndianCulture,
-			inferRelationshipsEnabled: () => this.inferRelationshipsEnabled,
-			loadedFileName: () => this.loadedFileName,
-			isDataLoaded: () => this.isDataLoaded,
-			memberIdToEdit: () => this.memberIdToEdit,
-			triggerGraphRender: () => this.triggerGraphRender,
-			currentTheme: () => this.currentTheme, // Add this line
-
-			// Methods to update state (these would often trigger backend calls)
-			updateStatus: this.updateStatus,
-			updateCultureSetting: this.updateCultureSetting,
-			updateInferRelationshipsSetting: this.updateInferRelationshipsSetting,
-			setLoadedFileName: this.setLoadedFileName,
-			setDataLoaded: this.setDataLoaded,
-			setMemberIdToEdit: this.setMemberIdToEdit,
-			triggerReRender: this.triggerReRender,
-			// Placeholder for opening dialogs (handled by parent App or global state)
-			openAddPersonDialog: this.openAddPersonDialog,
-			openEditPersonDialog: this.openEditPersonDialog,
-			showNodeContextMenu: this.showNodeContextMenu, // For right-click
-			handleDeleteMember: this.handleDeleteMember, // For delete action
-			handleNodeSingleClick: this.handleNodeSingleClick, // For single-click action
-			handleConnectToExisting: this.handleConnectToExisting, // For connect action
-			openConfirmModal: this.openConfirmModal, // Provide confirmation modal opener
-			handleAddRelationship: this.handleAddRelationship, // Add this line
-		};
-	},
-	created() {
-		// Load theme from localStorage or default to 'light'
-		const savedTheme = localStorage.getItem("theme");
-		if (savedTheme) {
-			// TODO: Add listener for clicks outside context menu to close it
-			this.currentTheme = savedTheme;
-		}
-		this.applyTheme();
-	},
 	watch: {
 		currentTheme() {
 			this.applyTheme();
@@ -322,6 +313,15 @@ export default {
 				);
 			}
 		},
+	},
+	created() {
+		// Load theme from localStorage or default to 'light'
+		const savedTheme = localStorage.getItem("theme");
+		if (savedTheme) {
+			// TODO: Add listener for clicks outside context menu to close it
+			this.currentTheme = savedTheme;
+		}
+		this.applyTheme();
 	},
 	methods: {
 		// Method to update the status message
@@ -436,7 +436,7 @@ export default {
 			// TODO: Implement logic to select an existing member (e.g., using a modal with a list)
 			// After selecting, call backend API to establish relationship
 			// After successful backend call, trigger re-render
-			+this.closeContextMenu();
+			this.closeContextMenu();
 			// this.triggerReRender();
 		},
 		handleDeleteMember(memberIdToDelete) {
@@ -445,12 +445,12 @@ export default {
 			// If confirmed, call backend API to delete member
 			// After successful backend call, trigger re-render
 			// this.triggerReRender();
-			+this.closeContextMenu();
+			this.closeContextMenu();
 		},
 		async handleNodeSingleClick(nodeId, clickX, clickY) {
 			this.updateStatus(`Fetching details for member ${nodeId}...`);
 			this.clickPositionForModal = { x: clickX, y: clickY };
-			+this.closeContextMenu();
+			this.closeContextMenu();
 			try {
 				const response = await fetch(`/api/v1/graph/member_info/${nodeId}`);
 				if (!response.ok) {
@@ -493,7 +493,7 @@ export default {
 		// Confirmation Modal Methods
 		openConfirmModal(message, title = "Confirm Action") {
 			return new Promise((resolve) => {
-				+this.closeContextMenu(); // Close context menu if open
+				this.closeContextMenu(); // Close context menu if open
 				this.confirmModalMessage = message;
 				this.isConfirmModalVisible = true;
 				this.confirmModalTitle = title;

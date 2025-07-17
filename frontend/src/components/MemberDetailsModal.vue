@@ -10,8 +10,8 @@
 		<div
 			v-if="isVisible && member"
 			class="fixed inset-0 overflow-y-auto h-full w-full z-50 flex justify-center items-center"
-			@click.self="closeModal"
 			:style="transformOriginStyle"
+			@click.self="closeModal"
 		>
 			<div
 				class="relative bg-violet-600/90 dark:bg-violet-400/90 backdrop-blur-lg rounded-2xl shadow-2xl p-6 max-w-xl w-full mx-4 flex flex-col h-[55vh]"
@@ -24,9 +24,9 @@
 						Member Details
 					</h3>
 					<button
-						@click="closeModal"
 						class="text-violet-100 dark:text-violet-800 hover:text-white dark:hover:text-black transition-colors"
 						aria-label="Close modal"
+						@click="closeModal"
 					>
 						<svg
 							class="h-6 w-6"
@@ -47,21 +47,21 @@
 				<div class="flex-1 flex flex-col md:flex-row md:space-x-6 min-h-0">
 					<!-- Left Pane: Image and Basic Info -->
 					<div
-						class="w-full md:w-1/3 flex flex-col items-center py-4 space-y-3"
 						v-if="editableMember.id"
+						class="w-full md:w-1/3 flex flex-col items-center py-4 space-y-3"
 					>
 						<div class="relative group">
 							<input
-								type="file"
 								ref="profileImageInputRef"
-								@change="handleProfileImageChange"
+								type="file"
 								class="hidden"
 								accept="image/*"
+								@change="handleProfileImageChange"
 							/>
 							<div
-								@click="triggerProfileImageUpload"
 								class="w-36 h-36 md:w-40 md:h-40 bg-gray-200 dark:bg-slate-700 rounded-md flex items-center justify-center overflow-hidden border border-gray-300 dark:border-gray-600 cursor-pointer"
 								title="Click to change profile image"
+								@click="triggerProfileImageUpload"
 							>
 								<img
 									v-if="profilePicture"
@@ -83,9 +83,9 @@
 								</svg>
 							</div>
 							<button
-								@click="triggerProfileImageUpload"
 								class="absolute bottom-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
 								title="Edit profile picture"
+								@click="triggerProfileImageUpload"
 							>
 								<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 									<path
@@ -107,26 +107,26 @@
 										? editableMember.nicknames.join(', ')
 										: ''
 								"
-								fieldName="nicknames"
-								:isEditing="isEditing.nicknames"
-								@toggleEdit="toggleEdit"
+								field-name="nicknames"
+								:is-editing="isEditing.nicknames"
+								edit-trigger="button"
+								:show-edit-button-on-hover="true"
+								value-class="text-sm italic text-white dark:text-black text-center"
+								input-container-class="flex flex-col items-center"
+								empty-display-value="''"
+								display-arrangement="stacked"
+								display-alignment="center"
+								@toggle-edit="toggleEdit"
 								@save="saveField"
 								@cancel="cancelEdit"
-								editTrigger="button"
-								:showEditButtonOnHover="true"
-								valueClass="text-sm italic text-white dark:text-black text-center"
-								inputContainerClass="flex flex-col items-center"
-								emptyDisplayValue="''"
-								displayArrangement="stacked"
-								displayAlignment="center"
 							>
 								<template #default="{ internalValue, updateInternalValue }">
 									<input
 										type="text"
 										:value="internalValue"
-										@input="updateInternalValue($event.target.value)"
 										class="form-input w-full text-sm text-center"
 										placeholder="e.g., Johnny, Beth (comma-separated)"
+										@input="updateInternalValue($event.target.value)"
 									/>
 								</template>
 							</EditableField>
@@ -135,8 +135,8 @@
 
 					<!-- Right Pane: Detailed Info & Editing -->
 					<div
-						class="w-full md:w-2/3 flex-1 space-y-3 overflow-y-auto md:h-full min-h-0 py-4 pr-2"
 						v-if="editableMember.id"
+						class="w-full md:w-2/3 flex-1 space-y-3 overflow-y-auto md:h-full min-h-0 py-4 pr-2"
 					>
 						<!-- Gender -->
 						<div
@@ -148,17 +148,17 @@
 							<div class="ml-2 flex-grow">
 								<EditableField
 									:value="displayGender"
-									fieldName="gender"
-									:isEditing="isEditing.gender"
-									@toggleEdit="toggleEdit"
+									field-name="gender"
+									:is-editing="isEditing.gender"
+									@toggle-edit="toggleEdit"
 									@save="saveField"
 									@cancel="cancelEdit"
 								>
 									<template #default="{ internalValue, updateInternalValue }">
 										<select
 											:value="internalValue"
-											@change="updateInternalValue($event.target.value)"
 											class="form-input"
+											@change="updateInternalValue($event.target.value)"
 										>
 											<option
 												v-for="option in GENDER_OPTIONS"
@@ -181,9 +181,9 @@
 							<div class="ml-2 flex-grow">
 								<EditableField
 									:value="editableMember.alive"
-									fieldName="alive"
-									:isEditing="isEditing.alive"
-									@toggleEdit="toggleEdit"
+									field-name="alive"
+									:is-editing="isEditing.alive"
+									@toggle-edit="toggleEdit"
 									@save="saveField"
 									@cancel="cancelEdit"
 								>
@@ -193,8 +193,8 @@
 												id="aliveToggleDetails"
 												type="checkbox"
 												:checked="internalValue"
-												@change="updateInternalValue($event.target.checked)"
 												class="sr-only peer"
+												@change="updateInternalValue($event.target.checked)"
 											/>
 											<label
 												for="aliveToggleDetails"
@@ -236,9 +236,9 @@
 												')'
 											: ''
 									}`"
-									fieldName="dob"
-									:isEditing="isEditing.dob"
-									@toggleEdit="toggleEdit"
+									field-name="dob"
+									:is-editing="isEditing.dob"
+									@toggle-edit="toggleEdit"
 									@save="saveField"
 									@cancel="cancelEdit"
 								>
@@ -256,11 +256,11 @@
 													class="relative inline-block w-10 mr-2 align-middle select-none"
 												>
 													<input
-														type="checkbox"
 														id="isDobKnownToggleField"
+														type="checkbox"
 														:checked="isDobKnown_DobField"
-														@change="onIsKnownChange('dobField', $event)"
 														class="toggle-checkbox"
+														@change="onIsKnownChange('dobField', $event)"
 													/>
 													<label
 														for="isDobKnownToggleField"
@@ -276,13 +276,6 @@
 													>
 													<date-picker
 														:value="gregorianDob_DobField"
-														@update:value="
-															handleDateUpdate(
-																'dobField',
-																'gregorianDob_DobField',
-																$event,
-															)
-														"
 														type="date"
 														format="YYYY-MM-DD"
 														value-type="format"
@@ -293,6 +286,13 @@
 														popup-class="dark:bg-slate-700"
 														class="w-full"
 														:clearable="true"
+														@update:value="
+															handleDateUpdate(
+																'dobField',
+																'gregorianDob_DobField',
+																$event,
+															)
+														"
 													/>
 												</div>
 												<div v-if="isIndianCulture">
@@ -303,8 +303,8 @@
 													<div class="grid grid-cols-2 gap-2">
 														<select
 															v-model="traditionalDob_DobField.tamilMonth"
-															@change="handleTraditionalDateChange('dobField')"
 															class="form-input text-sm"
+															@change="handleTraditionalDateChange('dobField')"
 														>
 															<option
 																v-for="option in TAMIL_MONTH_OPTIONS"
@@ -316,8 +316,8 @@
 														</select>
 														<select
 															v-model="traditionalDob_DobField.tamilStar"
-															@change="handleTraditionalDateChange('dobField')"
 															class="form-input text-sm"
+															@change="handleTraditionalDateChange('dobField')"
 														>
 															<option
 																v-for="option in TAMIL_STAR_OPTIONS"
@@ -368,9 +368,9 @@
 												')'
 											: ''
 									}`"
-									fieldName="dod"
-									:isEditing="isEditing.dod"
-									@toggleEdit="toggleEdit"
+									field-name="dod"
+									:is-editing="isEditing.dod"
+									@toggle-edit="toggleEdit"
 									@save="saveField"
 									@cancel="cancelEdit"
 								>
@@ -388,13 +388,13 @@
 													class="relative inline-block w-10 mr-2 align-middle select-none"
 												>
 													<input
-														type="checkbox"
 														id="isDodKnownToggleFieldEditable"
+														type="checkbox"
 														:checked="isDodKnown_DodFieldEditable"
+														class="toggle-checkbox"
 														@change="
 															onIsKnownChange('dodFieldEditable', $event)
 														"
-														class="toggle-checkbox"
 													/>
 													<label
 														for="isDodKnownToggleFieldEditable"
@@ -410,13 +410,6 @@
 													>
 													<date-picker
 														:value="gregorianDod_DodFieldEditable"
-														@update:value="
-															handleDateUpdate(
-																'dodFieldEditable',
-																'gregorianDod_DodFieldEditable',
-																$event,
-															)
-														"
 														type="date"
 														format="YYYY-MM-DD"
 														value-type="format"
@@ -427,6 +420,13 @@
 														popup-class="dark:bg-slate-700"
 														class="w-full"
 														:clearable="true"
+														@update:value="
+															handleDateUpdate(
+																'dodFieldEditable',
+																'gregorianDod_DodFieldEditable',
+																$event,
+															)
+														"
 													/>
 												</div>
 												<div v-if="isIndianCulture">
@@ -439,10 +439,10 @@
 															v-model="
 																traditionalDod_DodFieldEditable.tamilMonth
 															"
+															class="form-input text-sm"
 															@change="
 																handleTraditionalDateChange('dodFieldEditable')
 															"
-															class="form-input text-sm"
 														>
 															<option
 																v-for="option in TAMIL_MONTH_OPTIONS"
@@ -454,10 +454,10 @@
 														</select>
 														<select
 															v-model="traditionalDod_DodFieldEditable.paksham"
+															class="form-input text-sm"
 															@change="
 																handleTraditionalDateChange('dodFieldEditable')
 															"
-															class="form-input text-sm"
 														>
 															<option
 																v-for="option in PAKSHAM_OPTIONS"
@@ -469,10 +469,10 @@
 														</select>
 														<select
 															v-model="traditionalDod_DodFieldEditable.thithi"
+															class="form-input text-sm"
 															@change="
 																handleTraditionalDateChange('dodFieldEditable')
 															"
-															class="form-input text-sm"
 														>
 															<option
 																v-for="option in THITHI_OPTIONS"
@@ -513,11 +513,11 @@
 									class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"
 								>
 									<input
-										type="checkbox"
 										id="isDodKnownToggleDetails"
+										type="checkbox"
 										:checked="isDodKnown_Dedicated"
-										@change="onIsKnownChange('dodDedicated', $event)"
 										class="toggle-checkbox"
+										@change="onIsKnownChange('dodDedicated', $event)"
 									/>
 									<label
 										for="isDodKnownToggleDetails"
@@ -534,13 +534,6 @@
 									>
 									<date-picker
 										:value="gregorianDod_Dedicated"
-										@update:value="
-											handleDateUpdate(
-												'dodDedicated',
-												'gregorianDod_Dedicated',
-												$event,
-											)
-										"
 										type="date"
 										format="YYYY-MM-DD"
 										value-type="format"
@@ -551,6 +544,13 @@
 										popup-class="dark:bg-slate-700"
 										class="w-full"
 										:clearable="true"
+										@update:value="
+											handleDateUpdate(
+												'dodDedicated',
+												'gregorianDod_Dedicated',
+												$event,
+											)
+										"
 									/>
 								</div>
 								<div v-if="isIndianCulture">
@@ -561,8 +561,8 @@
 									<div class="grid grid-cols-3 gap-2">
 										<select
 											v-model="traditionalDod_Dedicated.tamilMonth"
-											@change="handleTraditionalDateChange('dodDedicated')"
 											class="form-input text-sm"
+											@change="handleTraditionalDateChange('dodDedicated')"
 										>
 											<option
 												v-for="option in TAMIL_MONTH_OPTIONS"
@@ -574,8 +574,8 @@
 										</select>
 										<select
 											v-model="traditionalDod_Dedicated.paksham"
-											@change="handleTraditionalDateChange('dodDedicated')"
 											class="form-input text-sm"
+											@change="handleTraditionalDateChange('dodDedicated')"
 										>
 											<option
 												v-for="option in PAKSHAM_OPTIONS"
@@ -587,8 +587,8 @@
 										</select>
 										<select
 											v-model="traditionalDod_Dedicated.thithi"
-											@change="handleTraditionalDateChange('dodDedicated')"
 											class="form-input text-sm"
+											@change="handleTraditionalDateChange('dodDedicated')"
 										>
 											<option
 												v-for="option in THITHI_OPTIONS"
@@ -627,23 +627,23 @@
 
 										<EditableField
 											:value="value"
-											:fieldName="`additional_info.${key}`"
-											:isEditing="isEditing[`additional_info.${key}`]"
-											@toggleEdit="toggleEdit"
-											@save="saveField"
-											@cancel="cancelEdit"
-											:valueClass="`text-sm font-semibold text-white dark:text-black`"
-											:inputContainerClass="'flex flex-col items-start w-full'"
-											:displayArrangement="
+											:field-name="`additional_info.${key}`"
+											:is-editing="isEditing[`additional_info.${key}`]"
+											:value-class="`text-sm font-semibold text-white dark:text-black`"
+											:input-container-class="'flex flex-col items-start w-full'"
+											:display-arrangement="
 												isEditing[`additional_info.${key}`]
 													? 'stacked' // When editing, label is above input (slot content)
 													: 'inline' // When NOT editing, value and edit button are inline
 											"
-											displayAlignment="start"
-											:editTrigger="'button'"
-											:showEditButtonOnHover="
+											display-alignment="start"
+											:edit-trigger="'button'"
+											:show-edit-button-on-hover="
 												!isEditing[`additional_info.${key}`]
 											"
+											@toggle-edit="toggleEdit"
+											@save="saveField"
+											@cancel="cancelEdit"
 										>
 											<template
 												#default="{ internalValue, updateInternalValue }"
@@ -656,8 +656,8 @@
 													<input
 														type="text"
 														:value="internalValue"
-														@input="updateInternalValue($event.target.value)"
 														class="form-input text-sm w-full"
+														@input="updateInternalValue($event.target.value)"
 													/>
 												</div>
 											</template>
@@ -666,9 +666,9 @@
 									<!-- Delete button for existing field -->
 									<button
 										v-if="!isEditing[`additional_info.${key}`]"
-										@click="confirmDeleteAdditionalField(key)"
 										class="ml-2 p-1 text-red-400 hover:text-red-300 dark:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
 										title="Delete field"
+										@click="confirmDeleteAdditionalField(key)"
 									>
 										<svg
 											class="w-4 h-4"
@@ -690,27 +690,27 @@
 									class="p-3 bg-slate-500/30 dark:bg-slate-800/30 rounded-lg space-y-2 shadow"
 								>
 									<input
-										type="text"
 										v-model="newAdditionalField.key"
+										type="text"
 										placeholder="New Field Name (e.g., Occupation)"
 										class="form-input text-sm w-full"
 									/>
 									<input
-										type="text"
 										v-model="newAdditionalField.value"
+										type="text"
 										placeholder="Value (e.g., Engineer)"
 										class="form-input text-sm w-full"
 									/>
 									<div class="flex justify-end space-x-2 pt-1">
 										<button
-											@click="cancelAddNewAdditionalField"
 											class="px-3 py-1 text-xs rounded-md bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 hover:bg-gray-400/80 dark:hover:bg-gray-500/80"
+											@click="cancelAddNewAdditionalField"
 										>
 											Cancel
 										</button>
 										<button
-											@click="saveNewAdditionalField"
 											class="px-3 py-1 text-xs rounded-md bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-400"
+											@click="saveNewAdditionalField"
 										>
 											Save Field
 										</button>
@@ -720,8 +720,8 @@
 								<!-- "Add New Field" button -->
 								<button
 									v-if="!isAddingNewAdditionalField"
-									@click="startAddNewAdditionalField"
 									class="mt-2 text-sm font-bold text-green-300 hover:text-green-400 dark:text-green-800 dark:hover:text-green-900 flex items-center py-1 px-2 rounded-md hover:bg-indigo-500/20 dark:hover:bg-indigo-700/20 transition-colors"
+									@click="startAddNewAdditionalField"
 								>
 									<svg
 										class="w-4 h-4 mr-1.5"
@@ -756,15 +756,15 @@
 					<button
 						v-if="hasChanges"
 						type="button"
-						@click="handleUpdateMember"
 						class="px-4 py-2 bg-green-600 dark:bg-green-500 text-white font-medium rounded-lg hover:bg-green-700 dark:hover:bg-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-white/50 dark:focus:ring-offset-slate-800/50 transition duration-150 ease-in-out"
+						@click="handleUpdateMember"
 					>
 						💾 Update Member
 					</button>
 					<button
 						type="button"
-						@click="closeModal"
 						class="px-4 py-2 bg-gray-300/70 dark:bg-gray-600/70 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-400/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-75 transition duration-150 ease-in-out"
+						@click="closeModal"
 					>
 						Close
 					</button>
@@ -784,6 +784,7 @@ import {
 	reactive,
 	inject,
 } from "vue";
+import { updateMember } from "@/services/familyTreeApi";
 import DatePicker from "vue-datepicker-next";
 import "vue-datepicker-next/index.css";
 import EditableField from "./EditableField.vue";
@@ -972,15 +973,15 @@ const traditionalDod_Dedicated = reactive({
 	thithi: "THITHI_UNKNOWN",
 });
 
-const genderOptions = computed(() => GENDER_OPTIONS);
+const genderOptions = computed(() => GENDER_OPTIONS); // eslint-disable-line
 
-const TamilMonthOptions = computed(() => TAMIL_MONTH_OPTIONS);
+const TamilMonthOptions = computed(() => TAMIL_MONTH_OPTIONS); // eslint-disable-line
 
-const TamilStarOptions = computed(() => TAMIL_STAR_OPTIONS);
+const TamilStarOptions = computed(() => TAMIL_STAR_OPTIONS); // eslint-disable-line
 
-const PakshamOptions = computed(() => PAKSHAM_OPTIONS);
+const PakshamOptions = computed(() => PAKSHAM_OPTIONS); // eslint-disable-line
 
-const ThithiOptions = computed(() => THITHI_OPTIONS);
+const ThithiOptions = computed(() => THITHI_OPTIONS); // eslint-disable-line
 
 const displayGender = computed(() => {
 	if (!editableMember.value || typeof editableMember.value.gender !== "string") {
@@ -991,39 +992,39 @@ const displayGender = computed(() => {
 	return genderOption ? genderOption.text : "N/A";
 });
 
-const tamilMonthMap = Object.fromEntries(
-	Object.entries(TAMIL_MONTH_OPTIONS).map(([key, value]) => [
-		value.value,
-		key
-			.replace("TAMIL_MONTH_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	]),
-);
-const tamilStarMap = Object.fromEntries(
-	Object.entries(TAMIL_STAR_OPTIONS).map(([key, value]) => [
-		value.value,
-		key
-			.replace("TAMIL_STAR_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	]),
-);
-const pakshamMap = Object.fromEntries(
-	Object.entries(PAKSHAM_OPTIONS).map(([key, value]) => [
-		value.value,
-		key
-			.replace("PAKSHAM_", "")
-			.replace("_UNKNOWN", "Unknown")
-			.replace("_", " "),
-	]),
-);
-const thithiMap = Object.fromEntries(
-	Object.entries(THITHI_OPTIONS).map(([key, value]) => [
-		value.value,
-		key.replace("THITHI_", "").replace("_UNKNOWN", "Unknown").replace("_", " "),
-	]),
-);
+// const tamilMonthMap = Object.fromEntries(
+// 	Object.entries(TAMIL_MONTH_OPTIONS).map(([key, value]) => [
+// 		value.value,
+// 		key
+// 			.replace("TAMIL_MONTH_", "")
+// 			.replace("_UNKNOWN", "Unknown")
+// 			.replace("_", " "),
+// 	]),
+// );
+// const tamilStarMap = Object.fromEntries(
+// 	Object.entries(TAMIL_STAR_OPTIONS).map(([key, value]) => [
+// 		value.value,
+// 		key
+// 			.replace("TAMIL_STAR_", "")
+// 			.replace("_UNKNOWN", "Unknown")
+// 			.replace("_", " "),
+// 	]),
+// );
+// const pakshamMap = Object.fromEntries(
+// 	Object.entries(PAKSHAM_OPTIONS).map(([key, value]) => [
+// 		value.value,
+// 		key
+// 			.replace("PAKSHAM_", "")
+// 			.replace("_UNKNOWN", "Unknown")
+// 			.replace("_", " "),
+// 	]),
+// );
+// const thithiMap = Object.fromEntries(
+// 	Object.entries(THITHI_OPTIONS).map(([key, value]) => [
+// 		value.value,
+// 		key.replace("THITHI_", "").replace("_UNKNOWN", "Unknown").replace("_", " "),
+// 	]),
+// );
 
 const disableFutureDates = (date) => {
 	return date > new Date(new Date().setHours(23, 59, 59, 999)); // Allow today
@@ -1365,7 +1366,7 @@ const cancelEdit = (fieldName) => {
 	// Revert editValues[fieldName] to original if needed, or simply rely on re-population on next edit toggle
 };
 
-const handleUpdateMember = () => {
+const handleUpdateMember = async () => {
 	// In a real app, you might want to send only changed fields
 	const memberToUpdate = JSON.parse(JSON.stringify(editableMember.value));
 	if (!memberToUpdate.alive) {
@@ -1407,7 +1408,14 @@ const handleUpdateMember = () => {
 		memberToUpdate.date_of_death = null;
 		memberToUpdate.traditional_date_of_death = null;
 	}
-	emit("update-member", memberToUpdate);
+	try {
+		const response = await updateMember(memberToUpdate.id, memberToUpdate);
+		updateStatus(response.message || "Member updated successfully!", 5000);
+		emit("update-member", memberToUpdate);
+	} catch (error) {
+		console.error("Error updating member:", error);
+		updateStatus(`Error updating member: ${error.message}`, 7000);
+	}
 	// After successful update, the current state IS the new initial state.
 	initialMemberState.value = JSON.parse(JSON.stringify(editableMember.value));
 };

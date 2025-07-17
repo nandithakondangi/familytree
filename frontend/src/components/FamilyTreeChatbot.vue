@@ -10,16 +10,16 @@
 
     <div class="flex p-3 border-t border-white/30 dark:border-slate-600/50">
       <input
-        type="text"
         v-model="currentMessage"
-        @keyup.enter="sendMessage"
+        type="text"
         placeholder="Ask about the family tree..."
         class="flex-grow px-3 py-2 bg-white/50 dark:bg-slate-600/60 backdrop-blur-sm border border-gray-300/50 dark:border-slate-500/50 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent text-sm text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
+        @keyup.enter="sendMessage"
       />
       <button
-        @click="sendMessage"
         :disabled="!currentMessage.trim()"
         class="px-6 py-2 bg-indigo-600/80 dark:bg-indigo-500/80 backdrop-blur-sm text-white font-medium rounded-r-lg hover:bg-indigo-700/90 dark:hover:bg-indigo-400/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white/20 dark:focus:ring-offset-slate-700/40 transition duration-150 ease-in-out shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+        @click="sendMessage"
       >
         Send
       </button>
@@ -29,6 +29,7 @@
 
 <script>
 import { nextTick, ref, onMounted, onUpdated } from 'vue';
+import { sendMessageToChatbot } from "@/services/familyTreeApi";
 
 export default {
   name: 'FamilyTreeChatbot', // Renamed to a multi-word name
@@ -68,13 +69,7 @@ export default {
 
         // TODO: Send userMessage to backend chatbot API
         // Replace with your actual backend endpoint
-        fetch('/api/chatbot', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: userMessage }),
-        })
+        sendMessageToChatbot(userMessage)
         .then(response => {
           if (!response.ok) {
             throw new Error('Chatbot API failed.');

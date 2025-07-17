@@ -5,6 +5,24 @@ import { useTreeStore } from "@/store/tree";
  */
 
 /**
+ * Generic function to fetch a blob from a given URL.
+ * @param {string} url - The URL to fetch from.
+ * @param {string} operationName - A descriptive name for the operation, used in error messages.
+ * @returns {Promise<Blob>} A promise that resolves to a Blob.
+ * @throws {Error} If the fetch operation fails.
+ */
+export async function fetchBlob(url, operationName = "Data fetch") {
+    const response = await fetch(url);
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+            `${operationName} failed: ${response.status} ${errorText || response.statusText}`
+        );
+    }
+    return response.blob();
+}
+
+/**
  * Fetches and processes member information from the API.
  * @param {string} nodeId The ID of the member to fetch.
  * @returns {Promise<object>} A promise that resolves to the member's data.
@@ -77,4 +95,169 @@ export async function linkMembers(linkData) {
 	treeStore.triggerReRender();
 
 	return result;
+}
+
+/**
+ * Adds a new family member to the tree.
+ * @param {object} memberData - The data for the new family member.
+ * @returns {Promise<object>} A promise that resolves to the API response data.
+ * @throws {Error} If the API call fails.
+ */
+export async function addFamilyMember(memberData) {
+    const response = await fetch("/api/v1/manage/add_family_member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(memberData),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(
+            errorBody.detail || `Server error: ${response.status} ${response.statusText}`
+        );
+    }
+    return response.json();
+}
+
+/**
+ * Sends a message to the chatbot API.
+ * @param {string} message - The user's message.
+ * @returns {Promise<object>} A promise that resolves to the chatbot's reply.
+ * @throws {Error} If the API call fails.
+ */
+export async function sendMessageToChatbot(message) {
+    const response = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: message }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Chatbot API failed.');
+    }
+    return response.json();
+}
+
+/**
+ * Fetches the HTML content for rendering the family tree graph.
+ * @param {string} theme - The current theme (e.g., 'dark', 'light').
+ * @returns {Promise<string>} A promise that resolves to the graph HTML string.
+ * @throws {Error} If the API call fails.
+ */
+export async function fetchGraphHtml(theme) {
+    const themeQueryParam = theme ? `?theme=${theme}` : "";
+    const response = await fetch(`/api/v1/graph/render${themeQueryParam}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+            errorData.detail || `Server error: ${response.status} ${response.statusText}`
+        );
+    }
+    const data = await response.json();
+    return data.graph_html || '<p style="text-align:center; padding-top: 20px;">No graph data received.</p>';
+}
+
+/**
+ * Fetches the JavaScript content for graph interaction.
+ * @returns {Promise<string>} A promise that resolves to the script content.
+ * @throws {Error} If the fetch fails.
+ */
+export async function fetchGraphInteractionScript() {
+    const response = await fetch("/scripts/pyvis_interaction_script.js");
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch interaction script: ${response.status} ${response.statusText}`
+        );
+    }
+    return response.text();
+}
+
+/**
+ * Creates a new empty family tree on the backend.
+ * @returns {Promise<object>} A promise that resolves to the API response data.
+ * @throws {Error} If the API call fails.
+ */
+export async function createNewFamilyTree() {
+    const response = await fetch("/api/v1/manage/create_family", { method: "POST" });
+    if (!response.ok) {
+        throw new Error(
+            `Server error: ${response.status} ${response.statusText}`
+        );
+    }
+    return response.json();
+}
+
+/**
+ * Loads a family tree from provided content.
+ * @param {string} filename - The name of the file being loaded.
+ * @param {string} content - The content of the family tree file.
+ * @returns {Promise<object>} A promise that resolves to the API response data.
+ * @throws {Error} If the API call fails.
+ */
+export async function loadFamilyTree(filename, content) {
+    const response = await fetch("/api/v1/manage/load_family", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, content }),
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(
+            `Server error: ${response.status} ${text || response.statusText}`
+        );
+    }
+    return response.json();
+}
+
+/**
+ * Saves the current family tree data.
+ * @returns {Promise<Blob>} A promise that resolves to a Blob containing the family tree data.
+ * @throws {Error} If the API call fails.
+ */
+export async function saveFamilyTree() {
+    return fetchBlob("/api/v1/manage/save_family", "Data export for save");
+}
+
+/**
+ * Exports a snapshot of the current family tree data.
+ * @returns {Promise<Blob>} A promise that resolves to a Blob containing the family tree snapshot.
+ * @throws {Error} If the API call fails.
+ */
+export async function exportFamilyTreeSnapshot() {
+    return fetchBlob("/api/v1/manage/export_family_snapshot", "Data snapshot export");
+}
+
+/**
+ * Exports the interactive graph HTML.
+ * @returns {Promise<Blob>} A promise that resolves to a Blob containing the interactive graph HTML.
+ * @throws {Error} If the API call fails.
+ */
+export async function exportInteractiveGraph() {
+    return fetchBlob("/api/v1/manage/export_interactive_graph", "Interactive graph export");
+}
+
+/**
+ * Updates an existing family member's information.
+ * @param {string} memberId - The ID of the member to update.
+ * @param {object} updatedData - The updated member data.
+ * @returns {Promise<object>} A promise that resolves to the API response data.
+ * @throws {Error} If the API call fails.
+ */
+export async function updateMember(memberId, updatedData) {
+    const response = await fetch(`/api/v1/manage/update_member/${memberId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(
+            errorBody.detail || `Server error: ${response.status} ${response.statusText}`
+        );
+    }
+    return response.json();
 }

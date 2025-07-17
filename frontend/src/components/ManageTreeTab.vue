@@ -8,10 +8,10 @@
 				>
 					<input
 						id="indian-culture-toggle"
-						type="checkbox"
 						v-model="isIndianCultureModel"
-						@change="updateCulture"
+						type="checkbox"
 						class="sr-only peer"
+						@change="updateCulture"
 					/>
 					<div
 						class="relative w-9 h-5 bg-white/50 dark:bg-slate-600/70 backdrop-blur-sm rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-inset peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-400 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300/70 dark:after:border-gray-500/70 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/90 dark:peer-checked:bg-indigo-400/90 shadow"
@@ -35,10 +35,10 @@
 				>
 					<input
 						id="infer-relationships-toggle"
-						type="checkbox"
 						v-model="inferRelationshipsEnabledModel"
-						@change="updateInferRelationships"
+						type="checkbox"
 						class="sr-only peer"
+						@change="updateInferRelationships"
 					/>
 					<div
 						class="relative w-9 h-5 bg-white/50 dark:bg-slate-600/70 backdrop-blur-sm rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-inset peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-400 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300/70 dark:after:border-gray-500/70 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/90 dark:peer-checked:bg-indigo-400/90 shadow"
@@ -56,13 +56,13 @@
 			</div>
 
 			<button
-				@click="handleNewFamilyTreeRequest"
 				class="w-full px-4 py-2 bg-purple-600/80 dark:bg-purple-700/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-purple-700/90 dark:hover:bg-purple-600/90 focus:outline-none focus:ring-2 focus:ring-purple-600 dark:focus:ring-purple-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
 				:title="
 					isDataLoaded()
 						? 'Clear current tree and start a new one. Unsaved changes will be lost.'
 						: 'Create new family tree and add the first person to the family tree.'
 				"
+				@click="handleNewFamilyTreeRequest"
 			>
 				➕ NEW FAMILY TREE
 			</button>
@@ -74,15 +74,15 @@
 				>
 				<div class="flex items-center space-x-2">
 					<input
-						type="file"
 						ref="fileInput"
-						@change="handleFileSelect"
+						type="file"
 						class="hidden"
 						accept=".txtpb"
+						@change="handleFileSelect"
 					/>
 					<button
-						@click="triggerFileInput"
 						class="px-4 py-2 bg-blue-500/80 dark:bg-blue-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-blue-600/90 dark:hover:bg-blue-500/90 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+						@click="triggerFileInput"
 					>
 						Choose File
 					</button>
@@ -91,9 +91,9 @@
 					}}</span>
 				</div>
 				<button
-					@click="loadFile"
 					:disabled="!selectedFile"
 					class="mt-2 w-full px-4 py-2 bg-teal-500/80 dark:bg-teal-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-teal-600/90 dark:hover:bg-teal-500/90 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+					@click="loadFile"
 				>
 					↑ LOAD FAMILY TREE
 				</button>
@@ -111,23 +111,23 @@
 					>Export:</label
 				>
 				<button
-					@click="saveData"
 					class="w-full px-4 py-2 bg-indigo-500/80 dark:bg-indigo-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-600/90 dark:hover:bg-indigo-500/90 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
 					title="Saves the current family tree data to a .txtpb file. If a file was previously loaded or saved using the file picker, it attempts to save to the same file."
+					@click="saveData"
 				>
 					💾 SAVE DATA (.txtpb)
 				</button>
 				<button
-					@click="exportCurrentSnapshot"
 					class="w-full mt-2 px-4 py-2 bg-indigo-400/80 dark:bg-indigo-500/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-indigo-500/90 dark:hover:bg-indigo-400/90 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-300 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
 					title="Exports the current state of the family tree data to a new .txtpb file. This always prompts for a new file location."
+					@click="exportCurrentSnapshot"
 				>
 					📸 EXPORT DATA SNAPSHOT (.txtpb)
 				</button>
 				<button
-					@click="exportGraph"
 					class="w-full mt-2 px-4 py-2 bg-green-500/80 dark:bg-green-600/80 backdrop-blur-sm text-white text-sm font-medium rounded-lg hover:bg-green-600/90 dark:hover:bg-green-500/90 focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
 					title="Exports the family tree as an interactive HTML graph file. This always prompts for a new file location."
+					@click="exportGraph"
 				>
 					📊 EXPORT INTERACTIVE GRAPH (.html)
 				</button>
@@ -135,8 +135,8 @@
 		</div>
 
 		<button
-			@click="reRenderGraph"
 			class="w-full px-4 py-2 bg-gray-400/70 dark:bg-gray-600/70 backdrop-blur-sm text-gray-800 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-500/80 dark:hover:bg-gray-500/80 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:ring-opacity-50 transition duration-150 ease-in-out shadow-lg"
+			@click="reRenderGraph"
 		>
 			🔄 Re-render Graph
 		</button>
@@ -145,6 +145,13 @@
 
 <script>
 	import { inject, ref } from "vue";
+import {
+	createNewFamilyTree,
+	loadFamilyTree,
+	saveFamilyTree,
+	exportFamilyTreeSnapshot,
+	exportInteractiveGraph,
+} from "@/services/familyTreeApi";
 	export default {
 		name: "ManageTreeTab",
 		components: {},
@@ -221,18 +228,7 @@
 		},
 		methods: {
 			// --- Helper Methods ---
-			async _fetchBlobOrThrow(url, operationName = "Data fetch") {
-				const response = await fetch(url);
-				if (!response.ok) {
-					const errorText = await response.text();
-					throw new Error(
-						`${operationName} failed: ${response.status} ${
-							errorText || response.statusText
-						}`
-					);
-				}
-				return response.blob();
-			},
+			
 
 			async _writeFileToHandle(fileHandle, blob) {
 				if (typeof fileHandle.queryPermission === "function") {
@@ -326,19 +322,14 @@
 			},
 
 			async _callApiToCreateNewFamilyTree() {
-				fetch("/api/v1/manage/create_family", { method: "POST" })
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error(
-								`Server error: ${response.status} ${response.statusText}`
-							);
-						}
-						return response.json();
-					})
-					.then((data) => {
-						console.log("Family tree created successfully:", data);
-					});
-				return null;
+				try {
+					const data = await createNewFamilyTree();
+					console.log("Family tree created successfully:", data);
+				} catch (error) {
+					console.error("Error creating new family tree:", error);
+					this.updateStatus(`Error creating new family tree: ${error.message}`, 7000);
+					throw error; // Re-throw to propagate the error
+				}
 			},
 
 			// --- Main Functionality Methods ---
@@ -445,25 +436,7 @@
 						console.log("File content:", fileContent);
 						this.updateStatus(`Sending file content to server...`);
 
-						const response = await fetch("/api/v1/manage/load_family", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								filename: this.selectedFileName,
-								content: fileContent,
-							}),
-						});
-
-						if (!response.ok) {
-							const text = await response.text();
-							throw new Error(
-								`Server error: ${response.status} ${
-									text || response.statusText
-								}`
-							);
-						}
-
-						const data = await response.json();
+						const data = await loadFamilyTree(this.selectedFileName, fileContent);
 						console.log("File processed successfully by backend:", data);
 						this.updateStatus("Data loaded successfully!", 5000);
 						this.setDataLoaded(true);
@@ -481,10 +454,7 @@
 			async saveData() {
 				this.updateStatus("Saving data...");
 				try {
-					const blob = await this._fetchBlobOrThrow(
-						"/api/v1/manage/save_family",
-						"Data export for save"
-					);
+					const blob = await saveFamilyTree();
 					const baseSuggestedName =
 						this.loadedFileName() || "family_tree_data.txtpb";
 					let suggestedName = this.currentFileHandle?.name || baseSuggestedName;
@@ -542,10 +512,7 @@
 
 				this.updateStatus("Exporting data snapshot...");
 				try {
-					const blob = await this._fetchBlobOrThrow(
-						"/api/v1/manage/export_family_snapshot",
-						"Data snapshot export"
-					);
+					const blob = await exportFamilyTreeSnapshot();
 					await this._saveFileWithPickerOrFallback(blob, {
 						suggestedName,
 						types: [
@@ -573,10 +540,7 @@
 
 				this.updateStatus("Exporting graph...");
 				try {
-					const blob = await this._fetchBlobOrThrow(
-						"/api/v1/manage/export_interactive_graph",
-						"Interactive graph export"
-					);
+					const blob = await exportInteractiveGraph();
 					await this._saveFileWithPickerOrFallback(blob, {
 						suggestedName,
 						types: [

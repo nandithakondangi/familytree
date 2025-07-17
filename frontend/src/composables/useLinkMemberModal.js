@@ -60,10 +60,30 @@ export function useLinkMemberModal() {
 		});
 	}
 
+	async function handleLinkMembers(linkData) {
+		// linkData: { sourceNodeId, relationshipType, targetMemberId }
+		appStore.updateStatus(
+			`Linking ${linkData.sourceNodeId} and ${linkData.targetMemberId} as ${linkData.relationshipType}...`,
+		);
+		try {
+			const result = await linkMembers(linkData);
+			appStore.updateStatus(
+				result.message || "Members linked successfully!",
+				5000,
+			);
+			close(); // Use the composable's close function
+			appStore.triggerReRender();
+		} catch (error) {
+			console.error("Error linking members:", error);
+			appStore.updateStatus(`Error linking members: ${error.message}`, 7000);
+		}
+	}
+
 	return {
 		isVisible,
 		data,
 		open,
 		close,
+		handleLinkMembers,
 	};
 }
