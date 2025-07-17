@@ -1,4 +1,5 @@
 import GlassyButton from "./GlassyButton.vue";
+import { useThemeStore } from "@/store/theme";
 
 // More on how to set up stories at: https://storybook.js.org/docs/vue/writing-stories/introduction
 export default {
@@ -48,7 +49,8 @@ export const AllColors = {
 	render: () => ({
 		components: { GlassyButton },
 		setup() {
-			const colors = ["blue", "indigo", "green", "orange", "yellow", "danger"];
+			const themeStore = useThemeStore();
+			const colors = themeStore.availableThemes;
 			return { colors };
 		},
 		template: `

@@ -90,6 +90,7 @@ import GlassyScrollContainer from "@/components/ui/GlassyScrollContainer.vue";
 import { useExpandAnimation } from "@/composables/animations/useExpandAnimation";
 import { useDropFromTopAnimation } from "@/composables/animations/useDropFromTopAnimation";
 import { useRiseFromBottomAnimation } from "@/composables/animations/useRiseFromBottomAnimation";
+import { useThemeStore } from "@/store/theme";
 
 const props = defineProps({
 	show: {
@@ -129,6 +130,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["close"]);
+
+const themeStore = useThemeStore();
 
 function closeModal() {
 	emit("close");
@@ -173,49 +176,6 @@ const panelStyle = computed(() => {
 });
 
 const colorClasses = computed(() => {
-	return {
-		default: {
-			backdrop: "bg-gray-500/20 dark:bg-black/20",
-			panel: "bg-white/60 dark:bg-gray-900/60",
-			header: "text-gray-900 dark:text-gray-50",
-			body: "text-gray-800 dark:text-gray-300",
-		},
-		blue: {
-			backdrop: "bg-blue-300/20 dark:bg-blue-950/20",
-			panel: "bg-blue-200/50 dark:bg-blue-900/50",
-			header: "text-blue-900 dark:text-blue-100",
-			body: "text-blue-800 dark:text-blue-200",
-		},
-		indigo: {
-			backdrop: "bg-indigo-300/20 dark:bg-indigo-950/20",
-			panel: "bg-indigo-200/50 dark:bg-indigo-900/50",
-			header: "text-indigo-900 dark:text-indigo-100",
-			body: "text-indigo-800 dark:text-indigo-200",
-		},
-		green: {
-			backdrop: "bg-green-300/20 dark:bg-green-950/20",
-			panel: "bg-green-200/50 dark:bg-green-900/50",
-			header: "text-green-900 dark:text-green-100",
-			body: "text-green-800 dark:text-green-200",
-		},
-		orange: {
-			backdrop: "bg-orange-300/20 dark:bg-orange-950/20",
-			panel: "bg-orange-200/50 dark:bg-orange-900/50",
-			header: "text-orange-900 dark:text-orange-100",
-			body: "text-orange-800 dark:text-orange-200",
-		},
-		yellow: {
-			backdrop: "bg-yellow-300/20 dark:bg-yellow-950/20",
-			panel: "bg-yellow-200/50 dark:bg-yellow-900/50",
-			header: "text-yellow-900 dark:text-yellow-100",
-			body: "text-yellow-800 dark:text-yellow-200",
-		},
-		danger: {
-			backdrop: "bg-red-300/20 dark:bg-red-950/20",
-			panel: "bg-red-200/50 dark:bg-red-900/50",
-			header: "text-red-900 dark:text-red-100",
-			body: "text-red-800 dark:text-red-200",
-		},
-	}[props.color];
+	return themeStore.getThemeClasses("BaseModal", props.color);
 });
 </script>

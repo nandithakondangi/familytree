@@ -1,5 +1,7 @@
 import type { Meta, StoryFn } from "@storybook/vue3";
+import { ref } from "vue";
 import GlassyToggle from "./GlassyToggle.vue";
+import { useThemeStore } from "@/store/theme";
 
 // ----- default export with metadata ----- //
 const meta: Meta<typeof GlassyToggle> = {
@@ -54,41 +56,17 @@ export const ColorVariants: StoryFn<typeof GlassyToggle> = () => ({
     components: { GlassyToggle },
     template: `
     <div class="space-y-4">
-      <div class="flex items-center space-x-4">
-        <GlassyToggle v-model="blue" themeColor="blue" />
-        <span class="text-sm">Blue</span>
-      </div>
-      <div class="flex items-center space-x-4">
-        <GlassyToggle v-model="indigo" themeColor="indigo" />
-        <span class="text-sm">Indigo (default)</span>
-      </div>
-      <div class="flex items-center space-x-4">
-        <GlassyToggle v-model="green" themeColor="green" />
-        <span class="text-sm">Green</span>
-      </div>
-      <div class="flex items-center space-x-4">
-        <GlassyToggle v-model="orange" themeColor="orange" />
-        <span class="text-sm">Orange</span>
-      </div>
-      <div class="flex items-center space-x-4">
-        <GlassyToggle v-model="yellow" themeColor="yellow" />
-        <span class="text-sm">Yellow</span>
-      </div>
-      <div class="flex items-center space-x-4">
-        <GlassyToggle v-model="danger" themeColor="danger" />
-        <span class="text-sm">Danger (red)</span>
+      <div v-for="color in colors" :key="color" class="flex items-center space-x-4">
+        <GlassyToggle v-model="toggles[color]" :themeColor="color" />
+        <span class="text-sm">{{ color.charAt(0).toUpperCase() + color.slice(1) }}</span>
       </div>
     </div>
   `,
     setup() {
-        return {
-            blue: false,
-            indigo: false,
-            green: false,
-            orange: false,
-            yellow: false,
-            danger: false,
-        };
+        const themeStore = useThemeStore();
+        const colors = themeStore.availableThemes;
+        const toggles = ref(colors.reduce((acc, color) => ({ ...acc, [color]: false }), {}));
+        return { colors, toggles };
     },
 });
 

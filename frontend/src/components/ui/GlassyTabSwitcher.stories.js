@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import GlassyTabSwitcher from './GlassyTabSwitcher.vue';
+import { useThemeStore } from "@/store/theme";
 
 export default {
   title: 'UI/GlassyTabSwitcher',
@@ -61,6 +62,7 @@ ManyTabs.args = {
 export const ColorVariants = () => ({
   components: { GlassyTabSwitcher },
   setup() {
+    const themeStore = useThemeStore();
     const activeIndices = ref({
       blue: 0,
       indigo: 0,
@@ -76,12 +78,12 @@ export const ColorVariants = () => ({
       { title: 'Messages' },
     ];
 
-    return { activeIndices, tabs };
+    return { activeIndices, tabs, colors: themeStore.availableThemes };
   },
   template: `
     <div class="space-y-4">
       <GlassyTabSwitcher
-        v-for="color in ['blue', 'indigo', 'green', 'orange', 'yellow', 'danger']"
+        v-for="color in colors"
         :key="color"
         :theme-color="color"
         :tabs="tabs"

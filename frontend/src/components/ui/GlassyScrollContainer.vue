@@ -9,9 +9,8 @@
 			'border-white/20',
 			'bg-black/5',
 			'dark:bg-white/5',
-			themeClass,
 		]"
-		:style="{ '--scrollbar-size': scrollbarSize }"
+		:style="scrollbarStyle"
 	>
 		<slot></slot>
 	</div>
@@ -19,6 +18,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { useThemeStore } from "@/store/theme";
 
 const props = defineProps({
 	themeColor: {
@@ -36,7 +36,18 @@ const props = defineProps({
 	},
 });
 
-const themeClass = computed(() => `theme-${props.themeColor}`);
+const themeStore = useThemeStore();
+
+const scrollbarStyle = computed(() => {
+    const theme = themeStore.getThemeClasses('GlassyScrollContainer', props.themeColor);
+    return {
+        '--scrollbar-size': props.scrollbarSize,
+        '--thumb-color': theme.thumb,
+        '--thumb-hover-color': theme.thumbHover,
+        '--dark-thumb-color': theme.darkThumb,
+        '--dark-thumb-hover-color': theme.darkThumbHover,
+    };
+});
 </script>
 
 <style>
@@ -68,96 +79,19 @@ const themeClass = computed(() => `theme-${props.themeColor}`);
 	border: 1px solid rgba(255, 255, 255, 0.2);
 	box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
 	transition: background-color 0.3s ease-out;
+  background-color: var(--thumb-color);
+}
+
+.glassy-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--thumb-hover-color);
 }
 
 .dark .glassy-scroll-container::-webkit-scrollbar-thumb {
 	border-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--dark-thumb-color);
 }
 
-/* === Theme Definitions === */
-/* We use Tailwind's color variables (exposed as --tw-color-*) to stay consistent with the theme. */
-
-/* --- Indigo --- */
-.glassy-scroll-container.theme-indigo::-webkit-scrollbar-thumb {
-	background-color: theme('colors.indigo.400 / 50%');
-}
-.glassy-scroll-container.theme-indigo::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.indigo.400 / 70%');
-}
-.dark .glassy-scroll-container.theme-indigo::-webkit-scrollbar-thumb {
-	background-color: theme('colors.indigo.300 / 40%');
-}
-.dark .glassy-scroll-container.theme-indigo::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.indigo.300 / 60%');
-}
-
-/* --- Blue --- */
-.glassy-scroll-container.theme-blue::-webkit-scrollbar-thumb {
-	background-color: theme('colors.blue.400 / 50%');
-}
-.glassy-scroll-container.theme-blue::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.blue.400 / 70%');
-}
-.dark .glassy-scroll-container.theme-blue::-webkit-scrollbar-thumb {
-	background-color: theme('colors.blue.300 / 40%');
-}
-.dark .glassy-scroll-container.theme-blue::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.blue.300 / 60%');
-}
-
-/* --- Green --- */
-.glassy-scroll-container.theme-green::-webkit-scrollbar-thumb {
-	background-color: theme('colors.green.400 / 50%');
-}
-.glassy-scroll-container.theme-green::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.green.400 / 70%');
-}
-.dark .glassy-scroll-container.theme-green::-webkit-scrollbar-thumb {
-	background-color: theme('colors.green.300 / 40%');
-}
-.dark .glassy-scroll-container.theme-green::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.green.300 / 60%');
-}
-
-/* --- Orange --- */
-.glassy-scroll-container.theme-orange::-webkit-scrollbar-thumb {
-	background-color: theme('colors.orange.400 / 50%');
-}
-.glassy-scroll-container.theme-orange::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.orange.400 / 70%');
-}
-.dark .glassy-scroll-container.theme-orange::-webkit-scrollbar-thumb {
-	background-color: theme('colors.orange.300 / 40%');
-}
-.dark .glassy-scroll-container.theme-orange::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.orange.300 / 60%');
-}
-
-/* --- Yellow --- */
-.glassy-scroll-container.theme-yellow::-webkit-scrollbar-thumb {
-	background-color: theme('colors.yellow.400 / 50%');
-}
-.glassy-scroll-container.theme-yellow::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.yellow.400 / 70%');
-}
-.dark .glassy-scroll-container.theme-yellow::-webkit-scrollbar-thumb {
-	background-color: theme('colors.yellow.300 / 40%');
-}
-.dark .glassy-scroll-container.theme-yellow::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.yellow.300 / 60%');
-}
-
-/* --- Danger (Red) --- */
-.glassy-scroll-container.theme-danger::-webkit-scrollbar-thumb {
-	background-color: theme('colors.red.400 / 50%');
-}
-.glassy-scroll-container.theme-danger::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.red.400 / 70%');
-}
-.dark .glassy-scroll-container.theme-danger::-webkit-scrollbar-thumb {
-	background-color: theme('colors.red.300 / 40%');
-}
-.dark .glassy-scroll-container.theme-danger::-webkit-scrollbar-thumb:hover {
-	background-color: theme('colors.red.300 / 60%');
+.dark .glassy-scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--dark-thumb-hover-color);
 }
 </style>

@@ -44,6 +44,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useThemeStore } from "@/store/theme";
 
 const props = defineProps({
   tabs: {
@@ -65,54 +66,18 @@ const props = defineProps({
 
 const emit = defineEmits(['update:activeIndex']);
 
+const themeStore = useThemeStore();
 const tabRefs = ref([]);
 const prevActiveIndex = ref(props.activeIndex);
 
 // Color variants for different theme colors
-const colorVariants = {
-  blue: {
-    container: 'bg-blue-500/10 dark:bg-blue-400/10',
-    text: 'text-blue-900 dark:text-blue-100',
-    bubble: 'bg-blue-500/5 dark:bg-blue-400/5'
-  },
-  indigo: {
-    container: 'bg-indigo-500/10 dark:bg-indigo-400/10',
-    text: 'text-indigo-900 dark:text-indigo-100',
-    bubble: 'bg-indigo-500/5 dark:bg-indigo-400/5'
-  },
-  green: {
-    container: 'bg-green-500/10 dark:bg-green-400/10',
-    text: 'text-green-900 dark:text-green-100',
-    bubble: 'bg-green-500/5 dark:bg-green-400/5'
-  },
-  orange: {
-    container: 'bg-orange-500/10 dark:bg-orange-400/10',
-    text: 'text-orange-900 dark:text-orange-100',
-    bubble: 'bg-orange-500/5 dark:bg-orange-400/5'
-  },
-  yellow: {
-    container: 'bg-yellow-500/10 dark:bg-yellow-400/10',
-    text: 'text-yellow-900 dark:text-yellow-100',
-    bubble: 'bg-yellow-500/5 dark:bg-yellow-400/5'
-  },
-  danger: {
-    container: 'bg-red-500/10 dark:bg-red-400/10',
-    text: 'text-red-900 dark:text-red-100',
-    bubble: 'bg-red-500/5 dark:bg-red-400/5'
-  }
-};
-
-const containerColorClasses = computed(() => 
-  colorVariants[props.themeColor]?.container
+const themeClasses = computed(() => 
+  themeStore.getThemeClasses('GlassyTabSwitcher', props.themeColor)
 );
 
-const textColorClasses = computed(() => 
-  colorVariants[props.themeColor]?.text
-);
-
-const bubbleColorClasses = computed(() => 
-  colorVariants[props.themeColor]?.bubble
-);
+const containerColorClasses = computed(() => themeClasses.value.container);
+const textColorClasses = computed(() => themeClasses.value.text);
+const bubbleColorClasses = computed(() => themeClasses.value.bubble);
 
 // Computed style for the sliding bubble
 const bubbleStyle = computed(() => {

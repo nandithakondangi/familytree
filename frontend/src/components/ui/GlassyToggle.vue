@@ -22,6 +22,7 @@
 
 <script setup>
 import { computed } from "vue";
+import { useThemeStore } from "@/store/theme";
 
 const props = defineProps({
   /**
@@ -65,6 +66,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue"]);
+const themeStore = useThemeStore();
 
 function onToggle(event) {
   emit("update:modelValue", event.target.checked);
@@ -107,21 +109,6 @@ const thumbSizeMap = {
   },
 };
 
-// Color variants for track background (unchecked & checked intensities)
-const colorVariantClasses = {
-  blue: "bg-blue-500/20 dark:bg-blue-400/20 peer-checked:bg-blue-500/60 dark:peer-checked:bg-blue-400/60",
-  indigo:
-    "bg-indigo-500/20 dark:bg-indigo-400/20 peer-checked:bg-indigo-500/60 dark:peer-checked:bg-indigo-400/60",
-  green:
-    "bg-green-500/20 dark:bg-green-400/20 peer-checked:bg-green-500/60 dark:peer-checked:bg-green-400/60",
-  orange:
-    "bg-orange-500/20 dark:bg-orange-400/20 peer-checked:bg-orange-500/60 dark:peer-checked:bg-orange-400/60",
-  yellow:
-      "bg-yellow-500/20 dark:bg-yellow-400/20 peer-checked:bg-yellow-500/60 dark:peer-checked:bg-yellow-400/60",
-  danger:
-    "bg-red-500/20 dark:bg-red-400/20 peer-checked:bg-red-500/60 dark:peer-checked:bg-red-400/60",
-};
-
 const trackBaseClasses =
   "relative rounded-full border border-white/20 shadow-inner backdrop-blur-md transition-all duration-300 ease-out bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/40 to-transparent";
 
@@ -131,7 +118,7 @@ const trackStateClasses = props.disabled
 
 const trackClasses = computed(() => {
   const size = trackSizeMap[props.size] || trackSizeMap.md;
-  const color = colorVariantClasses[props.themeColor] || colorVariantClasses.indigo;
+  const color = themeStore.getThemeClasses("GlassyToggle", props.themeColor);
   return `${trackBaseClasses} ${size} ${color} ${trackStateClasses}`;
 });
 
