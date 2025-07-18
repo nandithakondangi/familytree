@@ -14,6 +14,7 @@
     "@headlessui/vue": "^1.7.23",
     "core-js": "^3.8.3",
     "pinia": "^3.0.3",
+    "v-network-graph": "^0.9.21",
     "vue": "^3.2.13",
     "vue-datepicker-next": "^1.0.3"
   },

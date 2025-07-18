@@ -143,12 +143,21 @@ export async function sendMessageToChatbot(message) {
 /**
  * Fetches the HTML content for rendering the family tree graph.
  * @param {string} theme - The current theme (e.g., 'dark', 'light').
+ * @param {string} [poiId] - Optional: The ID of the Point of Interest node to center the graph around.
  * @returns {Promise<string>} A promise that resolves to the graph HTML string.
  * @throws {Error} If the API call fails.
  */
-export async function fetchGraphHtml(theme) {
-    const themeQueryParam = theme ? `?theme=${theme}` : "";
-    const response = await fetch(`/api/v1/graph/render${themeQueryParam}`);
+export async function fetchGraphHtml(theme, poiId) {
+    const params = new URLSearchParams();
+    if (theme) {
+        params.append('theme', theme);
+    }
+    if (poiId) {
+        params.append('poi', poiId);
+    }
+    const queryString = params.toString();
+    const url = `/api/v1/graph/render${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url);
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
@@ -156,7 +165,7 @@ export async function fetchGraphHtml(theme) {
         );
     }
     const data = await response.json();
-    return data.graph_html || '<p style="text-align:center; padding-top: 20px;">No graph data received.</p>';
+    return data;
 }
 
 /**

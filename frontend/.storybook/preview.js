@@ -2,10 +2,12 @@ import "../src/index.css";
 import { setup } from "@storybook/vue3";
 import { createPinia } from "pinia";
 import { withThemeByClassName } from "@storybook/addon-themes";
+import vNetworkGraph from "v-network-graph";
 
-// Set up Pinia for all stories
+// Set up Pinia and v-network-graph for all stories
 setup((app) => {
 	app.use(createPinia());
+	app.use(vNetworkGraph);
 });
 
 export const parameters = {
