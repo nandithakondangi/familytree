@@ -15,6 +15,7 @@ export const useThemeStore = defineStore("theme", {
 			blue: {
 				GlassyButton: "text-blue-900 dark:text-blue-100 bg-blue-500/20 dark:bg-blue-400/20 group-hover:bg-blue-500/30 dark:group-hover:bg-blue-400/30",
 				GlassyTabPanel: "text-blue-900 dark:text-blue-100 bg-blue-500/20 dark:bg-blue-400/20",
+				GlassyFamilyTreeCanvas: "text-blue-900 dark:text-blue-100 bg-blue-500/20 dark:bg-blue-400/20",
 				GlassyTabSwitcher: {
 					container: "bg-blue-500/10 dark:bg-blue-400/10",
 					text: "text-blue-900 dark:text-blue-100",
@@ -37,6 +38,7 @@ export const useThemeStore = defineStore("theme", {
 			indigo: {
 				GlassyButton: "text-indigo-900 dark:text-indigo-100 bg-indigo-500/20 dark:bg-indigo-400/20 group-hover:bg-indigo-500/30 dark:group-hover:bg-indigo-400/30",
 				GlassyTabPanel: "text-indigo-900 dark:text-indigo-100 bg-indigo-500/20 dark:bg-indigo-400/20",
+				GlassyFamilyTreeCanvas: "text-indigo-900 dark:text-indigo-100 bg-indigo-500/20 dark:bg-indigo-400/20",
 				GlassyTabSwitcher: {
 					container: "bg-indigo-500/10 dark:bg-indigo-400/10",
 					text: "text-indigo-900 dark:text-indigo-100",
@@ -59,6 +61,7 @@ export const useThemeStore = defineStore("theme", {
 			green: {
 				GlassyButton: "text-green-900 dark:text-green-100 bg-green-500/20 dark:bg-green-400/20 group-hover:bg-green-500/30 dark:group-hover:bg-green-400/30",
 				GlassyTabPanel: "text-green-900 dark:text-green-100 bg-green-500/20 dark:bg-green-400/20",
+				GlassyFamilyTreeCanvas: "text-green-900 dark:text-green-100 bg-green-500/20 dark:bg-green-400/20",
 				GlassyTabSwitcher: {
 					container: "bg-green-500/10 dark:bg-green-400/10",
 					text: "text-green-900 dark:text-green-100",
@@ -81,6 +84,7 @@ export const useThemeStore = defineStore("theme", {
 			orange: {
 				GlassyButton: "text-orange-900 dark:text-orange-100 bg-orange-500/20 dark:bg-orange-400/20 group-hover:bg-orange-500/30 dark:group-hover:bg-orange-400/30",
 				GlassyTabPanel: "text-orange-900 dark:text-orange-100 bg-orange-500/20 dark:bg-orange-400/20",
+				GlassyFamilyTreeCanvas: "text-orange-900 dark:text-orange-100 bg-orange-500/20 dark:bg-orange-400/20",
 				GlassyTabSwitcher: {
 					container: "bg-orange-500/10 dark:bg-orange-400/10",
 					text: "text-orange-900 dark:text-orange-100",
@@ -103,6 +107,7 @@ export const useThemeStore = defineStore("theme", {
 			yellow: {
 				GlassyButton: "text-yellow-900 dark:text-yellow-100 bg-yellow-500/20 dark:bg-yellow-400/20 group-hover:bg-yellow-500/30 dark:group-hover:bg-yellow-400/30",
 				GlassyTabPanel: "text-yellow-900 dark:text-yellow-100 bg-yellow-500/20 dark:bg-yellow-400/20",
+				GlassyFamilyTreeCanvas: "text-yellow-900 dark:text-yellow-100 bg-yellow-500/20 dark:bg-yellow-400/20",
 				GlassyTabSwitcher: {
 					container: "bg-yellow-500/10 dark:bg-yellow-400/10",
 					text: "text-yellow-900 dark:text-yellow-100",
@@ -125,6 +130,7 @@ export const useThemeStore = defineStore("theme", {
 			danger: {
 				GlassyButton: "text-red-900 dark:text-red-100 bg-red-500/20 dark:bg-red-400/20 group-hover:bg-red-500/30 dark:group-hover:bg-red-400/30",
 				GlassyTabPanel: "text-red-900 dark:text-red-100 bg-red-500/20 dark:bg-red-400/20",
+				GlassyFamilyTreeCanvas: "text-red-900 dark:text-red-100 bg-red-500/20 dark:bg-red-400/20",
 				GlassyTabSwitcher: {
 					container: "bg-red-500/10 dark:bg-red-400/10",
 					text: "text-red-900 dark:text-red-100",

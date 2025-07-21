@@ -1,4 +1,4 @@
-import FamilyTreeGraph from './FamilyTreeGraph.vue';
+import GlassyFamilyTreeCanvas from './GlassyFamilyTreeCanvas.vue';
 import { VNetworkGraph } from 'v-network-graph';
 import { useTreeStore } from '@/store/tree';
 import { useAppStore } from '@/store/app';
@@ -49,9 +49,15 @@ const mockFetchGraphHtml = async (theme, poiId) => {
 };
 
 export default {
-  title: 'Graph/FamilyTreeGraph',
-  component: FamilyTreeGraph,
-  argTypes: {},
+  title: 'Graph/GlassyFamilyTreeCanvas',
+  component: GlassyFamilyTreeCanvas,
+  argTypes: {
+    themeColor: {
+      control: { type: 'select' },
+      options: ['blue', 'indigo', 'green', 'orange', 'yellow', 'danger'],
+      description: 'Sets the color theme of the canvas.',
+    }
+  },
   parameters: {
     backgrounds: {
       default: "dark",
@@ -85,11 +91,14 @@ export default {
 };
 
 const Template = (args) => ({
-  components: { FamilyTreeGraph },
+  components: { GlassyFamilyTreeCanvas },
   setup() {
     return { args };
   },
-  template: '<FamilyTreeGraph v-bind="args" />',
+  template: `
+  <div class="absolute inset-0 m-4">
+    <GlassyFamilyTreeCanvas v-bind="args" />
+  </div>`,
 });
 
 export const Default = Template.bind({});

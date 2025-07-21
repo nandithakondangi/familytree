@@ -8,13 +8,15 @@
     />
     <div
       v-if="isLoading"
-      class="absolute inset-0 bg-white/50 dark:bg-slate-800/60 backdrop-blur-md flex items-center justify-center rounded-xl"
+      class="absolute inset-0 flex items-center justify-center rounded-xl"
     >
       <div class="flex flex-col items-center">
-        <div
-          class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500/90 dark:border-indigo-400/90"
-        ></div>
-        <p class="mt-4 text-gray-700 dark:text-gray-300">Loading graph...</p>
+        <div class="flex h-12 items-center justify-center space-x-2">
+          <div class="h-4 w-4 animate-bounce rounded-full bg-indigo-800/90 dark:bg-indigo-200/90 [animation-delay:-0.3s]"></div>
+          <div class="h-4 w-4 animate-bounce rounded-full bg-indigo-800/90 dark:bg-indigo-200/90 [animation-delay:-0.15s]"></div>
+          <div class="h-4 w-4 animate-bounce rounded-full bg-indigo-800/90 dark:bg-indigo-200/90"></div>
+        </div>
+        <p class="mt-4 text-indigo-900 dark:text-indigo-100">Loading graph...</p>
       </div>
     </div>
   </div>
@@ -141,8 +143,7 @@ onMounted(() => {
 /* Basic styling for the graph container */
 .v-network-graph {
   width: 100%;
-  height: 600px; /* Adjust as needed */
-  border: 1px solid #eee;
-  background-color: #f9f9f9;
+  height: 100%;
+  background-color: transparent;
 }
 </style>
