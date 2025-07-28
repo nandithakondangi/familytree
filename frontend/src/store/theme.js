@@ -33,6 +33,19 @@ export const useThemeStore = defineStore("theme", {
 					header: "text-blue-900 dark:text-blue-100",
 					body: "text-blue-800 dark:text-blue-200",
 				},
+				GlassyDropDown: {
+					container: "bg-blue-500/10 dark:bg-blue-400/10",
+					text: "text-blue-900 dark:text-blue-100",
+					focus: "data-focus:bg-blue-500/40 dark:data-focus:bg-blue-400/40 data-focus:text-blue-900 dark:data-focus:text-blue-100 data-focus:ring-2 data-focus:ring-blue-500/60 data-focus:ring-offset-1",
+					selected: "data-selected:ring-2 data-selected:ring-blue-500/50",
+					active: "text-blue-900 dark:text-blue-100 border-2 border-blue-500/60",
+					selectedItem: "ring-2 ring-blue-500/50",
+					optionsContainer: "bg-blue-50/90 dark:bg-blue-950/90",
+				},
+				GlassyTextbox: {
+					backdrop: "bg-blue-500/10 dark:bg-blue-400/10 group-focus-within:bg-blue-500/20 dark:group-focus-within:bg-blue-400/20",
+					text: "text-blue-800 dark:text-blue-100 placeholder-blue-600/70 dark:placeholder-blue-400/60",
+				},
 			},
 			indigo: {
 				GlassyButton: "text-indigo-900 dark:text-indigo-100 bg-indigo-500/20 dark:bg-indigo-400/20 group-hover:bg-indigo-500/30 dark:group-hover:bg-indigo-400/30",
@@ -54,6 +67,19 @@ export const useThemeStore = defineStore("theme", {
 					panel: "bg-indigo-200/50 dark:bg-indigo-900/50",
 					header: "text-indigo-900 dark:text-indigo-100",
 					body: "text-indigo-800 dark:text-indigo-200",
+				},
+				GlassyDropDown: {
+					container: "bg-indigo-500/10 dark:bg-indigo-400/10",
+					text: "text-indigo-900 dark:text-indigo-100",
+					focus: "data-focus:bg-indigo-500/40 dark:data-focus:bg-indigo-400/40 data-focus:text-indigo-900 dark:data-focus:text-indigo-100 data-focus:ring-2 data-focus:ring-indigo-500/60 data-focus:ring-offset-1",
+					selected: "data-selected:ring-2 data-selected:ring-indigo-500/50",
+					active: "text-indigo-900 dark:text-indigo-100 border-2 border-indigo-500/60",
+					selectedItem: "ring-2 ring-indigo-500/50",
+					optionsContainer: "bg-indigo-50/90 dark:bg-indigo-950/90",
+				},
+				GlassyTextbox: {
+					backdrop: "bg-indigo-500/10 dark:bg-indigo-400/10 group-focus-within:bg-indigo-500/20 dark:group-focus-within:bg-indigo-400/20",
+					text: "text-indigo-800 dark:text-indigo-100 placeholder-indigo-600/70 dark:placeholder-indigo-400/60",
 				},
 			},
 			green: {
@@ -77,6 +103,19 @@ export const useThemeStore = defineStore("theme", {
 					header: "text-green-900 dark:text-green-100",
 					body: "text-green-800 dark:text-green-200",
 				},
+				GlassyDropDown: {
+					container: "bg-green-500/10 dark:bg-green-400/10",
+					text: "text-green-900 dark:text-green-100",
+					focus: "data-focus:bg-green-500/40 dark:data-focus:bg-green-400/40 data-focus:text-green-900 dark:data-focus:text-green-100 data-focus:ring-2 data-focus:ring-green-500/60 data-focus:ring-offset-1",
+					selected: "data-selected:ring-2 data-selected:ring-green-500/50",
+					active: "text-green-900 dark:text-green-100 border-2 border-green-500/60",
+					selectedItem: "ring-2 ring-green-500/50",
+					optionsContainer: "bg-green-50/90 dark:bg-green-950/90",
+				},
+				GlassyTextbox: {
+					backdrop: "bg-green-500/10 dark:bg-green-400/10 group-focus-within:bg-green-500/20 dark:group-focus-within:bg-green-400/20",
+					text: "text-green-800 dark:text-green-100 placeholder-green-600/70 dark:placeholder-green-400/60",
+				},
 			},
 			orange: {
 				GlassyButton: "text-orange-900 dark:text-orange-100 bg-orange-500/20 dark:bg-orange-400/20 group-hover:bg-orange-500/30 dark:group-hover:bg-orange-400/30",
@@ -98,6 +137,19 @@ export const useThemeStore = defineStore("theme", {
 					panel: "bg-orange-200/50 dark:bg-orange-900/50",
 					header: "text-orange-900 dark:text-orange-100",
 					body: "text-orange-800 dark:text-orange-200",
+				},
+				GlassyDropDown: {
+					container: "bg-orange-500/10 dark:bg-orange-400/10",
+					text: "text-orange-900 dark:text-orange-100",
+					focus: "data-focus:bg-orange-500/40 dark:data-focus:bg-orange-400/40 data-focus:text-orange-900 dark:data-focus:text-orange-100 data-focus:ring-2 data-focus:ring-orange-500/60 data-focus:ring-offset-1",
+					selected: "data-selected:ring-2 data-selected:ring-orange-500/50",
+					active: "text-orange-900 dark:text-orange-100 border-2 border-orange-500/60",
+					selectedItem: "ring-2 ring-orange-500/50",
+					optionsContainer: "bg-orange-50/90 dark:bg-orange-950/90",
+				},
+				GlassyTextbox: {
+					backdrop: "bg-orange-500/10 dark:bg-orange-400/10 group-focus-within:bg-orange-500/20 dark:group-focus-within:bg-orange-400/20",
+					text: "text-orange-800 dark:text-orange-100 placeholder-orange-600/70 dark:placeholder-orange-400/60",
 				},
 			},
 			yellow: {
@@ -121,6 +173,19 @@ export const useThemeStore = defineStore("theme", {
 					header: "text-yellow-900 dark:text-yellow-100",
 					body: "text-yellow-800 dark:text-yellow-200",
 				},
+				GlassyDropDown: {
+					container: "bg-yellow-500/10 dark:bg-yellow-400/10",
+					text: "text-yellow-900 dark:text-yellow-100",
+					focus: "data-focus:bg-yellow-500/40 dark:data-focus:bg-yellow-400/40 data-focus:text-yellow-900 dark:data-focus:text-yellow-100 data-focus:ring-2 data-focus:ring-yellow-500/60 data-focus:ring-offset-1",
+					selected: "data-selected:ring-2 data-selected:ring-yellow-500/50",
+					active: "text-yellow-900 dark:text-yellow-100 border-2 border-yellow-500/60",
+					selectedItem: "ring-2 ring-yellow-500/50",
+					optionsContainer: "bg-yellow-50/90 dark:bg-yellow-950/90",
+				},
+				GlassyTextbox: {
+					backdrop: "bg-yellow-500/10 dark:bg-yellow-400/10 group-focus-within:bg-yellow-500/20 dark:group-focus-within:bg-yellow-400/20",
+					text: "text-yellow-800 dark:text-yellow-100 placeholder-yellow-600/70 dark:placeholder-yellow-400/60",
+				},
 			},
 			danger: {
 				GlassyButton: "text-red-900 dark:text-red-100 bg-red-500/20 dark:bg-red-400/20 group-hover:bg-red-500/30 dark:group-hover:bg-red-400/30",
@@ -142,6 +207,19 @@ export const useThemeStore = defineStore("theme", {
 					panel: "bg-red-200/50 dark:bg-red-900/50",
 					header: "text-red-900 dark:text-red-100",
 					body: "text-red-800 dark:text-red-200",
+				},
+				GlassyDropDown: {
+					container: "bg-red-500/10 dark:bg-red-400/10",
+					text: "text-red-900 dark:text-red-100",
+					focus: "data-focus:bg-red-500/40 dark:data-focus:bg-red-400/40 data-focus:text-red-900 dark:data-focus:text-red-100 data-focus:ring-2 data-focus:ring-red-500/60 data-focus:ring-offset-1",
+					selected: "data-selected:ring-2 data-selected:ring-red-500/50",
+					active: "text-red-900 dark:text-red-100 border-2 border-red-500/60",
+					selectedItem: "ring-2 ring-red-500/50",
+					optionsContainer: "bg-red-50/90 dark:bg-red-950/90",
+				},
+				GlassyTextbox: {
+					backdrop: "bg-red-500/10 dark:bg-red-400/10 group-focus-within:bg-red-500/20 dark:group-focus-within:bg-red-400/20",
+					text: "text-red-800 dark:text-red-100 placeholder-red-600/70 dark:placeholder-red-400/60",
 				},
 			},
 			"default": {
