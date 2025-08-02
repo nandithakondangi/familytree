@@ -46,6 +46,11 @@ export const useThemeStore = defineStore("theme", {
 					backdrop: "bg-blue-500/10 dark:bg-blue-400/10 group-focus-within:bg-blue-500/20 dark:group-focus-within:bg-blue-400/20",
 					text: "text-blue-800 dark:text-blue-100 placeholder-blue-600/70 dark:placeholder-blue-400/60",
 				},
+				GlassyDatePicker: {
+					backdrop: "bg-blue-500/10 dark:bg-blue-400/10 group-focus-within:bg-blue-500/20 dark:group-focus-within:bg-blue-400/20",
+					text: "text-blue-800 dark:text-blue-100 placeholder-blue-600/70 dark:placeholder-blue-400/60",
+					popup: "!bg-blue-200/80 dark:!bg-blue-950/95 border border-blue-300/50 dark:border-blue-800/50",
+				},
 			},
 			indigo: {
 				GlassyButton: "text-indigo-900 dark:text-indigo-100 bg-indigo-500/20 dark:bg-indigo-400/20 group-hover:bg-indigo-500/30 dark:group-hover:bg-indigo-400/30",
@@ -80,6 +85,11 @@ export const useThemeStore = defineStore("theme", {
 				GlassyTextbox: {
 					backdrop: "bg-indigo-500/10 dark:bg-indigo-400/10 group-focus-within:bg-indigo-500/20 dark:group-focus-within:bg-indigo-400/20",
 					text: "text-indigo-800 dark:text-indigo-100 placeholder-indigo-600/70 dark:placeholder-indigo-400/60",
+				},
+				GlassyDatePicker: {
+					backdrop: "bg-indigo-500/10 dark:bg-indigo-400/10 group-focus-within:bg-indigo-500/20 dark:group-focus-within:bg-indigo-400/20",
+					text: "text-indigo-800 dark:text-indigo-100 placeholder-indigo-600/70 dark:placeholder-indigo-400/60",
+					popup: "!bg-indigo-200/80 dark:!bg-indigo-950/95 border border-indigo-300/50 dark:border-indigo-800/50",
 				},
 			},
 			green: {
@@ -116,6 +126,11 @@ export const useThemeStore = defineStore("theme", {
 					backdrop: "bg-green-500/10 dark:bg-green-400/10 group-focus-within:bg-green-500/20 dark:group-focus-within:bg-green-400/20",
 					text: "text-green-800 dark:text-green-100 placeholder-green-600/70 dark:placeholder-green-400/60",
 				},
+				GlassyDatePicker: {
+					backdrop: "bg-green-500/10 dark:bg-green-400/10 group-focus-within:bg-green-500/20 dark:group-focus-within:bg-green-400/20",
+					text: "text-green-800 dark:text-green-100 placeholder-green-600/70 dark:placeholder-green-400/60",
+					popup: "!bg-green-200/80 dark:!bg-green-900/95 border border-green-300/50 dark:border-green-700/50",
+				},
 			},
 			orange: {
 				GlassyButton: "text-orange-900 dark:text-orange-100 bg-orange-500/20 dark:bg-orange-400/20 group-hover:bg-orange-500/30 dark:group-hover:bg-orange-400/30",
@@ -150,6 +165,11 @@ export const useThemeStore = defineStore("theme", {
 				GlassyTextbox: {
 					backdrop: "bg-orange-500/10 dark:bg-orange-400/10 group-focus-within:bg-orange-500/20 dark:group-focus-within:bg-orange-400/20",
 					text: "text-orange-800 dark:text-orange-100 placeholder-orange-600/70 dark:placeholder-orange-400/60",
+				},
+				GlassyDatePicker: {
+					backdrop: "bg-orange-500/10 dark:bg-orange-400/10 group-focus-within:bg-orange-500/20 dark:group-focus-within:bg-orange-400/20",
+					text: "text-orange-800 dark:text-orange-100 placeholder-orange-600/70 dark:placeholder-orange-400/60",
+					popup: "!bg-orange-200/80 dark:!bg-orange-900/95 border border-orange-300/50 dark:border-orange-700/50",
 				},
 			},
 			yellow: {
@@ -186,6 +206,11 @@ export const useThemeStore = defineStore("theme", {
 					backdrop: "bg-yellow-500/10 dark:bg-yellow-400/10 group-focus-within:bg-yellow-500/20 dark:group-focus-within:bg-yellow-400/20",
 					text: "text-yellow-800 dark:text-yellow-100 placeholder-yellow-600/70 dark:placeholder-yellow-400/60",
 				},
+				GlassyDatePicker: {
+					backdrop: "bg-yellow-500/10 dark:bg-yellow-400/10 group-focus-within:bg-yellow-500/20 dark:group-focus-within:bg-yellow-400/20",
+					text: "text-yellow-800 dark:text-yellow-100 placeholder-yellow-600/70 dark:placeholder-yellow-400/60",
+					popup: "!bg-yellow-200/80 dark:!bg-yellow-900/95 border border-yellow-300/50 dark:border-yellow-700/50",
+				},
 			},
 			danger: {
 				GlassyButton: "text-red-900 dark:text-red-100 bg-red-500/20 dark:bg-red-400/20 group-hover:bg-red-500/30 dark:group-hover:bg-red-400/30",
@@ -220,6 +245,11 @@ export const useThemeStore = defineStore("theme", {
 				GlassyTextbox: {
 					backdrop: "bg-red-500/10 dark:bg-red-400/10 group-focus-within:bg-red-500/20 dark:group-focus-within:bg-red-400/20",
 					text: "text-red-800 dark:text-red-100 placeholder-red-600/70 dark:placeholder-red-400/60",
+				},
+				GlassyDatePicker: {
+					backdrop: "bg-red-500/10 dark:bg-red-400/10 group-focus-within:bg-red-500/20 dark:group-focus-within:bg-red-400/20",
+					text: "text-red-800 dark:text-red-100 placeholder-red-600/70 dark:placeholder-red-400/60",
+					popup: "!bg-red-200/80 dark:!bg-red-900/95 border border-red-300/50 dark:border-red-700/50",
 				},
 			},
 			"default": {
